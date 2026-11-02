@@ -1,0 +1,359 @@
+PWA BUILD FOR TIMES-TABLES.APP
+==============================
+This file turns the plain game page into an installable app (PWA) that works offline, with an INSTALL button on Android and an install explanation in the How to Play popup.
+build-instructions.txt describes only the game page and knows nothing about the PWA; everything PWA lives here.
+
+IMPORTANT: the installable, offline version only works when the site is served by a web server over HTTPS (or from http://localhost while testing). Browsers allow service workers and app installation only there. A game file opened straight from disk (a file:// address) plays normally, but it cannot be installed or cache itself for offline use, so do not add these files to a game you build to open from disk.
+
+ENVIRONMENT
+-----------
+- Site folder: /var/www/times-tables.app (served as the root of https://times-tables.app).
+- Tools: GNU make, python3, ImageMagick (`convert`).
+- `make` in the site folder runs the whole build. Never edit generated files by hand; change build-instructions.txt or this file and run `make` again.
+
+BUILD STEPS
+-----------
+1. The game page is built from build-instructions.txt into build/index.html (the plain page, no PWA).
+2. Every file between a BEGIN FILE and END FILE marker line below is copied out exactly, without the marker lines (extract-files.py does this). pwa-head.html goes into build/; all other files go into the site folder.
+3. index.html is build/index.html with the contents of build/pwa-head.html inserted on the line just before </head>. The plain page must contain exactly one </head>.
+4. icon-192.png and icon-512.png are converted from icon.svg with ImageMagick at exactly 192x192 and 512x512 pixels.
+
+The result in the site folder: index.html, manifest.webmanifest, sw.js, pwa.js, icon.svg, icon-192.png, icon-512.png.
+
+HOW IT WORKS
+------------
+- pwa-head.html links the manifest, theme colour and icons (the small SVG icon for the browser tab), and loads pwa.js from the <head>, so it runs before the game loads.
+- pwa.js catches Chrome's install offer (`beforeinstallprompt`, which fires only once and often before the game has loaded). It calls preventDefault on it, which stops Chrome's own "Add to Home screen" bar from covering the bottom of the game; the offer is used by the two install buttons below instead.
+- Players who never install download only the game page, pwa.js, the manifest and the tab icon. The offline files (sw.js and the cached copies) are downloaded only when they are needed: when the player accepts an install (from either install button, or Chrome's own install icon or menu, which Chrome reports with `appinstalled`), when the game runs as an installed app (including from an iPhone home screen, where Safari does not report the install, so the first launch from the home screen must be online), or when the device already has the service worker from an earlier install (to keep it up to date). Current Chrome offers installation without a service worker, so nothing needs to be downloaded in advance.
+- On Android only, while Chrome is offering the install and the game is not already running as an installed app, pwa.js adds an INSTALL button to the header's group of speaker and ? buttons, after them, sharing that group equally with them. It copies the speaker button's look (border, background) with 12px bold red text, the same text size as SOURCE. Tapping it opens Chrome's install dialog. If the player cancels, the button goes away. If they accept, the button stays, disabled, showing INSTALLING... while Android finishes the install, because the home-screen icon only appears about 10 seconds after Chrome's dialog closes. It goes away 12 seconds after Chrome reports the install finished (the `appinstalled` event), or 25 seconds after the player accepted if that event never comes. On desktop and iPhone it never appears.
+- The best moment to suggest installing is when a player has just won. On the same conditions as INSTALL (Android, Chrome offering the install, not installed, not installing), pwa.js adds an "Install for offline play" button to the game's "You Won!" screen, directly below "Play Again". It copies the Play Again button's look but in outline (white with blue text and border), so Play Again stays the main button. It uses the same install offer as INSTALL: whichever is used first, both then follow the same INSTALLING... and removal steps.
+- pwa.js also adds one point to the game's How to Play popup (the list in the Info modal), just before the last point ("Hit the SOURCE button..."), saying in one short sentence how to install the app for offline use. It finds that last point by its text (whether the points are list items or paragraphs) and adds the new point as the same kind of element with the same classes, so build-instructions.txt needs no change. When the game is already running as an installed app, the point says so instead.
+- sw.js makes the installed app work offline. It is network-first: every request goes to the network as usual (so updates to the game show up at once) and a copy of each successful response is kept in the cache; only when the network fails is the cached copy served (and, for a page, the cached game at /).
+- The game page has already loaded when sw.js starts, so the service worker never sees that request. pwa.js therefore sends sw.js the list of the page's own files (the page, pwa.js, the manifest, the icons) once the worker is ready, and sw.js fetches and caches them, together with the About page (/about/). From then on the whole game and the About page work offline.
+- The icon is "2x2" drawn with strokes only (no text or fonts), so it renders the same with any SVG converter.
+
+FILES
+-----
+
+----- BEGIN FILE: pwa-head.html -----
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#991b1b">
+<link rel="icon" type="image/svg+xml" href="/icon.svg">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<script src="/pwa.js"></script>
+----- END FILE: pwa-head.html -----
+
+----- BEGIN FILE: manifest.webmanifest -----
+{
+  "name": "Times-Tables.app",
+  "short_name": "Times Tables",
+  "description": "Learn the 2 to 9 times tables by matching cards.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#fafaf9",
+  "theme_color": "#991b1b",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
+----- END FILE: manifest.webmanifest -----
+
+----- BEGIN FILE: sw.js -----
+// Service worker for Times-Tables.app: makes the installed app work offline.
+// Network-first: always ask the network (so updates show at once) and keep a
+// copy of every good response; serve the copy only when the network fails.
+var CACHE = 'times-tables-v2';
+
+self.addEventListener('install', function (event) {
+  self.skipWaiting();
+  event.waitUntil(caches.open(CACHE).then(function (c) { return c.add('/'); }).catch(function () {}));
+});
+
+self.addEventListener('activate', function (event) {
+  event.waitUntil(caches.keys().then(function (keys) {
+    return Promise.all(keys.filter(function (k) { return k !== CACHE; }).map(function (k) { return caches.delete(k); }));
+  }).then(function () { return self.clients.claim(); }));
+});
+
+function keep(request, response) {
+  // Opaque responses are cross-origin files loaded without CORS (the game
+  // loads none, but keep working if that ever changes).
+  if (response && (response.ok || response.type === 'opaque')) {
+    var copy = response.clone();
+    caches.open(CACHE).then(function (c) { return c.put(request, copy); }).catch(function () {});
+  }
+  return response;
+}
+
+// pwa.js sends the page's scripts, stylesheets and icons, which loaded before
+// this worker was running on the first visit.
+self.addEventListener('message', function (event) {
+  var urls = (event.data && event.data.cacheUrls) || [];
+  event.waitUntil(Promise.all(urls.map(function (url) {
+    var request = new Request(url, { mode: new URL(url).origin === self.location.origin ? 'same-origin' : 'no-cors' });
+    return fetch(request).then(function (r) { keep(request, r); }).catch(function () {});
+  })));
+});
+
+self.addEventListener('fetch', function (event) {
+  var request = event.request;
+  if (request.method !== 'GET' || !/^https?:/.test(request.url)) return;
+  event.respondWith(fetch(request).then(function (r) { return keep(request, r); }).catch(function () {
+    return caches.match(request, { ignoreVary: true }).then(function (hit) {
+      if (hit) return hit;
+      if (request.mode === 'navigate') return caches.match('/');
+      return Response.error();
+    }).then(function (r) { return r || Response.error(); });
+  }));
+});
+----- END FILE: sw.js -----
+
+----- BEGIN FILE: pwa.js -----
+// Install support for Times-Tables.app. Loaded from <head>, before the game.
+// - On Android, while Chrome offers to install the app: an INSTALL button at
+//   the end of the header's group of speaker and ? buttons, and an "Install
+//   for offline play" button on the "You Won!" screen.
+// - An install-for-offline point in the How to Play popup.
+// - The offline files (sw.js and its cache) only once the app is installed.
+(function () {
+  var isAndroid = /Android/i.test(navigator.userAgent);
+  var installPrompt = null;
+  var button = null;     // INSTALL in the header
+  var winButton = null;  // "Install for offline play" on the You Won! screen
+  // True from the moment the player accepts the install until the icon has
+  // had time to reach the home screen (Android adds it ~10 s after the dialog).
+  var installing = false;
+  var installingTimer = null;
+
+  function isInstalled() {
+    return window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+  }
+
+  // The speaker button in the header, found by its label.
+  function speakerButton() {
+    return document.querySelector('button[aria-label^="Turn sound"]');
+  }
+
+  // The "Play Again" button on the You Won! screen, found by its text.
+  function playAgainButton() {
+    var buttons = document.querySelectorAll('button');
+    for (var i = 0; i < buttons.length; i++) {
+      if (/^\s*Play Again\s*$/i.test(buttons[i].textContent) && buttons[i] !== winButton) return buttons[i];
+    }
+    return null;
+  }
+
+  // Opens Chrome's install dialog. The offer can be used only once, whatever
+  // the player chooses.
+  function install() {
+    var prompt = installPrompt;
+    installPrompt = null;
+    if (!prompt) return update();
+    try {
+      prompt.prompt();
+      prompt.userChoice.then(function (choice) {
+        if (choice && choice.outcome === 'accepted') {
+          startOffline();
+          startInstalling(25000);
+        } else {
+          update();
+        }
+      }, update);
+    } catch (e) {
+      update();
+    }
+  }
+
+  // Copies the speaker button's classes and inline style so INSTALL matches
+  // its neighbours and shares the group equally, with 12px bold red text.
+  function makeButton(speaker) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = speaker.className;
+    b.style.cssText = speaker.style.cssText;
+    b.style.flex = '1 1 0%';
+    b.style.fontSize = '12px';
+    b.style.fontWeight = 'bold';
+    b.style.whiteSpace = 'nowrap';
+    b.style.color = '#991b1b';
+    b.addEventListener('click', install);
+    return b;
+  }
+
+  // Copies the Play Again button's look, in outline, for the You Won! screen.
+  function makeWinButton(playAgain) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = 'Install for offline play';
+    b.className = playAgain.className;
+    b.removeAttribute('id');
+    b.style.cssText = playAgain.style.cssText;
+    b.style.background = '#ffffff';
+    b.style.color = '#2563eb';
+    b.style.border = '2px solid #2563eb';
+    b.style.boxShadow = 'none';
+    // Play Again may be styled through its id, which the copy leaves out, so
+    // set the shape here too.
+    b.style.marginTop = '0.75rem';
+    b.style.padding = '0.75rem 1.5rem';
+    b.style.borderRadius = '0.5rem';
+    b.style.fontSize = '1rem';
+    b.style.fontWeight = 'bold';
+    b.style.cursor = 'pointer';
+    b.addEventListener('click', install);
+    return b;
+  }
+
+  // Shows INSTALLING... (disabled) for `ms`, then removes the buttons.
+  function startInstalling(ms) {
+    installing = true;
+    clearTimeout(installingTimer);
+    installingTimer = setTimeout(function () {
+      installing = false;
+      update();
+    }, ms);
+    update();
+  }
+
+  function remove(el) {
+    if (el && el.parentNode) el.parentNode.removeChild(el);
+  }
+
+  function update() {
+    var show = isAndroid && (installPrompt || installing) && !isInstalled();
+    if (!show) {
+      remove(button);
+      remove(winButton);
+      return;
+    }
+    var speaker = speakerButton();
+    if (speaker) {
+      if (!button) button = makeButton(speaker);
+      var label = installing ? 'INSTALLING…' : 'INSTALL';
+      if (button.textContent !== label) button.textContent = label;
+      button.disabled = installing;
+      if (button.parentNode !== speaker.parentNode) speaker.parentNode.appendChild(button);
+    }
+    var playAgain = playAgainButton();
+    if (playAgain) {
+      if (!winButton) winButton = makeWinButton(playAgain);
+      var winLabel = installing ? 'Installing…' : 'Install for offline play';
+      if (winButton.textContent !== winLabel) winButton.textContent = winLabel;
+      winButton.disabled = installing;
+      if (winButton.previousElementSibling !== playAgain) {
+        playAgain.parentNode.insertBefore(winButton, playAgain.nextSibling);
+      }
+    }
+  }
+
+  window.addEventListener('beforeinstallprompt', function (e) {
+    // Keep the offer for our buttons; this also stops Chrome's own bar.
+    e.preventDefault();
+    installPrompt = e;
+    update();
+  });
+  // Chrome reports the install finished (from our buttons or Chrome's own
+  // install icon or menu); the icon still takes a few seconds.
+  window.addEventListener('appinstalled', function () {
+    installPrompt = null;
+    startOffline();
+    if (installing) startInstalling(12000);
+    else update();
+  });
+
+  // The How to Play popup's last point; the install point goes just before it.
+  function sourcePoint() {
+    var items = document.querySelectorAll('li, p');
+    for (var i = 0; i < items.length; i++) {
+      if (/^\s*Hit the SOURCE button/.test(items[i].textContent)) return items[i];
+    }
+    return null;
+  }
+
+  function installText() {
+    if (isInstalled()) {
+      return ['Offline:', ' this installed app works without an internet connection.'];
+    }
+    return ['Play offline:', ' install the app from your browser’s menu (iPhone: Share › Add to Home Screen). ' +
+      'If the icon isn’t on your home screen, look in your app list.'];
+  }
+
+  // The popup may be created each time it opens, so add the point every time.
+  function addHelp() {
+    var last = sourcePoint();
+    if (!last || (last.previousElementSibling && last.previousElementSibling.hasAttribute('data-pwa-help'))) return;
+    var text = installText();
+    var point = document.createElement(last.tagName);
+    point.className = last.className;
+    point.setAttribute('data-pwa-help', '');
+    var lead = document.createElement('strong');
+    lead.textContent = text[0];
+    point.appendChild(lead);
+    point.appendChild(document.createTextNode(text[1]));
+    last.parentNode.insertBefore(point, last);
+  }
+
+  // The game builds its header, popup and You Won! screen after this script
+  // runs, so keep checking.
+  new MutationObserver(function () {
+    update();
+    addHelp();
+  }).observe(document.documentElement, { childList: true, subtree: true });
+
+  // The page's own files, for sw.js to cache: the page, its scripts, the
+  // manifest and icons, and the About page (so it works offline even if it
+  // was never opened online).
+  function pageUrls() {
+    var urls = [location.origin + '/'];
+    var els = document.querySelectorAll('script[src], link[href]');
+    for (var i = 0; i < els.length; i++) {
+      var u = els[i].src || els[i].href;
+      if (u.indexOf(location.origin + '/') === 0 && urls.indexOf(u) < 0) urls.push(u);
+    }
+    ['/about/', '/icon-192.png', '/icon-512.png', '/icon.svg'].forEach(function (p) {
+      if (urls.indexOf(location.origin + p) < 0) urls.push(location.origin + p);
+    });
+    return urls;
+  }
+
+  // Registers sw.js and has it cache the page's files. Runs at most once per
+  // page view, and only when offline play is needed (see the triggers below).
+  var offlineStarted = false;
+  function startOffline() {
+    if (offlineStarted || !('serviceWorker' in navigator)) return;
+    offlineStarted = true;
+    navigator.serviceWorker.register('/sw.js').then(function () {
+      return navigator.serviceWorker.ready;
+    }).then(function (reg) {
+      if (reg.active) reg.active.postMessage({ cacheUrls: pageUrls() });
+    }).catch(function () {});
+  }
+
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+      // Running as an installed app (Android, desktop, or an iPhone home screen).
+      if (isInstalled()) return startOffline();
+      // Installed earlier: keep the existing service worker and cache up to date.
+      navigator.serviceWorker.getRegistration('/').then(function (reg) {
+        if (reg) startOffline();
+      }).catch(function () {});
+    });
+  }
+})();
+----- END FILE: pwa.js -----
+
+----- BEGIN FILE: icon.svg -----
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#fafaf9"/>
+  <g fill="none" stroke="#991b1b" stroke-width="30" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M 102 222 C 102 182 182 182 182 222 C 182 252 102 282 102 322 L 186 322"/>
+    <path d="M 226 252 L 286 322 M 286 252 L 226 322"/>
+    <path d="M 330 222 C 330 182 410 182 410 222 C 410 252 330 282 330 322 L 414 322"/>
+  </g>
+</svg>
+----- END FILE: icon.svg -----
