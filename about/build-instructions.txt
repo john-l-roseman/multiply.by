@@ -1,0 +1,37 @@
+Create a web page using a modern minimalist layout, filling a single phone-size screen.
+
+<title>About Times-Tables.app</title>
+In the <head>, include exactly: <link rel="icon" type="image/svg+xml" href="/icon.svg"> (the app's icon in the browser tab).
+
+At the very top of the page, above the header, a link back to the game styled as a button: <a href="/">Back to the Game</a>. Button look: bold text, a 1px solid #e5e7eb border, light gray background (#f9fafb), rounded corners, dark gray text (#374151), no underline, centered text, padding about 0 16px, at least 44px tall so it is easy to tap; it is only as wide as its text (not full width). The page also opens inside the installed app, where iPhone shows no back button, so this link is the only way back to the game.
+<header>Learn the multiplication table</header>
+
+<subheader>Minimalism</subheader>
+  o Free of charge.
+  o No ads, no trackers, no sign-up.
+  o No random graphic elements.
+  o The game weighs less than 40 KB.
+
+<subheader>Functionality</subheader>
+  o Works on any smartphone, tablet or computer.
+  o Designed for maximum speed.
+  o Verify your knowledge in 90 seconds.
+  o Install for offline use.
+
+<subheader>Transparency</subheader>
+  o Open Source, published under MIT License.
+  o No hidden code: the entire game is plain, readable text that you can check and rebuild yourself.
+  o <a href=/build-instructions.txt>See</a> exactly how the game was built.
+  o Build it yourself, using your favorite AI model.
+  
+------
+Footer
+------
+
+Copyright text in small print
+-----------------------------
+Link for “Functional AI Inc”: https://functional.by
+Link for “MIT License”: https://opensource.org/licenses/MIT
+The text should appear exactly as below, with the above href link markup added as underlined link.
+------
+Copyright (C) 2026 by Functional AI Inc.  Licensed under the MIT License.
