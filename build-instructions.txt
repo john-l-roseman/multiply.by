@@ -37,7 +37,7 @@ IMPORTANT: Do not add any notes at the top or bottom of the HTML file.
 
 3. ARCHITECTURE & STATE (CRITICAL)
 ----------------------------------
-- ONE STATE OBJECT: keep everything the game knows in one plain object, `const state = { ... }`, with these fields: score, streak, learnedIds (array of fact ids), correct, mistakes, deck (the unlearned facts still to play, shuffled: an array of fact OBJECTS from RAW_DATA, never bare ids), round ({ left: [...], right: [...] }, the fact OBJECTS whose cards are on screen in each column), selected ({ id, side } or null), successKeys (a Set of 'left'+id / 'right'+id keys of cards flashing green), failKeys (a Set of keys of cards flashing red), wrongIds (array of the ids of LEFT facts the player matched wrongly on the current screen; see WRONG CARDS), showInfo (boolean), isWon (boolean). Event handlers read and change `state` directly; there is no other copy of the game data.
+- ONE STATE OBJECT: keep everything the game knows in one plain object, `const state = { ... }`, with these fields: score, streak, learnedIds (array of fact ids), mistakes, deck (the unlearned facts still to play, shuffled: an array of fact OBJECTS from RAW_DATA, never bare ids), round ({ left: [...], right: [...] }, the fact OBJECTS whose cards are on screen in each column), selected ({ id, side } or null), successKeys (a Set of 'left'+id / 'right'+id keys of cards flashing green), failKeys (a Set of keys of cards flashing red), wrongIds (array of the ids of LEFT facts the player matched wrongly on the current screen; see WRONG CARDS), showInfo (boolean), isWon (boolean). Event handlers read and change `state` directly; there is no other copy of the game data.
 - RENDERING: the screen is always drawn FROM `state`:
   - `renderRound()` builds the card elements of both columns from `state.round`. Call it ONLY when a new round starts (and once at start-up). Right after it, call `fitAllCards()` synchronously (before the browser paints).
   - `update()` brings everything else on screen in line with `state`, and MUST be called after EVERY change to `state`: the stats line text, the speaker button (icon, aria-label, title), the classes of every card on screen (.card-selected from `state.selected`, .flash-green from `state.successKeys`, .flash-red from `state.failKeys`, .card-wrong on each LEFT card whose id is in `state.wrongIds`), the How to Play panel (shown or hidden from `state.showInfo`) and the "You Won!" overlay (from `state.isWon`).
@@ -53,8 +53,8 @@ IMPORTANT: Do not add any notes at the top or bottom of the HTML file.
       * It never throws, so the game plays normally (without saving progress) when storage is blocked.
   - You MUST NOT reference `localStorage` or `window.localStorage` anywhere else in the file. Every read, write, and removal of saved data (progress, totals, mute state) MUST use `safeStorage.getItem`, `safeStorage.setItem`, or `safeStorage.removeItem`. To list saved keys, use `safeStorage.keys()`.
   - Wrap `JSON.parse` of saved progress in try/catch; on failure, treat it as no saved data.
-- Start-up: read saved progress with `safeStorage.getItem(STORAGE_KEY)`. Saved progress is the object `{ score, streak, learnedIds, correct, mistakes }`; a missing `correct` or `mistakes` field (progress saved by an older version) counts as 0. Also write the total number of facts: `safeStorage.setItem('openlang_' + CONFIG.TARGET_LANGUAGE + '_' + CONFIG.GAME + '_total', RAW_DATA.length);`
-- `saveProgress()` writes `{ score, streak, learnedIds, correct, mistakes }` from `state` with `safeStorage.setItem(STORAGE_KEY, JSON.stringify(...))`.
+- Start-up: read saved progress with `safeStorage.getItem(STORAGE_KEY)`. Saved progress is the object `{ score, streak, learnedIds, mistakes }`; a missing `mistakes` field (progress saved by an older version) counts as 0, and any other field saved by an older version (such as `correct`) is ignored. Also write the total number of facts: `safeStorage.setItem('openlang_' + CONFIG.TARGET_LANGUAGE + '_' + CONFIG.GAME + '_total', RAW_DATA.length);`
+- `saveProgress()` writes `{ score, streak, learnedIds, mistakes }` from `state` with `safeStorage.setItem(STORAGE_KEY, JSON.stringify(...))`.
 - Deck: `state.deck` is a Fisher-Yates shuffle of the RAW_DATA items (the fact objects themselves, not their ids) whose id is NOT in `state.learnedIds`. Removing or moving a fact in the deck means finding it by its `id` (e.g. `state.deck.filter(f => f.id !== leftId)`).
 - If every fact is already learned at start-up (saved progress of a finished game), set `state.isWon = true` and show the "You Won!" overlay instead of a round.
 - `startRound()`: take the first CARDS_PER_ROUND facts from `state.deck` (fewer if fewer are left; they stay in the deck until learned). Set `state.wrongIds = []` (a new screen starts with no wrong marks). Put them in `state.round.left` and `state.round.right`, each column shuffled independently with the same Fisher-Yates shuffle. Do not use a derangement or any rule that keeps an answer off its question's row; sometimes they will share a row, and that is fine. Clear `state.selected`, then call `renderRound()`, `fitAllCards()` and `update()`.
@@ -62,7 +62,7 @@ IMPORTANT: Do not add any notes at the top or bottom of the HTML file.
   1. `state.round.left` is empty: if `state.deck` still has facts call `startRound()`, otherwise set `state.isWon = true` and call `update()`.
   2. LAST CARD REFILL: `state.round.left` holds exactly ONE fact AND `state.deck` holds at least one OTHER fact (one not on screen). The last pair would be matched by elimination, which teaches nothing, so do not make the player match it: no score, no learning, no sound. If that fact's id is in `state.wrongIds`, move it to the END of `state.deck` (see WRONG CARDS); otherwise leave it where it is in the deck (still unlearned, near the front). Then call `startRound()`, which deals a fresh screen at once; the leftover fact is usually on it again, unmarked, among new facts.
   3. Otherwise (several cards left, or the single leftover is the only fact left in the whole deck) the player keeps playing the screen as it is. The very last fact of the game is matched normally.
-- Play Again (CRITICAL): the "You Won!" overlay shows the final score, a line "Correct: C | Mistakes: M", and a "Play Again" button. The button MUST first clear the saved progress with `safeStorage.removeItem(STORAGE_KEY)` and only then call `window.location.reload()`. Reloading alone would restore the finished progress, reopen on the "You Won!" screen, and the button would appear to do nothing. Keep the mute state (MUTE_KEY) as it is.
+- Play Again (CRITICAL): the "You Won!" overlay shows the final score, a line "Mistakes: M", and a "Play Again" button. The button MUST first clear the saved progress with `safeStorage.removeItem(STORAGE_KEY)` and only then call `window.location.reload()`. Reloading alone would restore the finished progress, reopen on the "You Won!" screen, and the button would appear to do nothing. Keep the mute state (MUTE_KEY) as it is.
 
 
 4. LAYOUT & VISUALS
@@ -136,7 +136,7 @@ FIT TEXT TO CARD (CRITICAL): Some datasets have long cards (quotes, slogans, exp
 - SUCCESS (match is correct):
   1. Call `speakCard(leftFact)`.
   2. Increase `state.score` by (10 + `state.streak`).
-  3. Increase `state.streak` by 1. Increase `state.correct` by 1.
+  3. Increase `state.streak` by 1.
   4. If leftId is in `state.wrongIds` (the player got it wrong earlier on this screen; see WRONG CARDS): do NOT add it to `state.learnedIds`; move leftId from its place in `state.deck` to the END of `state.deck`, so it comes back at the end of the game. Then skip step 5.
      Otherwise add leftId (the LEFT card's fact) to `state.learnedIds` (if not already there). ONLY leftId: NEVER add rightId. Facts that share an answer are separate facts: matching 3 x 8 with the "24" card that belongs to 4 x 6 teaches 3 x 8 only, and 4 x 6 stays unlearned until its own LEFT card is matched.
   5. Remove leftId (only) from `state.deck`.
@@ -148,7 +148,7 @@ FIT TEXT TO CARD (CRITICAL): Some datasets have long cards (quotes, slogans, exp
   2. Set `state.streak` to 0. Decrease `state.score` by 5 (never below 0). Increase `state.mistakes` by 1.
   3. Call `saveProgress()` and `update()`.
   4. After 2000ms, remove both keys from `state.failKeys` and call `update()`. Both cards return to normal; the LEFT card keeps only its small "Not learned" label.
-- WRONG CARDS: a fact is learned only when its LEFT card is matched correctly on a screen where it was never matched wrongly. After a wrong match the LEFT card shows the small "Not learned" label (.card-wrong) for the rest of that screen. The player still has to match it correctly to clear it from the screen (normal score, streak and Correct count), but it is NOT learned: it goes to the end of the deck and comes back, unmarked, on a fresh screen near the end of the game. Getting it wrong there sends it to the end again. The game is won only when every fact is learned. `state.wrongIds` is not saved; after a reload every unlearned fact is simply back in the shuffled deck.
+- WRONG CARDS: a fact is learned only when its LEFT card is matched correctly on a screen where it was never matched wrongly. After a wrong match the LEFT card shows the small "Not learned" label (.card-wrong) for the rest of that screen. The player still has to match it correctly to clear it from the screen (normal score and streak), but it is NOT learned: it goes to the end of the deck and comes back, unmarked, on a fresh screen near the end of the game. Getting it wrong there sends it to the end again. The game is won only when every fact is learned. `state.wrongIds` is not saved; after a reload every unlearned fact is simply back in the shuffled deck.
 
 
 7. AUDIO SYSTEM (MOBILE ROBUSTNESS - iOS FIXES)
@@ -220,12 +220,12 @@ SOURCE: A link styled as a button with the exact text "SOURCE": <a href="/build-
 
 STATS LINE (directly below the top bar):
 - A single line of plain text, centered, directly under the header and above the cards, spanning the full width. It contains NO buttons or links and does nothing when tapped.
-- Text, in this order, separated by " · " (space, middle dot U+00B7, space): "Score X · Learned Y% · Correct C · Mistakes M", where X is the score, Y the percentage of the dataset learned (rounded to a whole number), C the number of correct matches and M the number of wrong matches. Example: "Score 26 · Learned 9% · Correct 3 · Mistakes 1".
+- Text, in this order, separated by " · " (space, middle dot U+00B7, space): "Score X · Learned Y% · Mistakes M", where X is the score, Y the percentage of the dataset learned (rounded to a whole number) and M the number of wrong matches. Example: "Score 26 · Learned 6% · Mistakes 1". There is no count of correct matches anywhere in the game (it would only grow with the mistakes, since every card has to be matched in the end).
 - Style: 0.8rem, color #4b5563, 'white-space: nowrap', 'overflow: hidden', 'text-overflow: ellipsis', padding 2px 0, white background, a 1px #e5e7eb bottom border. It is one line high and never wraps.
-- Correct and Mistakes count every match attempt in the whole game (saved with the progress, so they survive a reload) and start again at 0 with Play Again (which clears the saved progress).
+- Mistakes counts every wrong match in the whole game (saved with the progress, so they survive a reload) and start again at 0 with Play Again (which clears the saved progress).
 
 "YOU WON!" OVERLAY:
-- Covers the app container (`position: absolute; inset: 0;`, z-index 40, background rgba(255,255,255,0.95)), content centered in a column: "You Won!" (2.25rem, bold, #16a34a), "Final Score: X" (1.25rem, #374151), "Correct: C | Mistakes: M" (1rem, #6b7280), and the "Play Again" button (padding 1rem 2rem, background #2563eb, white bold 1.25rem text, rounded, shadow).
+- Covers the app container (`position: absolute; inset: 0;`, z-index 40, background rgba(255,255,255,0.95)), content centered in a column: "You Won!" (2.25rem, bold, #16a34a), "Final Score: X" (1.25rem, #374151), "Mistakes: M" (1rem, #6b7280), and the "Play Again" button (padding 1rem 2rem, background #2563eb, white bold 1.25rem text, rounded, shadow).
 
 
 9. CODE ORGANIZATION
@@ -255,7 +255,7 @@ CRITICAL OVERFIT WARNING: The specific facts ([3 x 4], [6 x 7], etc.), their ord
 [HYPOTHETICAL INITIAL SETUP (For tracing purposes only)]
 - Config as in GLOBAL CONFIGURATION: TARGET_LANGUAGE "Math", LANGUAGE_CODE "EN", CONFIG.MUTED true. CONFIG.COMPACT_CARDS is false.
 - Round loads with 3 pairs from the dataset.
-- State: score 0 | streak 0 | learnedIds [] | correct 0 | mistakes 0
+- State: score 0 | streak 0 | learnedIds [] | mistakes 0
 - Hypothetical environment: `navigator.language` is 'en-US'. On an earlier visit the player tapped the speaker button to turn sound on, so MUTE_KEY holds 'false' and `isMutedNow()` returns false.
 - Hypothetical Left Column: [3 x 4], [6 x 7], [5 x 9]
 - Hypothetical Right Column: [45], [12], [42]
@@ -267,10 +267,10 @@ CRITICAL OVERFIT WARNING: The specific facts ([3 x 4], [6 x 7], etc.), their ord
 - Execution:
   1. Audio: `isMutedNow()` is false. Speak the English sentence "3 times 4 is 12" ("three times four is twelve") with an English voice.
   2. Score = 0 + (10 base + 0 streak) = 10.
-  3. Streak 0 -> 1. Correct 0 -> 1.
+  3. Streak 0 -> 1.
   4. Add the id of "3 x 4" to `state.learnedIds`. Remove "3 x 4" from `state.deck`.
-  5. Save `{ score, streak, learnedIds, correct, mistakes }` with safeStorage.setItem.
-  6. Both cards flash green; `update()` shows "Score 10 · Learned 3% · Correct 1 · Mistakes 0".
+  5. Save `{ score, streak, learnedIds, mistakes }` with safeStorage.setItem.
+  6. Both cards flash green; `update()` shows "Score 10 · Learned 3% · Mistakes 0".
   7. After 200ms both card elements are removed from the page.
 
 [TURN 1.5: ALTERNATE AUDIO SCENARIOS]
@@ -298,7 +298,7 @@ CRITICAL OVERFIT WARNING: The specific facts ([3 x 4], [6 x 7], etc.), their ord
 - Action: Player clicks "6 x 7" (Left), then clicks "42" (Right).
 - Tap Logic: "6 x 7" gets .card-selected. Then other column -> leftId = 6 x 7, rightId = 42. Selection cleared, then `handleMatch` runs.
 - State Check: Match is CORRECT.
-- Execution: speaks "6 times 7 is 42" ("six times seven is forty-two"), green flash, score = 5 + (10 + 0 streak) = 15, streak becomes 1, correct becomes 2, saved. Both cards removed after 200ms. Because "6 x 7" is in `state.wrongIds`, it is NOT added to `learnedIds` (the stats line still shows Learned 3%); it is moved to the end of `state.deck` and will be dealt again, unmarked, at the end of the game.
+- Execution: speaks "6 times 7 is 42" ("six times seven is forty-two"), green flash, score = 5 + (10 + 0 streak) = 15, streak becomes 1, saved. Both cards removed after 200ms. Because "6 x 7" is in `state.wrongIds`, it is NOT added to `learnedIds` (the stats line still shows Learned 3%); it is moved to the end of `state.deck` and will be dealt again, unmarked, at the end of the game.
 
 [TURN 3.5: Last Card Refill]
 - After the 200ms removal in Turn 3, only "5 x 9" / "45" are left on screen, and the deck still holds other facts. The last pair would be matched by elimination, so `startRound()` deals a fresh screen at once (with `state.wrongIds` cleared): nothing is scored or learned. "5 x 9" is still unlearned and near the front of the deck, so the new screen shows it again among new facts, with "45" somewhere in the right column.
@@ -307,7 +307,7 @@ CRITICAL OVERFIT WARNING: The specific facts ([3 x 4], [6 x 7], etc.), their ord
 - Action: Player taps "45" (Right), then taps "5 x 9" (Left).
 - Tap Logic: other column -> leftId = 5 x 9 (the LEFT card), rightId = 45 (the RIGHT card), even though the right card was tapped first. Selection cleared, then `handleMatch` runs.
 - State Check: Match is CORRECT.
-- Execution: speaks "5 times 9 is 45", green flash, score = 15 + (10 + 1 streak) = 26, streak becomes 2, correct becomes 3, added to `learnedIds`, removed from the deck, saved.
+- Execution: speaks "5 times 9 is 45", green flash, score = 15 + (10 + 1 streak) = 26, streak becomes 2, added to `learnedIds`, removed from the deck, saved.
 - The other cards of the new screen stay. "6 x 7" is still the last fact in the deck, so it comes back at the end of the game.
 
 
@@ -327,7 +327,7 @@ CRITICAL OVERFIT WARNING: The specific facts ([3 x 4], [6 x 7], etc.), their ord
 - Fits the screen: header, stats line, all 8 rows of cards and the footer are visible without scrolling on a 360x640 phone screen and on desktop.
 - Resize and rotate: after resizing the window or rotating the phone, all cards are refitted and nothing overflows.
 - Blocked storage: with site data blocked (or `window.localStorage` throwing on access), the game loads and plays normally with no console errors; progress is just not kept after reload.
-- Normal storage: with storage available, score, streak, learned facts, correct and mistake counts, and mute state survive a page reload.
+- Normal storage: with storage available, score, streak, learned facts, the mistake count, and mute state survive a page reload.
 - Wrong cards: after a wrong match both cards flash red for 2 seconds; then the LEFT card looks normal except for a small "Not learned" label, which stays until it is cleared; clearing it does not raise Learned %, it is dealt again, unmarked, in the last round(s), and only a correct first-try match there learns it.
 - Last card: when a match leaves just one pair on screen and other facts are still to play, a fresh screen is dealt at once; that fact is not scored or learned and is usually on the new screen again. Only the very last fact of the game is matched as a single pair.
 - No console errors at any point.
