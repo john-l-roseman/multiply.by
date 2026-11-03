@@ -2,8 +2,10 @@
 /*
 !/.gitignore
 !/Makefile
+!/extract-files.py
 !/build-instructions.txt
 !/PWA-build.txt
 !/about/
 /about/*
 !/about/build-instructions.txt
+!/about/Makefile
