@@ -9,3 +9,5 @@
 /about/*
 !/about/build-instructions.txt
 !/about/Makefile
+!/check-scripts.py
+!/reformat-spec.py

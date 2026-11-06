@@ -1,5 +1,5 @@
-PWA BUILD FOR TIMES-TABLES.APP
-==============================
+PWA BUILD FOR MULTIPLY.BY
+=========================
 This file turns the plain game page into an installable app (PWA) that works offline, with an INSTALL button on Android and an install explanation in the How to Play popup.
 build-instructions.txt describes only the game page and knows nothing about the PWA; everything PWA lives here.
 
@@ -7,7 +7,7 @@ IMPORTANT: the installable, offline version only works when the site is served b
 
 ENVIRONMENT
 -----------
-- Site folder: /var/www/times-tables.app (served as the root of https://times-tables.app).
+- Site folder: /var/www/multiply.by (served as the root of https://multiply.by).
 - Tools: GNU make, python3, ImageMagick (`convert`).
 - `make` in the site folder runs the whole build. Never edit generated files by hand; change build-instructions.txt or this file and run `make` again.
 
@@ -25,9 +25,9 @@ HOW IT WORKS
 - pwa-head.html links the manifest, theme colour and icons (the small SVG icon for the browser tab), and loads pwa.js from the <head>, so it runs before the game loads.
 - pwa.js catches Chrome's install offer (`beforeinstallprompt`, which fires only once and often before the game has loaded). It calls preventDefault on it, which stops Chrome's own "Add to Home screen" bar from covering the bottom of the game; the offer is used by the two install buttons below instead.
 - Players who never install download only the game page, pwa.js, the manifest and the tab icon. The offline files (sw.js and the cached copies) are downloaded only when they are needed: when the player accepts an install (from either install button, or Chrome's own install icon or menu, which Chrome reports with `appinstalled`), when the game runs as an installed app (including from an iPhone home screen, where Safari does not report the install, so the first launch from the home screen must be online), or when the device already has the service worker from an earlier install (to keep it up to date). Current Chrome offers installation without a service worker, so nothing needs to be downloaded in advance.
-- On Android only, while Chrome is offering the install and the game is not already running as an installed app, pwa.js adds an INSTALL button to the header's group of speaker and ? buttons, after them, sharing that group equally with them. It copies the speaker button's look (border, background) with 12px bold red text, the same text size as SOURCE. Tapping it opens Chrome's install dialog. If the player cancels, the button goes away. If they accept, the button stays, disabled, showing INSTALLING... while Android finishes the install, because the home-screen icon only appears about 10 seconds after Chrome's dialog closes. It goes away 12 seconds after Chrome reports the install finished (the `appinstalled` event), or 25 seconds after the player accepted if that event never comes. On desktop and iPhone it never appears.
+- On Android only, while Chrome is offering the install and the game is not already running as an installed app, pwa.js adds an INSTALL button at the bottom of the screen: centered in the footer (`#footer`), on its own line just above the copyright line. Look: 12px bold red (#991b1b) text, a 1px #e5e7eb border, light gray background (#f9fafb), rounded corners, padding 4px 16px, a 4px gap below it. Adding or removing it changes the footer's height, so pwa.js then fires a `resize` event, which makes the game refit its cards to the new space. Tapping it opens Chrome's install dialog. If the player cancels, the button goes away. If they accept, the button stays, disabled, showing INSTALLING... while Android finishes the install, because the home-screen icon only appears about 10 seconds after Chrome's dialog closes. It goes away 12 seconds after Chrome reports the install finished (the `appinstalled` event), or 25 seconds after the player accepted if that event never comes. On desktop and iPhone it never appears.
 - The best moment to suggest installing is when a player has just won. On the same conditions as INSTALL (Android, Chrome offering the install, not installed, not installing), pwa.js adds an "Install for offline play" button to the game's "You Won!" screen, directly below "Play Again". It copies the Play Again button's look but in outline (white with blue text and border), so Play Again stays the main button. It uses the same install offer as INSTALL: whichever is used first, both then follow the same INSTALLING... and removal steps.
-- pwa.js also adds one point to the game's How to Play popup (the list in the Info modal), just before the last point ("Hit the SOURCE button..."), saying in one short sentence how to install the app for offline use. It finds that last point by its text (whether the points are list items or paragraphs) and adds the new point as the same kind of element with the same classes, so build-instructions.txt needs no change. When the game is already running as an installed app, the point says so instead.
+- pwa.js also adds one point to the game's How to Play popup (the list in the Info modal), just before the last point ("Tap SOURCE to see..."), saying in one short sentence how to install the app for offline use. It finds that last point by its text (whether the points are list items or paragraphs) and adds the new point as the same kind of element with the same classes, so build-instructions.txt needs no change. When the game is already running as an installed app, the point says so instead.
 - sw.js makes the installed app work offline. It is network-first: every request goes to the network as usual (so updates to the game show up at once) and a copy of each successful response is kept in the cache; only when the network fails is the cached copy served (and, for a page, the cached game at /).
 - The game page has already loaded when sw.js starts, so the service worker never sees that request. pwa.js therefore sends sw.js the list of the page's own files (the page, pwa.js, the manifest, the icons) once the worker is ready, and sw.js fetches and caches them, together with the About page (/about/). From then on the whole game and the About page work offline.
 - The icon is "2x2" drawn with strokes only (no text or fonts), so it renders the same with any SVG converter.
@@ -45,9 +45,9 @@ FILES
 
 ----- BEGIN FILE: manifest.webmanifest -----
 {
-  "name": "Times-Tables.app",
-  "short_name": "Times Tables",
-  "description": "Learn the 2 to 9 times tables by matching cards.",
+  "name": "multiply.by",
+  "short_name": "multiply.by",
+  "description": "Learn the times tables, up to 12, by matching cards.",
   "id": "/",
   "start_url": "/",
   "scope": "/",
@@ -64,7 +64,7 @@ FILES
 ----- END FILE: manifest.webmanifest -----
 
 ----- BEGIN FILE: sw.js -----
-// Service worker for Times-Tables.app: makes the installed app work offline.
+// Service worker for Multiply.by: makes the installed app work offline.
 // Network-first: always ask the network (so updates show at once) and keep a
 // copy of every good response; serve the copy only when the network fails.
 var CACHE = 'times-tables-v2';
@@ -114,16 +114,16 @@ self.addEventListener('fetch', function (event) {
 ----- END FILE: sw.js -----
 
 ----- BEGIN FILE: pwa.js -----
-// Install support for Times-Tables.app. Loaded from <head>, before the game.
+// Install support for Multiply.by. Loaded from <head>, before the game.
 // - On Android, while Chrome offers to install the app: an INSTALL button at
-//   the end of the header's group of speaker and ? buttons, and an "Install
-//   for offline play" button on the "You Won!" screen.
+//   the bottom of the screen (in the footer, above the copyright line), and
+//   an "Install for offline play" button on the "You Won!" screen.
 // - An install-for-offline point in the How to Play popup.
 // - The offline files (sw.js and its cache) only once the app is installed.
 (function () {
   var isAndroid = /Android/i.test(navigator.userAgent);
   var installPrompt = null;
-  var button = null;     // INSTALL in the header
+  var button = null;     // INSTALL in the footer
   var winButton = null;  // "Install for offline play" on the You Won! screen
   // True from the moment the player accepts the install until the icon has
   // had time to reach the home screen (Android adds it ~10 s after the dialog).
@@ -134,9 +134,9 @@ self.addEventListener('fetch', function (event) {
     return window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
   }
 
-  // The speaker button in the header, found by its label.
-  function speakerButton() {
-    return document.querySelector('button[aria-label^="Turn sound"]');
+  // The footer at the bottom of the screen.
+  function footer() {
+    return document.getElementById('footer');
   }
 
   // The "Play Again" button on the You Won! screen, found by its text.
@@ -169,20 +169,21 @@ self.addEventListener('fetch', function (event) {
     }
   }
 
-  // Copies the speaker button's classes and inline style so INSTALL matches
-  // its neighbours and shares the group equally, with 12px bold red text.
-  function makeButton(speaker) {
+  // INSTALL, on its own centered line at the top of the footer.
+  function makeButton() {
     var b = document.createElement('button');
     b.type = 'button';
-    b.className = speaker.className;
-    b.style.cssText = speaker.style.cssText;
-    b.style.flex = '1 1 0%';
-    b.style.fontSize = '12px';
-    b.style.fontWeight = 'bold';
-    b.style.whiteSpace = 'nowrap';
-    b.style.color = '#991b1b';
+    b.style.cssText = 'display: block; margin: 0 auto 4px; padding: 4px 16px;' +
+      ' border: 1px solid #e5e7eb; border-radius: 0.25rem; background: #f9fafb;' +
+      ' color: #991b1b; font: inherit; font-size: 12px; font-weight: bold;' +
+      ' white-space: nowrap; cursor: pointer;';
     b.addEventListener('click', install);
     return b;
+  }
+
+  // The footer changed height: let the game refit its cards.
+  function refit() {
+    try { window.dispatchEvent(new Event('resize')); } catch (e) {}
   }
 
   // Copies the Play Again button's look, in outline, for the You Won! screen.
@@ -227,17 +228,22 @@ self.addEventListener('fetch', function (event) {
   function update() {
     var show = isAndroid && (installPrompt || installing) && !isInstalled();
     if (!show) {
+      var hadButton = button && button.parentNode;
       remove(button);
       remove(winButton);
+      if (hadButton) refit();
       return;
     }
-    var speaker = speakerButton();
-    if (speaker) {
-      if (!button) button = makeButton(speaker);
+    var foot = footer();
+    if (foot) {
+      if (!button) button = makeButton();
       var label = installing ? 'INSTALLING…' : 'INSTALL';
       if (button.textContent !== label) button.textContent = label;
       button.disabled = installing;
-      if (button.parentNode !== speaker.parentNode) speaker.parentNode.appendChild(button);
+      if (button.parentNode !== foot) {
+        foot.insertBefore(button, foot.firstChild);
+        refit();
+      }
     }
     var playAgain = playAgainButton();
     if (playAgain) {
@@ -270,7 +276,7 @@ self.addEventListener('fetch', function (event) {
   function sourcePoint() {
     var items = document.querySelectorAll('li, p');
     for (var i = 0; i < items.length; i++) {
-      if (/^\s*Hit the SOURCE button/.test(items[i].textContent)) return items[i];
+      if (/^\s*Tap SOURCE to see/.test(items[i].textContent)) return items[i];
     }
     return null;
   }
