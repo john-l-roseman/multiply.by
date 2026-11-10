@@ -21,12 +21,13 @@ build/pwa-head.html: $(PWA) extract-files.py
 # so nginx's open-file cache never serves a stale, resized copy.
 
 # The served page: the plain page with the PWA tags inserted before </head>.
-index.html: build/index.html build/pwa-head.html check-scripts.py
+index.html: build/index.html build/pwa-head.html check-scripts.py check-data.py
 	test "$$(grep -c "</head>" build/index.html)" = 1
 	sed "/<\/head>/e cat build/pwa-head.html" build/index.html > index.html.tmp
-	@size=$$(wc -c < index.html.tmp); if [ $$size -ge 40000 ]; then \
-	  echo "WARNING: index.html is $$size bytes; the About page says less than 40 KB"; fi
+	@size=$$(wc -c < index.html.tmp); if [ $$size -ge 50000 ]; then \
+	  echo "WARNING: index.html is $$size bytes; the About page says less than 50 KB"; fi
 	python3 check-scripts.py index.html.tmp
+	python3 check-data.py index.html.tmp
 	mv index.html.tmp index.html
 
 # App icons, rendered from icon.svg.

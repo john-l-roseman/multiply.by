@@ -19,15 +19,19 @@ Dataset Fields: id | text (the multiplication, e.g. "7 x 8") | answer (the produ
 
 1. GLOBAL CONFIGURATION
 -----------------------
-- CARDS_PER_ROUND: 8
 - TARGET_LANGUAGE: Math
-- GAME: Multiplication
+- GAME: Speed
 - LANGUAGE_CODE: EN
 - MUTED: true
 
 
 Act as an expert Frontend Engineer.
-Build a single, standalone HTML file (index.html) for a matching game.
+Build a single, standalone HTML file (index.html) for the speed version of a times tables game: each
+screen shows one multiplication and four answers, the player taps the right answer, and a clock shows
+how fast they go.
+Deliver the finished page as a downloadable file named index.html, not as text in the chat. If you
+can't create an HTML file, create a plain text file with the same content, and tell the user to
+rename it to index.html.
 IMPORTANT: Do not add any notes at the top or bottom of the HTML file.
 
 
@@ -54,58 +58,69 @@ IMPORTANT: Do not add any notes at the top or bottom of the HTML file.
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">.
 
 - The page title MUST be exactly:
-  <title>Multiply.by – Learn the Multiplication Table (Times Tables)</title>
+  <title>Multiply.by – Speed Times Tables</title>
 
 - Directly after the title, include exactly:
-  <meta name="description" content="Learn the multiplication table (times tables) fast. Free and open source. No ads, no sign-up. Install it for offline use.">
+  <meta name="description" content="Speed through the multiplication table (times tables): one tap per answer, against the clock. Free and open source. No ads, no sign-up.">
 
 
 3. ARCHITECTURE & STATE (CRITICAL)
 ----------------------------------
 - ONE STATE OBJECT: keep everything the game knows in one plain object, `const state = { ... }`,
   with these fields: score, streak, learnedIds (array of fact ids), mistakes, deck (the unlearned
-  facts still to play, shuffled: an array of fact OBJECTS from FACTS, never bare ids), round ({
-  left: [...], right: [...] }, the fact OBJECTS whose cards are on screen in each column), selected
-  ({ id, side } or null), successKeys (a Set of 'left'+id / 'right'+id keys of cards flashing
-  green), failKeys (a Set of keys of cards flashing red), wrongIds (array of the ids of LEFT facts
-  the player matched wrongly on the current screen; see WRONG CARDS), showInfo (boolean), isWon
-  (boolean), playMs (milliseconds of playing time banked so far; see TIMER), timerStart (Date.now()
-  when the running stretch of the timer began, or null when the timer is not running), timerActive
-  (boolean: the player has made a move since the page loaded). Event handlers read and change
+  facts still to ask, shuffled: an array of fact OBJECTS from FACTS, never bare ids), question (the
+  fact object on screen, or null), choices (array of the four answer strings on screen, in screen
+  order), picked (index 0-3 of the answer the player tapped, or null), feedback (null, 'correct' or
+  'wrong': set while the result of a tap is shown), showInfo (boolean), isWon (boolean), playMs
+  (milliseconds of playing time banked so far; see TIMER), timerStart (Date.now() when the running
+  stretch of the timer began, or null when the timer is not running), timerActive (boolean: the
+  player has answered or touched the game since the page loaded), newBest (boolean: this game just
+  set a new best score; see BEST SCORE), questionStartMs (the playing time, `currentPlayMs()`, when
+  the question on screen was dealt), answerLog (the time each answer took; see ANSWER TIMES),
+  practice (boolean: a PRACTICE HARD ONES round is being played), practiceIds (the ids of that
+  round's facts, or an empty list). Event
+  handlers read and change
   `state` directly; there is no other copy of the game data.
+
 - RENDERING: the screen is always drawn FROM `state`:
-  - `renderRound()` builds the card elements of both columns from `state.round`. Call it ONLY when a
-    new round starts (and once at start-up). Right after it, call `fitAllCards()` synchronously
-    (before the browser paints).
+  - `renderQuestion()` writes the question text and builds the four answer buttons from
+    `state.question` and `state.choices`. Call it ONLY when a new question is dealt.
 
   - `update()` brings everything else on screen in line with `state`, and MUST be called after EVERY
-    change to `state`: the stats line text, the speaker button (icon, aria-label, title), the
-    classes of every card on screen (.card-selected from `state.selected`, .flash-green from
-    `state.successKeys`, .flash-red from `state.failKeys`, .card-wrong on each LEFT card whose id is
-    in `state.wrongIds`), the How to Play panel (shown or hidden from `state.showInfo`) and the "You
-    Won!" overlay (from `state.isWon`).
+    change to `state`: the four indicator values (see INDICATORS), the speaker button (icon, aria-label, title), the
+    classes and `disabled` property of the answer buttons (see FEEDBACK), the "You Won!" texts
+    (final score, time, best score, mistakes), the How to Play panel
+    (shown or hidden from `state.showInfo`) and the "You Won!" overlay (from `state.isWon`).
 
-  - `update()` changes classes and text only. It MUST NOT rebuild the card elements, set their
-    height or font size, or touch anything `fitAllCards` sets.
-
-  - Removing matched cards: delete those two card elements from the page (and the facts from
-    `state.round`). The remaining cards keep their element, size and font.
+  - `update()` changes classes, properties and text only. It MUST NOT rebuild the answer buttons.
 
 - TWO MODES (CRITICAL): one page plays either the 2 to 9 tables (the default) or the tables up to 12
-  (when the page address has the argument `?12`, as in https://multiply.by/?12). The choice is not
-  remembered: only the address decides. Define, with the global constants:
-  `const MODE12 = new URLSearchParams(window.location.search).has('12');`
-  `const GAME_NAME = MODE12 ? CONFIG.GAME + '12' : CONFIG.GAME;`
-  `const FACTS = MODE12 ? RAW_DATA : RAW_DATA.filter(f => !/1[12]/.test(f.text));`
+  (when the page address has the argument `?12`, as in https://multiply.by/?12). The choice is
+  not remembered: on page load only the address decides. Define, with the global constants:
+  `let MODE12, GAME_NAME, FACTS, STORAGE_KEY, BEST_KEY;`
+  `function applyMode(mode12) { MODE12 = mode12; GAME_NAME = mode12 ? CONFIG.GAME + '12' : CONFIG.GAME;`
+  `  FACTS = mode12 ? RAW_DATA : RAW_DATA.filter(f => !/1[12]/.test(f.text));`
+  `  STORAGE_KEY = 'openlang_' + CONFIG.TARGET_LANGUAGE + '_' + GAME_NAME + '_progress';`
+  `  BEST_KEY = 'openlang_' + CONFIG.TARGET_LANGUAGE + '_' + GAME_NAME + '_best_score'; }`
+  `applyMode(new URLSearchParams(window.location.search).has('12'));`
   FACTS holds 48 facts up to 12 and 36 otherwise. Everything in the game (the deck, Learned %, the
+  win check, the "already finished" check at start-up, the wrong answers) uses FACTS. RAW_DATA is
+  read only in applyMode.
+  applyMode also sets `document.title`: 'Multiply.by – Speed Times Tables to 12' when mode12 is
+  true, otherwise the page title given in section 2.
 
-  win check, the "already finished" check at start-up) uses FACTS. RAW_DATA is read only on this
-  line.
-  When MODE12 is true, also set
-  `document.title = 'Multiply.by – Learn the Multiplication Table to 12 (Times Tables)';`
+- `switchMode(mode12)` changes mode in place, WITHOUT loading a page, because a chatbot's sandboxed
+  preview cannot navigate. In this order: `pauseTimer()`; `saveProgress()`; cancel the pending
+  feedback timeout, if any (keep its id in a variable, so the old mode's next question is never
+  dealt into the new mode); `applyMode(mode12)`; update the address where that is allowed:
+  `try { history.replaceState(null, '', mode12 ? '?12' : window.location.pathname); } catch (e) {}`;
+  reset `state` to its initial values (with the timer stopped, no question, no feedback, How to Play
+  closed, not won); then run the same steps as start-up: read the saved progress for the new
+  STORAGE_KEY, write the total, build the deck, and show "You Won!" or `nextQuestion()` as at
+  start-up. Finally call `update()`.
 
-- Storage Key (each mode keeps its own saved progress):
-  `const STORAGE_KEY = 'openlang_' + CONFIG.TARGET_LANGUAGE + '_' + GAME_NAME + '_progress';`
+- Storage Keys: STORAGE_KEY and BEST_KEY, set by applyMode, so each mode keeps its own saved
+  progress and its own best score.
 
 - SAFE STORAGE (CRITICAL): Browsers can block site data (blocked cookies, privacy extensions, in-app
   browsers/WebViews, some browsers for files opened from disk). Then merely reading
@@ -136,57 +151,63 @@ IMPORTANT: Do not add any notes at the top or bottom of the HTML file.
   - Wrap `JSON.parse` of saved progress in try/catch; on failure, treat it as no saved data.
 
 - Start-up: read saved progress with `safeStorage.getItem(STORAGE_KEY)`. Saved progress is the
-  object `{ score, streak, learnedIds, mistakes, playMs }`; a missing `mistakes` or `playMs` field
-  (progress saved by an older version) counts as 0, and any other field saved by an older version
-  (such as `correct`) is ignored. Also write the total number of facts:
+  object `{ score, streak, learnedIds, mistakes, playMs, answerLog }`; a missing field counts as 0
+  (or an empty list for learnedIds, an empty object `{}` for answerLog), and any other field is
+  ignored. Also write the total number of facts:
   `safeStorage.setItem('openlang_' + CONFIG.TARGET_LANGUAGE + '_' + GAME_NAME + '_total', FACTS.length);`
 
-- `saveProgress()` writes `{ score, streak, learnedIds, mistakes, playMs }` from `state`, where
+- `saveProgress()` writes `{ score, streak, learnedIds, mistakes, playMs, answerLog }` from `state`, where
   playMs is `currentPlayMs()` (see TIMER), with
   `safeStorage.setItem(STORAGE_KEY, JSON.stringify(...))`.
 
 - Deck: `state.deck` is a Fisher-Yates shuffle of the FACTS items (the fact objects themselves,
   not their ids) whose id is NOT in `state.learnedIds`. Removing or moving a fact in the deck means
-  finding it by its `id` (e.g. `state.deck.filter(f => f.id !== leftId)`).
+  finding it by its `id` (e.g. `state.deck.filter(f => f.id !== fact.id)`).
 
 - If every fact is already learned at start-up (saved progress of a finished game), set
-  `state.isWon = true` and show the "You Won!" overlay instead of a round.
+  `state.isWon = true` and show the "You Won!" overlay instead of a question.
 
-- `startRound()`: take the first CARDS_PER_ROUND facts from `state.deck` (fewer if fewer are left;
-  they stay in the deck until learned). Set `state.wrongIds = []` (a new screen starts with no wrong
-  marks). Put them in `state.round.left` and `state.round.right`, each column shuffled independently
-  with the same Fisher-Yates shuffle. Do not use a derangement or any rule that keeps an answer off
-  its question's row; sometimes they will share a row, and that is fine. Clear `state.selected`,
-  then call `renderRound()`, `fitAllCards()` and `update()`.
-- Round end: after the matched cards are removed (see SUCCESS), check, in this order:
-  1. `state.round.left` is empty: if `state.deck` still has facts call `startRound()`, otherwise
-     stop the timer for good (`pauseTimer()`, then `state.timerActive = false`), set
-     `state.isWon = true`, call `saveProgress()` and `update()`, then `playSound('win')`.
+- `nextQuestion()`: set `state.feedback = null` and `state.picked = null`. If `state.deck` is empty,
+  the game is won (if `state.practice` is true, the practice is done instead: see PRACTICE HARD
+  ONES): stop the timer for good (`pauseTimer()`, then `state.timerActive = false`), set
+  `state.question = null` and `state.isWon = true`, record the best score (see BEST SCORE), call
+  `saveProgress()` and `update()`, then `playSound('win')`. Otherwise set `state.question = state.deck[0]` (it stays in the deck until it
+  is answered right), set `state.choices` to a Fisher-Yates shuffle of the question's answer plus
+  `wrongAnswers(state.question)`, so the right answer lands in a random one of the four places,
+  set `state.questionStartMs = currentPlayMs()`, then call `renderQuestion()` and `update()`.
 
-  2. LAST CARD REFILL: `state.round.left` holds exactly ONE fact AND `state.deck` holds at least one
-     OTHER fact (one not on screen). The last pair would be matched by elimination, which teaches
-     nothing, so do not make the player match it: no score, no learning, no sound. If that fact's id
-     is in `state.wrongIds`, move it to the END of `state.deck` (see WRONG CARDS); otherwise leave
-     it where it is in the deck (still unlearned, near the front). Then call `startRound()`, which
-     deals a fresh screen at once; the leftover fact is usually on it again, unmarked, among new
-     facts.
+- WRONG ANSWERS (CRITICAL): `wrongAnswers(fact)` returns exactly three answer strings, all different
+  from each other and from `fact.answer`, that are believable mistakes ("near misses"), never random
+  numbers:
+  1. Read the two factors a and b from `fact.text` ("6 x 8" gives a = 6, b = 8).
+  2. Candidates: the products of the neighbouring facts, `(a - 1) * b`, `(a + 1) * b`, `a * (b - 1)`
+     and `a * (b + 1)`, as strings. Drop any that are 0 or less, equal to `fact.answer`, or
+     repeated. Shuffle the rest and keep up to three.
+  3. If fewer than three are left (this happens for small facts such as 2 x 2), add the other
+     distinct answers of FACTS, nearest in value to `fact.answer` first (ties in random order),
+     skipping `fact.answer` and any answer already chosen, until there are three.
+  For 6 x 8 (answer 48) the candidates are 40, 56, 42 and 54, and three of them are shown.
 
-  3. Otherwise (several cards left, or the single leftover is the only fact left in the whole deck)
-     the player keeps playing the screen as it is. The very last fact of the game is matched
-     normally.
+- Round end: there is no separate round end. Each screen is one question; after the feedback of a
+  tap (see GAME LOGIC) `nextQuestion()` deals the next one.
 
-- TIMER ("Your time" on the "You Won!" screen): it measures PLAYING time, not the time from start to
-  finish. It never shows during play.
+- TIMER (the Time indicator next to the question, and "Your time" on the "You Won!" screen): it measures PLAYING
+  time, not the time from start to finish.
+
+  - The clock is always visible as the Time indicator during play (see INDICATORS). While the timer runs,
+    a `setInterval` every 250ms (started once at start-up) calls `update()` when
+    `state.timerStart !== null`, so the clock ticks. It shows 0:00 until the first touch.
 
   - `currentPlayMs()` returns `state.playMs` plus, if `state.timerStart` is not null,
     `Date.now() - state.timerStart`.
 
   - `startTimer()`: if the game is not won and `state.timerStart` is null and
     `document.visibilityState === 'visible'`, set `state.timerActive = true` and
-    `state.timerStart = Date.now()`. Call it from a `touchstart` and a `mousedown` listener on the
-    game area (both `{ passive: true }`, attached once at start-up, separate from the drag-and-drop
-    listeners), so the timer starts with the player's first touch of a card and NOT when the page
-    loads; reading How to Play before the first move is not counted.
+    `state.timerStart = Date.now()`. Call it ONLY from a `pointerdown` listener on #game-area (the
+    question and the answers; NOT on the whole page, the app container or the header), with
+    `{ passive: true }`, attached once at start-up. So the timer starts with the player's first
+    touch of the game, NOT when the page loads, and tapping RULES, the speaker or anything else in
+    the header never starts it: reading How to Play first is not counted.
 
   - `pauseTimer()`: if `state.timerStart` is not null, add `Date.now() - state.timerStart` to
     `state.playMs` and set `state.timerStart = null`.
@@ -198,16 +219,67 @@ IMPORTANT: Do not add any notes at the top or bottom of the HTML file.
     `saveProgress()`. A background tab, a locked phone or a closed page therefore adds no time.
 
   - Across visits: playMs is saved with the progress, so a game continued after a reload keeps
-    counting from where it stopped (starting again with the first touch of a card).
+    counting from where it stopped (starting again with the first touch of the game).
 
   - Format (`formatTime(ms)`): whole seconds, rounded down. Under one hour M:SS (e.g. 0:47, 4:32,
     12:05); from one hour H:MM:SS (e.g. 1:02:09).
+
+- ANSWER TIMES: the game records how long each answer took, so PRACTICE HARD ONES can bring back
+  the questions the player got wrong or was unsure of (slow, even when right). Nothing on screen
+  shows the times.
+  - `state.answerLog` is an object keyed by fact id; each value is a list of that fact's answers in
+    order, each `{ ms, right }`: ms is the whole milliseconds of PLAYING time from the question being
+    dealt to the tap, `Math.round(currentPlayMs() - state.questionStartMs)`, and right is true or
+    false. Example: `{ "17": [{ "ms": 2350, "right": true }], "4": [{ "ms": 5120, "right": false },
+    { "ms": 1890, "right": true }] }`.
+  - Record it in `handleAnswer`, before the score changes, for every answer, right or wrong. Skip
+    the record (not the answer) when `state.timerStart` is null at that moment: the clock has not
+    started yet, so there is no time to measure (the tap that starts the clock). Also skip it while
+    `state.practice` is true: the log keeps the game's answers only.
+  - Because it uses playing time, time while the page is hidden is not counted.
+  - It is part of the saved progress, so it survives a reload; Play Again and RESET clear it with
+    the rest of the progress.
+
+- PRACTICE HARD ONES (a short practice of the player's weakest facts, from the "You Won!" screen):
+  - `weakFacts()` returns the practice set, from `state.answerLog`, as fact OBJECTS from FACTS:
+    1. Every fact with at least one wrong answer, most wrong answers first (ties: the slowest
+       answer first). All of them are included, even if there are more than 10.
+    2. Then, until there are 10 facts, the other facts in the log, slowest first, ranked by their
+       longest `ms`.
+    Facts with no entry in the log are never chosen. If the log is empty, the list is empty.
+  - The button "Practice hard ones" is shown on the "You Won!" screen only when `weakFacts()` is
+    not empty (also for a finished game restored at start-up).
+  - Tapping it starts a practice round in place, without loading a page: cancel the pending
+    feedback timeout, set `state.practice = true`, `state.practiceIds` to the ids of `weakFacts()`,
+    `state.deck` to a Fisher-Yates shuffle of those facts, and score, streak, mistakes, playMs to 0,
+    learnedIds to [], timerStart to null, timerActive false, newBest false, isWon false; then
+    `nextQuestion()`. The practice plays exactly like the game (scoring, feedback, a wrong answer
+    goes to the end, the clock starts at the first touch) and the indicators show the practice:
+    Learned is the percentage of `state.practiceIds` learned.
+  - NOTHING of the practice is saved: `saveProgress()` returns at once without writing while
+    `state.practice` is true, the best score is not touched, and answerLog does not change. The
+    saved progress is still the finished game, so a reload during or after the practice opens the
+    game's own "You Won!" screen again.
+  - When the practice deck is empty: stop the timer (`pauseTimer()`, `state.timerActive = false`),
+    set `state.question = null` and `state.isWon = true`, call `update()`, then `playSound('win')`.
+    The "You Won!" overlay then shows the practice: the heading "Practice done!" instead of "You
+    Won!", the lines "Your time: T" and "Mistakes: M" of the practice, and only the buttons Play
+    Again and "Practice hard ones" (no score, no best score, no Share, no "up to 12" line).
+    Play Again works as always (a new full game); "Practice hard ones" practises the same set
+    again, in a new order.
+
+- BEST SCORE: when a game is won, read `const best = parseInt(safeStorage.getItem(BEST_KEY));`. If
+  there is no valid best yet (`isNaN(best)`) or `state.score > best`, save the new best with
+  `safeStorage.setItem(BEST_KEY, state.score)` and set `state.newBest = true`. The best score is NOT
+  part of the progress: Play Again and RESET keep it, and only a higher finished score replaces it.
+  A finished game restored at start-up shows the saved best with `state.newBest` false. The time is
+  shown on the "You Won!" screen but is never compared: finishing is winning.
 
 - Play Again (CRITICAL): the "You Won!" overlay shows the final score, a line "Your time: T", a line
   "Mistakes: M", and a "Play Again" button. The button MUST first set a module-level flag
   `resetting = true` (from then on `saveProgress()` returns at once without writing: the reload
   fires `pagehide`, whose save would otherwise write the finished game straight back), then clear
-  the saved progress with `safeStorage.removeItem(STORAGE_KEY)`, and only then call
+  the saved progress with `safeStorage.removeItem(STORAGE_KEY)` (NOT BEST_KEY), and only then call
   `window.location.reload()`. Reloading alone would restore the finished progress, reopen on the
   "You Won!" screen, and the button would appear to do nothing. Keep the mute state (MUTE_KEY) as it
   is.
@@ -215,276 +287,147 @@ IMPORTANT: Do not add any notes at the top or bottom of the HTML file.
 
 4. LAYOUT & VISUALS
 -------------------
-- Page: `body` has margin 0, background #f3f4f6, font-family: system-ui, -apple-system, "Segoe UI",
+- Page: `html` and `body` have `height: 100%; overflow: hidden; overscroll-behavior: none;`: the
+  page itself NEVER scrolls, not even by a pixel, in the browser or installed as an app (where
+  Android's font size and screen bars can change the height). A scroll that starts under the
+  finger cancels the tap, so the player must tap again. Only the How to Play panel may scroll,
+  inside itself. `body` has margin 0, background #f3f4f6, font-family: system-ui, -apple-system, "Segoe UI",
   Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif. Use `box-sizing: border-box` for all
   elements.
 
-- App container: one element wrapping the whole game (header, stats line, game area, footer), a flex
-  column, `height: 100dvh` (with `height: 100vh` written first as a fallback for old browsers),
-  `position: relative`, background #f9fafb. Width 100% on phones; on screens 768px wide or wider,
-  width 400px and centered (`margin: 0 auto`). The header, stats line, game area and footer all take
+- App container: one element wrapping the whole game (title band, header, game area, footer), a flex
+  column, PINNED to the visible screen: `position: fixed; top: 0; bottom: 0; left: 0; right: 0;`
+  (NO `height` in vh or dvh: an installed app on Android can count 100dvh taller than the visible
+  screen, which cut the footer off), background #f9fafb. Width 100% on phones; on screens 768px
+  wide or wider, `width: 400px` and centered (`margin: 0 auto`, which centers a fixed element
+  whose left and right are 0). The title band, header, game area and footer all take
   exactly the container's width.
-- Header and stats line and footer: `flex-shrink: 0`.
+- Title band, header and footer: `flex-shrink: 0`. There is no stats line under the header: the score and the
+  other indicators sit next to the question (see INDICATORS).
 
-- Game Area: `flex: 1`, `display: flex` (so the two columns stretch to the full height),
-  `gap: 0.5rem`, `padding: 0.5rem`, `overflow: hidden`, `overscroll-behavior: none`, and
-  `touch-action: none` (CRITICAL: this stops the browser from scrolling or zooming the page while a
-  card is dragged; never use overflow-y: auto here).
+- Game Area (the screen of one question): `touch-action: none` (a finger drag there never scrolls or
+  zooms anything), `flex: 1`, `min-height: 0`, a flex column,
+  `padding: 1rem`, `gap: 1rem`, `overflow: hidden`. From top to bottom:
 
-- Columns: two columns, each `flex: 1` (50% width), a flex column with
-  `justify-content: flex-start`, `gap: 0.5rem`, `touch-action: none`.
+  - Top row: a <div id="top-row">, `flex: 0 0 36%`, `min-height: 0`, a flex row with
+    `gap: 0.75rem`, holding the question card on the left and the indicators column on the right.
 
-- Cards: each card is a single <div> with `data-id` (the fact's id), `data-side` ("left" or "right")
-  and `data-base-font` (its starting font size) attributes, and the class `card`. Do not wrap cards
-  in an outer container element.
+  - Question card: a <div id="question">, `flex: 1`, `min-width: 0`, showing the fact's `text` (e.g.
+    "6 x 8"), font size `clamp(1.8rem, 9vmin, 3.5rem)`, bold. It is not a button and does nothing
+    when tapped.
 
-  - Look: `position: relative`, white background, `border: 1px solid #e5e7eb`,
-    `border-radius: 0.25rem`, `box-shadow: 0 1px 3px rgba(0,0,0,0.1)`, `padding: 0.5rem`,
-    `line-height: 1.25`, text color #111827, text centered both ways
-    (`display: flex; align-items: center; justify-content: center; text-align: center`).
+  - INDICATORS: a <div id="indicators"> to the right of the question card, `flex: 0 0 6.5rem`, a flex
+    column with `justify-content: space-between`, holding four <div class="indicator"> blocks, in
+    this order from top to bottom: Score, Learned, Mistakes, Time. Each block has a small label on top
+    and a large number under it:
+      <div class="indicator"><div class="indicator-label">Score</div><div class="indicator-value" id="ind-score">26</div></div>
+    - Labels, exactly: "Score", "Learned", "Mistakes", "Time". Look: 0.7rem, uppercase,
+      `letter-spacing: 0.05em`, color #6b7280, `line-height: 1.1`.
+    - Values: X (the score), Y% (the percentage of FACTS learned, or of the practice set during a practice, rounded to a whole number, e.g.
+      "6%"), M (the number of wrong answers) and T (the playing time so far,
+      `formatTime(currentPlayMs())`, e.g. "0:12"). Look: NOT bold (`font-weight: normal`), font size
+      `clamp(1.05rem, 5.2vmin, 1.7rem)`, color #111827, `line-height: 1.1`,
+      `font-variant-numeric: tabular-nums` (so numbers do not shift as the clock ticks),
+      `white-space: nowrap`. All four values, Mistakes included, are #111827 (never red).
+    - The column is RIGHT-aligned: labels and numbers are `text-align: right` and end at the column's
+      right edge. No borders or backgrounds; they never wrap or overflow.
+    - Short screens (`@media (max-height: 500px)`, e.g. a phone in landscape): the four blocks form a
+      2 x 2 grid instead (Score and Learned on top, Mistakes and Time below), with the column
+      `flex: 0 0 11rem`, so everything still fits.
+    - Mistakes counts every wrong answer in the whole game (saved with the progress, so they survive
+      a reload) and starts again at 0 with Play Again (which clears the saved progress).
 
-  - MUST INCLUDE: `user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;` so
-    text is never selected or dragged by the browser itself, and
-    `overflow: hidden; overflow-wrap: anywhere;` so text never spills out (see FIT TEXT TO CARD).
+  - Answers: a <div id="answers">, `flex: 1`, `min-height: 0`, a 2 x 2 grid
+    (`display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 1rem;`)
+    holding four <button class="answer"> elements, each showing one answer and carrying its place in
+    `data-index` (0 to 3, in the order of `state.choices`): places 0 and 1 are the top row, 2 and 3
+    the bottom row. Font size `clamp(1.5rem, 8vmin, 3rem)`.
 
-  - Height: every card's inline style height is CARD_MAX_HEIGHT (see FIT TEXT TO CARD), so cards
-    never change size when others are removed.
+- Question card and answer buttons share one look: white background, `border: 1px solid #e5e7eb`,
+  `border-radius: 0.5rem`, `box-shadow: 0 1px 3px rgba(0,0,0,0.1)`, text color #111827, text
+  centered both ways (`display: flex; align-items: center; justify-content: center;`), and
+  `user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;`.
 
-  - Left card (the multiplication): shows the fact's `text`, starting font size 1.52rem. Cursor:
-    `grab` on devices with a mouse, `pointer` on touch devices.
+- Answer buttons also have `font-family: inherit; font-weight: 600; margin: 0; padding: 0;
+  cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent;`.
+  On hover (devices with a mouse only, inside `@media (hover: hover)`), while no feedback is shown:
+  `border-color: #3b82f6; background-color: #eff6ff;`.
 
-  - Right card (the product): shows the fact's `answer`, starting font size 1.52rem. Cursor:
-    `pointer`.
-- Card states (CSS classes, all with !important so they win over the card's own look):
-  - .card-selected (the ONE card tapped/clicked and waiting for its partner):
-    `border: 3px solid #1d4ed8; background-color: #dbeafe; box-shadow: 0 0 0 2px #93c5fd; transform: scale(1.03); transition: transform 0.1s ease;`.
-    It MUST look clearly different from .target-hover so the player immediately sees the tap
-    registered.
+- FEEDBACK classes (with !important so they win over the hover look), set by `update()`:
+  - .flash-green: `background-color: #bbf7d0; border-color: #22c55e; color: #166534;`.
+  - .flash-red: `background-color: #fecaca; border-color: #ef4444; color: #991b1b;`.
+  - When `state.feedback` is 'correct': the picked button gets .flash-green.
+  - When `state.feedback` is 'wrong': the picked button gets .flash-red, and the button showing the
+    right answer gets .flash-green, so the player sees the right answer.
+  - While `state.feedback` is not null, all four buttons are `disabled` (with `cursor: default`, and
+    no faded look: keep full opacity and colors), so nothing can be tapped twice.
 
-  - .target-hover (the right card under a card being dragged):
-    `border: 2px solid #3b82f6; background-color: #eff6ff; transform: scale(1.05); transition: transform 0.1s ease;`.
+- Mobile: the whole UI fits on one screen with no horizontal or vertical scrolling, on a 360x640
+  phone, in landscape and on desktop.
 
-  - .flash-green (correct match):
-    `background-color: #bbf7d0; border-color: #22c55e; color: #166534;`.
-  - .flash-red (wrong match): `background-color: #fecaca; border-color: #ef4444; color: #991b1b;`.
-
-  - .card-wrong (a LEFT card the player matched wrongly on this screen; see WRONG CARDS): it keeps a
-    small red "Not learned" label until the card leaves the screen. The card itself looks normal
-    (white, normal border): .card-wrong does NOT change the background or border; only the red flash
-    colours the card, and that fades like the right card's. The label, in the top right corner:
-    `.card-wrong::after { content: "Not learned"; position: absolute; top: 2px; right: 4px; font-size: 9px; line-height: 1; font-weight: bold; color: #dc2626; pointer-events: none; }`.
-    The label is CSS only: it adds no element and no text to the card, so fitting the card's text is
-    unchanged.
-
-  - .drag-clone (the copy of a card that follows the finger):
-    `position: fixed; pointer-events: none; z-index: 9999; opacity: 0.9; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);`.
-- Mobile: the whole UI fits on one screen with no horizontal or vertical scrolling.
-
-- Footer: the element <div id="footer"> (exactly this id: pwa.js finds the footer by it). One line
-  (padding 0.5rem 0), white background, a 1px #e5e7eb top border, text 10px, color
-  #6b7280, centered. Contains only the Copyright line (defined in COPYRIGHT), which MUST be the very
-  last line of the page.
-
-FIT TEXT TO CARD (CRITICAL): on a small or landscape screen the cards get short and narrow. Text
-MUST NEVER spill outside its card: spilled text covers neighbouring cards and the header, steals
-taps, and is unreadable. Cards keep their fixed height; text that does not fit is made smaller
-instead.
-
-  - Define, with the global constants, `CARD_MAX_HEIGHT` as the CSS string
-    `calc((100dvh - 8.2rem) / (CARDS_PER_ROUND + 1))`, with CONFIG.CARDS_PER_ROUND + 1 filled in as
-    a number. (8.2rem leaves room for the header, the stats line, the footer and the game area's
-    padding.)
-  - Define these helper functions:
-      * `fitCardText(card)` shrinks one card's text until it fits. First reset the card's font size
-        to its `data-base-font` value (so text grows back after the screen gets bigger). Then read
-        the card's actual font size in pixels from its computed style (`data-base-font` is in rem,
-        so do not parse it as a pixel value). Then, while the content is taller OR wider than the
-        card (scrollHeight > clientHeight + 1 or scrollWidth > clientWidth + 1), reduce the font
-        size by 0.5px. The font must never be smaller than 9px: if the next step would go below 9px,
-        use exactly 9px and stop there, even if the text still overflows.
-
-      * `capFontSpread(keepCaps)` evens out font sizes (see EVEN FONT SIZES). For each side
-        separately, the cap is the smallest fitted font size (in px) among that side's cards on
-        screen. If keepCaps is true and caps were saved earlier, each side's cap is the SMALLER of
-        the saved cap and the new one, so caps never grow. Save the caps in a variable, then set
-        every card on that side to its side's cap.
-
-      * `fitAllCards()` fits every card on screen (elements with `data-side`); it does nothing when
-        there are none. Run fitCardText on each card, then finish with capFontSpread: keepCaps is
-        false when the round is complete on screen (just started, or no card matched yet), and true
-        once any card of the round has been matched.
-
-  - EVEN FONT SIZES: after fitting, every card on a side gets the same font size: the smallest
-    fitted font on that side (left and right are capped separately), so one card does not stand out
-    in larger type next to cards that had to shrink. The caps are kept while matched cards are
-    removed (the remaining cards never grow), and are measured afresh for a new round, or on a
-    resize while the whole round is still on screen.
-
-  - When to fit: call `fitAllCards()` right after `renderRound()` (before the browser paints). Also
-    refit, at most once per animation frame (schedule with requestAnimationFrame, cancelling any
-    refit already scheduled), when the window is resized, the device rotates (orientationchange),
-    the page finishes loading (load), and when web fonts are ready (`document.fonts.ready`, if
-    available).
-
-  - `fitAllCards` sets `card.style.height` and `card.style.fontSize` directly on the card elements;
-    nothing else may overwrite them (see RENDERING).
+- Footer: the element <div id="footer"> (exactly this id). One line (padding 0.5rem 0), white
+  background, a 1px #e5e7eb top border, text 10px, color #6b7280, centered. Contains only the
+  Copyright line (defined in COPYRIGHT), which MUST be the very last line of the page.
 
 
-5. INTERACTION & EVENTS (STRICT CONSTRAINTS)
---------------------------------------------
-- TYPE CASTING (CRITICAL): ids read from the page (`data-id`) or from drag events are ALWAYS
-  strings. The ids in RAW_DATA are numbers, so wrap every id read from the page in `parseInt(id)`
-  before ANY game logic, strict equality (===) check, or array filtering.
+5. INTERACTION & EVENTS
+-----------------------
+- ANSWER ON TOUCH (CRITICAL): an answer counts the moment the finger or mouse button goes DOWN on it,
+  not on `click`. On phones the browser cancels a click when the finger slides a little during the
+  tap (it takes it for the start of a scroll or pull-to-refresh), so children would have to tap
+  two or three times. Attach ONE `pointerdown` listener to #answers at start-up, using event
+  delegation with `e.target.closest('.answer')`, so the buttons of later questions work without
+  new listeners. If the pointer is a mouse, only the main button counts (`e.button === 0`). It
+  calls `handleAnswer(parseInt(button.dataset.index))`.
 
-- The game supports TWO ways to match, and both MUST work on every device: drag-and-drop (Systems A
-  and B) and tap-to-match (System C). A first-time player must succeed with whichever one they try,
-  with no instructions.
-- Touch device: `const isTouchDevice = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;`
+- KEYBOARD: the answers are real <button> elements, so Tab, then Enter or Space, also works. Attach
+  ONE `click` listener to #answers that handles ONLY clicks made by the keyboard (`e.detail === 0`)
+  and ignores every other click: a tap was already answered on `pointerdown`, and its later click
+  must never answer again (after a long press it would land on the NEXT question's button).
 
-- Attach every listener ONCE at start-up (on `window` for touch, on the game area for clicks and
-  desktop drag, using event delegation with `e.target.closest('[data-side]')`), so cards created in
-  later rounds work without new listeners.
+- Do NOT call preventDefault on touches: there is nothing to drag.
 
-- System A (Desktop drag-and-drop): left cards get `draggable="true"` when NOT a touch device (and
-  `draggable="false"` on touch devices). Use the native `dragstart`, `dragover`, `dragleave` and
-  `drop` events:
-  - `dragstart` on a left card: store its id with `e.dataTransfer.setData('text/plain', id)` and
-    call `clearSelection()`.
-
-  - `dragover` on a right card: call `e.preventDefault()` (required to allow the drop) and add
-    .target-hover to it. `dragleave`: remove .target-hover.
-
-  - `drop` on a right card: `e.preventDefault()`, remove .target-hover from all cards, read the left
-    card's id and call `handleMatch(leftId, rightId)`.
-  - `dragend`: remove .target-hover from all cards.
-
-- System B (Touch drag-and-drop): global `touchstart`, `touchmove`, `touchend`, `touchcancel`
-  listeners on `window`, EACH ONE attached with `{ passive: false }` as its third argument, the
-  `touchmove` listener above all: browsers treat a `touchmove` listener on `window` without it as
-  passive and ignore its `preventDefault()`, so the browser grabs the gesture and swallows the next
-  tap on a button. Use a visual clone of the card (class .drag-clone) that follows the finger. Find
-  the drop target with `document.elementFromPoint()` at the finger's position (hide the clone just
-  before calling it, show it again right after). Apply .target-hover to the right card under the
-  finger directly with classList.
-
-  - TAP vs DRAG (CRITICAL): on `touchstart` over ANY card, LEFT OR RIGHT (find it with
-    `e.target.closest('[data-side]')`, NOT only `[data-side="left"]`), record the start coordinates,
-    the card's id and side, and `moved = false` in a variable, but DO NOT create the clone yet. In
-    `touchmove`, as soon as the finger is 10px or more (Euclidean distance) from the start point,
-    set `moved = true` (for ANY card, left or right; it stays true until the touch ends). Create the
-    clone ONLY once the finger has moved 10px or more (Euclidean distance) from the start point AND
-    the touched card is a LEFT card; from then on it is a drag (call `clearSelection()` at that
-    moment). In EVERY `touchmove` of a touch that started on a card (left or right, dragging or
-    not), call `e.preventDefault()` if `e.cancelable` is true: the game owns that whole gesture, so
-    the browser never starts scrolling, pull-to-refresh or other gestures from a card (a started
-    browser gesture would also swallow the click of the next tap on a button). While dragging, move
-    the clone so its center is under the finger. Only LEFT cards can be dragged; a right card that
-    moves 10px or more is simply ignored (neither a tap nor a drag).
-
-  - In `touchend`: if `moved` is still false (the finger never moved 10px), it is a TAP: call
-    `e.preventDefault()` if `e.cancelable` is true (this cancels the browser's synthetic click for
-    this tap; never call it on an event that cannot be cancelled, which makes the browser log an
-    error), set `window._lastTouchTap = { id: parseInt(id), side, time: Date.now() }`, and call
-    `handleCardTap(id, side)` for the touched card (left OR right). If a clone exists, it is a DROP:
-    find the right card under the last finger position (`e.changedTouches[0]`) and, if there is one,
-    call `handleMatch(leftId, rightId)`. If the finger moved but there is no clone (a right card was
-    moved), do nothing at all: it is neither a tap nor a drag, and nothing gets selected.
-
-  - FAST TAPS (CRITICAL, Android): a player often taps a left card and then its partner within a
-    fraction of a second. Every tap on a card, left or right, MUST be handled by `touchend` itself;
-    never rely on the synthetic click for touch taps, and never ignore clicks on OTHER cards after a
-    touch tap (that silently drops the second tap of a fast match).
-
-  - Always reset the touch-tracking variable, remove the clone and remove .target-hover from all
-    cards on `touchend` and `touchcancel`.
-
-  - Touches that do not start on a card (header buttons, links, the How to Play panel, the "You
-    Won!" overlay) MUST be left completely alone: no preventDefault, so those buttons and links work
-    normally.
-
-- System C (Tap-to-Match, all devices): ONE function `handleCardTap(id, side)` handles every
-  tap/click on a card.
-
-  - It MUST begin with `id = parseInt(id);`. `selectCard(id, side)` sets
-    `state.selected = { id: parseInt(id), side }` and calls `update()`; `clearSelection()` sets
-    `state.selected = null` and calls `update()`.
-  - Rules, in order:
-    1. Ignore the tap if the How to Play panel is open (`state.showInfo`) or the game is won, or if
-       the tapped card's key ('left'+id or 'right'+id) is in `state.successKeys` (it is already
-       matched and about to be removed; without this a player could re-match the green cards and
-       score twice).
-
-    2. Nothing selected -> select the tapped card (left OR right; either column may be tapped
-       first).
-    3. Tapped the currently selected card again -> deselect it (`clearSelection()`).
-    4. Tapped a different card in the SAME column -> move the selection to the tapped card.
-
-    5. Tapped a card in the OTHER column -> attempt a match: leftId = the LEFT card's id, rightId =
-       the RIGHT card's id (regardless of which was tapped first). Call `clearSelection()`, then
-       `handleMatch(leftId, rightId)`, exactly the same function drag-and-drop uses. Do NOT
-       duplicate the scoring logic.
-
-  - Clicks: one `click` listener on the game area. For a click on a card, first check
-    `const t = window._lastTouchTap; if (t && t.id === parseInt(id) && t.side === side && Date.now() - t.time < 700) return;`
-    (ignore ONLY a click on the SAME card that was just tapped by touch; handling both would select
-    and immediately deselect it). Otherwise call `handleCardTap(id, side)`.
-
-  - The selection is cleared whenever a new round starts and after every match attempt (success or
-    fail).
+- Keyboard shortcut: the keys 1, 2, 3 and 4 also answer (1 is the top-left answer, 2 top-right,
+  3 bottom-left, 4 bottom-right), through the same `handleAnswer`, but only while How to Play is
+  closed. Use the same `keydown` listener on window as Escape.
 
 
 6. GAME LOGIC
 -------------
-- `handleMatch(leftId, rightId)`: parse both ids. Ignore the call if either card's key is already in
-  `state.successKeys`, or if either card is no longer in `state.round`.
+- `handleAnswer(index)`: ignore the call if the How to Play panel is open (`state.showInfo`), the game
+  is won, there is no question, or feedback is being shown (`state.feedback !== null`). Otherwise
+  set `state.picked = index` and record the answer's time (see ANSWER TIMES).
 
-- MATCH VALIDATION: A match is correct if `leftId === rightId`, OR if the RIGHT card's answer text
-  is exactly the same as the answer of the LEFT card's fact (two facts can share an answer, e.g. 3 x
-  8 and 4 x 6 both show "24"; either "24" card is correct). Because the two cards can then have
-  different ids, everything below that touches a card names it by side: the LEFT card is leftId, the
-  RIGHT card is rightId.
-- SUCCESS (match is correct):
+- ANSWER VALIDATION: the answer is right if `state.choices[index] === state.question.answer` (the
+  answers are compared as strings; the four choices are always different, so exactly one is right).
+
+- RIGHT ANSWER:
   1. Call `playSound('correct')`.
   2. Increase `state.score` by (10 + `state.streak`).
   3. Increase `state.streak` by 1.
+  4. Add the question's id to `state.learnedIds` (if not already there) and remove it from
+     `state.deck`.
+  5. Call `saveProgress()`.
+  6. Set `state.feedback = 'correct'` and call `update()` (the button turns green at once).
+  7. After 200ms (a speed game: just long enough to see the green; a `setTimeout` whose id is kept
+     for switchMode), call `nextQuestion()`.
 
-  4. If leftId is in `state.wrongIds` (the player got it wrong earlier on this screen; see WRONG
-     CARDS): do NOT add it to `state.learnedIds`; move leftId from its place in `state.deck` to the
-     END of `state.deck`, so it comes back at the end of the game. Then skip step 5.
-
-     Otherwise add leftId (the LEFT card's fact) to `state.learnedIds` (if not already there). ONLY
-     leftId: NEVER add rightId. Facts that share an answer are separate facts: matching 3 x 8 with
-     the "24" card that belongs to 4 x 6 teaches 3 x 8 only, and 4 x 6 stays unlearned until its own
-     LEFT card is matched.
-  5. Remove leftId (only) from `state.deck`.
-  6. Call `saveProgress()`.
-
-  7. Green flash: add 'left'+leftId and 'right'+rightId to `state.successKeys` and call `update()`.
-     The green flash shows at once (no fade) for 200ms.
-
-  8. After a 200ms `setTimeout` (NOT longer: fast players move on immediately, and cards lingering
-     on screen scramble their next move): remove both keys from `state.successKeys`, remove the LEFT
-     fact leftId from `state.round.left` and the RIGHT fact rightId from `state.round.right`, delete
-     those two card elements from the page, call `update()`, then check for the round end (see
-     ARCHITECTURE).
-- FAIL (match is not correct):
-  1. Red flash on BOTH cards: add 'left'+leftId and 'right'+rightId to `state.failKeys`. Mark the
-     LEFT card wrong: add leftId to `state.wrongIds` (if not already there).
-
+- WRONG ANSWER:
+  1. Call `playSound('wrong')`.
   2. Set `state.streak` to 0. Decrease `state.score` by 5 (never below 0). Increase `state.mistakes`
      by 1.
-  3. Call `playSound('wrong')`, `saveProgress()` and `update()`.
+  3. The fact is NOT learned: move it from its place in `state.deck` to the END of `state.deck`, so
+     it comes back at the end of the game.
+  4. Call `saveProgress()`.
+  5. Set `state.feedback = 'wrong'` and call `update()`: the tapped button turns red and the right
+     answer turns green.
+  6. After 2000ms (long enough to read the right answer; a `setTimeout` whose id is kept for
+     switchMode), call `nextQuestion()`.
 
-  4. After 2000ms, remove both keys from `state.failKeys` and call `update()`. Both cards return to
-     normal; the LEFT card keeps only its small "Not learned" label.
-
-- WRONG CARDS: a fact is learned only when its LEFT card is matched correctly on a screen where it
-  was never matched wrongly. After a wrong match the LEFT card shows the small "Not learned" label
-  (.card-wrong) for the rest of that screen. The player still has to match it correctly to clear it
-  from the screen (normal score and streak), but it is NOT learned: it goes to the end of the deck
-  and comes back, unmarked, on a fresh screen near the end of the game. Getting it wrong there sends
-  it to the end again. The game is won only when every fact is learned. `state.wrongIds` is not
-  saved; after a reload every unlearned fact is simply back in the shuffled deck.
+- MISSED QUESTIONS: a fact is learned only when it is answered right. A question answered wrongly
+  goes to the end of the deck and is asked again near the end of the game (with freshly shuffled
+  answers); answering it wrongly there sends it to the end again. The game is won only when every
+  fact is learned. After a reload, every unlearned fact is simply back in the shuffled deck.
 
 
 7. AUDIO SYSTEM (MOBILE ROBUSTNESS - iOS FIXES)
@@ -496,9 +439,9 @@ Sound effects (short tones made in the browser with the Web Audio API; no audio 
   `const SOUNDS = { correct: ['sine', [[660, 0, 0.08], [880, 0.08, 0.14]]], wrong: ['triangle', [[196, 0, 0.25]]], win: ['sine', [[523, 0, 0.12], [659, 0.12, 0.12], [784, 0.24, 0.12], [1047, 0.36, 0.35]]] };`
   `function playSound(name) { if (isMutedNow()) return; const ctx = getAudioCtx(); if (!ctx) return; try { const [wave, notes] = SOUNDS[name]; const t0 = ctx.currentTime + 0.01; for (const [freq, start, dur] of notes) { const osc = ctx.createOscillator(); const gain = ctx.createGain(); osc.type = wave; osc.frequency.value = freq; gain.gain.setValueAtTime(0.0001, t0 + start); gain.gain.exponentialRampToValueAtTime(0.2, t0 + start + 0.01); gain.gain.exponentialRampToValueAtTime(0.0001, t0 + start + dur); osc.connect(gain); gain.connect(ctx.destination); osc.start(t0 + start); osc.stop(t0 + start + dur); } } catch (e) {} }`
 
-- Sound plays ONLY at three moments: `playSound('correct')` (see SUCCESS), `playSound('wrong')` (see
-  FAIL) and `playSound('win')` (see Round end). Dealing a round, tapping to select a card and
-  loading saved progress are silent, so a finished game restored at start-up plays nothing.
+- Sound plays ONLY at three moments: `playSound('correct')` (see RIGHT ANSWER), `playSound('wrong')`
+  (see WRONG ANSWER) and `playSound('win')` (see `nextQuestion()`). Dealing a question and loading
+  saved progress are silent, so a finished game restored at start-up plays nothing.
 - While sound is off, `playSound` returns at once and no AudioContext is created.
 
 - Phones allow audio only after a touch, and iOS can suspend it again (for example after a call). At
@@ -514,8 +457,7 @@ Unlock (at start-up):
 
 - Inside `unlockAudio`: call `window.speechSynthesis.resume()`. Create
   `const unlockUtterance = new SpeechSynthesisUtterance(' ');`, set its volume to 1, and call
-  `window.speechSynthesis.speak(unlockUtterance);`. DO NOT place this unlock logic inside the game's
-  drag-and-drop touch handlers.
+  `window.speechSynthesis.speak(unlockUtterance);`.
 - If `window.speechSynthesis` does not exist, skip all speech quietly (the game still works).
 
 - VOICE PRELOAD (CRITICAL, otherwise the device's default voice is used): browsers load
@@ -552,13 +494,32 @@ Unlock (at start-up):
      full region tag; a bare 'en' lets some browsers fall back to the device's default voice).
 
   9. Call `window.speechSynthesis.speak(utterance);` SYNCHRONOUSLY (in the same event that triggered
-     the match).
+     it).
 
 
 8. HEADER
 ---------
+- TITLE BAND (branding, the very top of the page, above the menu bar): a <header id="title-band">,
+  white background, blue text (#2563eb, both parts), a 1px #e5e7eb bottom border separating it
+  from the menu bar, `padding: 0.35rem 0.5rem`, holding ONE line, the page's heading:
+    <h1><span id="tagline"><strong>Multiply.by:</strong> learn the multiplication table</span></h1>
+  - h1: `margin: 0; font-weight: normal; line-height: 1.2; white-space: nowrap; overflow: hidden;
+    text-align: center;` ("Multiply.by:" bold, the rest normal). The span is `display: inline-block`.
+  - THE HEADING FILLS THE FULL WIDTH: its font size is chosen so the line runs from the band's left
+    padding to its right padding, whatever the screen width and the phone's fonts, in portrait and
+    landscape alike. `fitTagline()`: set the span's font size to 100px, measure its width with
+    `getBoundingClientRect().width`, then set the font size to
+    `Math.max(10, Math.min(cap, Math.floor(100 * avail / width * 10) / 10)) + 'px'`, where avail
+    is the h1's own width (`h1.clientWidth`) and cap is 28, or 18 on short screens
+    (`matchMedia('(max-height: 500px)').matches`, a phone in landscape, to save height). Set this
+    same size on the h1 too (`h1.style.fontSize`), so the band is only as tall as the line: about
+    1.2 times the font size plus its padding, never taller. Call it at start-up, on every `resize`, and once more in
+    `document.fonts.ready.then(fitTagline)` (in a try/catch) because a late font changes the width.
+    It never makes the line wider than the band, so nothing is cut off.
+  - Plain text: not a link and not a button; tapping it does nothing (and does not start the
+    timer). The same text in both modes.
 - Header Elements
-ABOUT: A link with the exact text "ABOUT": <a href="/about">.
+ABOUT: A link with the exact text "ABOUT": <a href="https://multiply.by/about">.
 
 MUTE: The sound button is a <button> showing an ICON, not text. Tapping it toggles sound on and off.
 Draw it as an inline SVG speaker, 20px x 20px, viewBox "0 0 24 24", stroke="currentColor",
@@ -596,21 +557,22 @@ INFO: A <button> with the exact text "RULES". Tapping it sets `state.showInfo = 
       fit on a phone screen without scrolling. Start with exactly these four points, in this order,
       each with its bold lead word, worded exactly (the SOURCE point below comes after them, as the
       last point):
-        1. "<strong>Match:</strong> drag a left card onto its partner on the right, or tap a card
-           and then its partner."
+        1. "<strong>Answer:</strong> tap the right answer to the question."
 
-        2. "<strong>Score:</strong> a correct match earns 10 points, plus 1 for each correct match
+        2. "<strong>Score:</strong> a right answer earns 10 points, plus 1 for each right answer
            in a row before it. A wrong answer costs 5 points and ends the streak."
 
         3. "<strong>Sound:</strong> the speaker button turns sound on and off."
-        4. "<strong>Win:</strong> match all the cards. A card you get wrong comes back at the end."
+        4. "<strong>Win:</strong> answer every question. A question you get wrong comes back at the
+           end."
       Do not add icons, examples or any other explanation to these points.
 
     - After these four points, one more point, which is the mode switch, exactly:
       <li><label class="mode-switch"><strong>Up to 12:</strong> <input type="checkbox" role="switch" id="mode-12"></label></li>
-      `#mode-12` is checked when MODE12 is true. On its `change` event:
-      `window.location.href = this.checked ? '/?12' : '/';` (a normal page load; each mode resumes
-      its own saved progress). Look: the label is `display: flex; align-items: center; gap: 0.5rem;`
+      `#mode-12` is checked when MODE12 is true. On its `change` event: `switchMode(!MODE12);` (each
+      mode resumes its own saved progress). Use MODE12, not `this.checked`: a click inside the panel
+      may close it and re-render, which resets the checkbox before `change` fires.
+      Look: the label is `display: flex; align-items: center; gap: 0.5rem;`
 
       and the input is a small switch, not a tick box:
       `appearance: none; -webkit-appearance: none; position: relative; width: 2.5rem; height: 1.4rem; margin: 0; border-radius: 1rem; background: #9ca3af; cursor: pointer;`
@@ -636,63 +598,126 @@ INFO: A <button> with the exact text "RULES". Tapping it sets `state.showInfo = 
       call `e.stopPropagation()` or otherwise swallow the click. Also close it when "Escape" is
       pressed (a `keydown` listener on window).
 
-SOURCE: A link with the exact text "SOURCE": <a href="/build-instructions.txt">
+RESET: A <button> with the exact text "RESET", to start the current set again from scratch. It
+needs two taps, so a child cannot wipe their progress by accident:
+    - First tap: its text changes to "SURE?" (color #dc2626) for 3 seconds, then back to "RESET".
+    - A second tap while it shows "SURE?" resets, with exactly the same steps as Play Again
+      (`resetting = true`, `safeStorage.removeItem(STORAGE_KEY)`, `window.location.reload()`). It
+      clears only the current set's progress (score, learned facts, mistakes, time) and keeps the
+      best score (BEST_KEY) and the sound setting (MUTE_KEY). Do NOT use `confirm()`: it is blocked in
+      chatbot previews.
+
+SOURCE: A link with the exact text "SOURCE": <a href="https://multiply.by/build-instructions.txt">
 (NO `download` attribute: the file opens in the browser).
 
-- Implementation: the header is a menu bar, like a standard website menu: a flex row,
-  'display: flex; align-items: stretch; gap: 4px; padding: 0 6px; width: 100%; height: 2.5rem;
+- Implementation: the header is a menu bar directly under the title band, like a standard website
+  menu: a flex row,
+  'display: flex; align-items: stretch; gap: 2px; padding: 0 6px; width: 100%; height: 2.5rem;
   box-sizing: border-box;', white background, a 1px #e5e7eb bottom border. From left to right:
-  MUTE (the speaker icon), then the menu items FAQ, ABOUT and RULES (INFO), left-aligned, each only
+  MUTE (the speaker icon), then the menu items FAQ, ABOUT, RULES (INFO) and RESET, left-aligned, each only
   as wide as its text plus its padding (NOT equal widths, NOT stretched to fill the bar). SOURCE is
   a button in the far right corner ('margin-left: auto'). There is no logo. The score is NOT in this
-  bar; it is on the STATS LINE below it.
+  bar; it is in the INDICATORS next to the question.
 
-- Menu items (MUTE, FAQ, ABOUT, RULES): no button look, no border, background, box or shadow; plain
+- Menu items (MUTE, FAQ, ABOUT, RULES, RESET): no button look, no border, background, box or shadow; plain
   text (and the plain icon) on the white bar. They share one CSS class (for example `menu-item`):
-  'display: flex; align-items: center; height: 100%; padding: 0 10px; margin: 0; border: none;
+  'display: flex; align-items: center; height: 100%; padding: 0 5px; margin: 0; border: none;
   background: none; text-decoration: none; cursor: pointer; font: inherit;'. The full bar height
   is the tap area. On hover (desktop) the text turns dark blue #1e40af.
 
 - MUTE: the plain speaker icon, color #4b5563.
 
-- FAQ, ABOUT, RULES: text 13px, bold, #374151, 'white-space: nowrap'.
+- FAQ, ABOUT, RULES, RESET: text 13px, bold, #374151, 'white-space: nowrap'.
+- The whole bar fits on one line on a 360px-wide phone, with nothing cut off: SOURCE ends inside
+  the screen's right edge.
 
 - SOURCE: the only button in the bar. 'align-self: center; display: flex; align-items: center;
-  height: 1.75rem; padding: 0 12px; margin-left: auto;', a 1px #e5e7eb border, light gray
+  height: 1.75rem; padding: 0 8px; margin-left: auto;', a 1px #e5e7eb border, light gray
   background #f9fafb, rounded corners (0.25rem), text 12px bold #374151, no underline,
   'white-space: nowrap', `cursor: pointer`.
 
-FAQ: A link with the exact text "FAQ": <a href="/faq">.
-
-STATS LINE (directly below the top bar):
-- A single line of plain text, centered, directly under the header and above the cards, spanning the
-  full width. It contains NO buttons or links and does nothing when tapped.
-
-- Text, in this order, separated by " · " (space, middle dot U+00B7, space): "Score X · Learned Y% ·
-  Mistakes M", where X is the score, Y the percentage of FACTS learned (rounded to a whole
-  number) and M the number of wrong matches. Example: "Score 26 · Learned 6% · Mistakes 1". There is
-  no count of correct matches anywhere in the game (it would only grow with the mistakes, since
-  every card has to be matched in the end).
-
-- Style: 0.8rem, color #4b5563, 'white-space: nowrap', 'overflow: hidden', 'text-overflow:
-  ellipsis', padding 2px 0, white background, a 1px #e5e7eb bottom border. It is one line high and
-  never wraps.
-
-- Mistakes counts every wrong match in the whole game (saved with the progress, so they survive a
-  reload) and start again at 0 with Play Again (which clears the saved progress).
+FAQ: A link with the exact text "FAQ": <a href="https://multiply.by/faq">.
 
 "YOU WON!" OVERLAY:
 - Covers the app container (`position: absolute; inset: 0;`, z-index 40, background
   rgba(255,255,255,0.95)), content centered in a column: "You Won!" (2.25rem, bold, #16a34a), "Final
   Score: X" (1.25rem, #374151), "Your time: T" (1.25rem, #374151, T is `formatTime(state.playMs)`),
-  "Mistakes: M" (1rem, #6b7280), and the "Play Again" button (padding 1rem 2rem, background #2563eb,
-  white bold 1.25rem text, rounded, shadow). Below the button, with a 1.5rem gap, one line (1rem,
-
-  #374151), shown ONLY when MODE12 is false: <div>Ready for 11 and 12? Try <a href="/?12">up to
+  then either "New best score!" (1rem, bold, #16a34a) when `state.newBest` is true, or "Best score:
+  B" (1rem, #6b7280, B is the saved best score) otherwise, then "Mistakes: M" (1rem, #6b7280), then
+  the buttons.
+- BUTTONS: one <div class="win-buttons"> holds the "Play Again" button (padding 1rem 2rem, background
+  #2563eb, white bold 1.25rem text, rounded, shadow) and, below it, a <button> "Share my results"
+  (padding 0.75rem 1.5rem, white background, a 2px solid #2563eb border, #2563eb bold 1rem text,
+  rounded; see SHARE MY RESULTS), shown ONLY on phones and tablets that can share pictures (see
+  SHARE MY RESULTS; on a desktop computer the button is hidden). Between them, a <button> "Practice
+  hard ones" with the same look as "Share my results" (see PRACTICE HARD ONES; hidden
+  when there is nothing to practise). The container is `display: flex; flex-direction: column;
+  align-items: center; gap: 0.75rem;` and the buttons themselves have NO margins: the gap alone
+  spaces them. pwa.js may insert an "Install for offline play" button into this same container,
+  right after Play Again; the gap then separates all the buttons evenly. Below that, with a 1.5rem gap, one line (1rem,
+  #374151), shown ONLY when MODE12 is false: <div>Ready for 11 and 12? Try <a href="?12">up to
   12</a></div>.
-  The link opens in the same tab (NO target attribute) and is styled like the footer links (no
-  underline, bold, dark blue #1e40af).
+  Clicking the link calls `preventDefault()` and then `switchMode(true)`, with no page load. The
+  link has NO target attribute and is styled like the footer links (no underline, bold, dark blue
+  #1e40af).
 
+SHARE MY RESULTS (the "Share my results" button on the "You Won!" screen):
+- RESULTS CARD (a picture): `drawResultsCard()` draws the results on a 1080 x 1080 <canvas> (made
+  with `document.createElement('canvas')`, never added to the page) and turns it into a PNG file:
+  `canvas.toBlob(blob => { resultsFile = new File([blob], 'multiply-by-results.png', { type: 'image/png' }); }, 'image/png')`.
+  Call it once each time the "You Won!" screen appears (when a game is won, and when a finished game
+  is restored at start-up), so the picture is READY before the tap: phones (iPhone above all) allow
+  sharing only straight after a tap, and drawing it during the tap would be too late. Keep the file
+  in a module-level variable `resultsFile` (null until ready); `switchMode` and Play Again set it
+  back to null.
+- Draw EVERY piece of text on the card with exactly this helper, which sets the font, color and
+  alignment each time (so no text inherits another text's size):
+  `function drawText(ctx, text, x, y, size, color, bold, maxWidth) { const w = maxWidth || 1000; let s = size; do { ctx.font = (bold ? 'bold ' : '') + s + 'px system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif'; s -= 2; } while (ctx.measureText(text).width > w && s > 10); ctx.fillStyle = color; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic'; ctx.fillText(text, x, y); }`
+  It shrinks the font until the text fits maxWidth (1000px when not given), so long values such as
+  a time of 1:02:05 never run into their neighbours. Never call `ctx.fillText` or set `ctx.font`
+  anywhere else.
+- The card's look (all text centered horizontally on its x; draw with fillRect and drawText only, no
+  images):
+    - Background #f9fafb. A blue band (#2563eb) across the top, 220px high, with "multiply.by" in
+      white bold 96px, and under it in the band "Speed times tables" in white 44px.
+    - Below the band: the set, "2 to 9" or "Up to 12", in #374151 bold 56px.
+    - Three results in one row (centers at x = 200, 540 and 880): "TIME" T, "SCORE" X, "MISTAKES" M.
+      Each label is `drawText(ctx, label, x, 470, 40, '#6b7280', true)` and each number
+      `drawText(ctx, value, x, 590, 110, color, true, 320)` with color #111827 (Mistakes #dc2626 when M is
+      more than 0). All three labels are the same small size; only the numbers are large. T is `formatTime(state.playMs)`, X the final score, M the
+      number of mistakes.
+    - Under the row, "New best score!" in #16a34a bold 52px when `state.newBest` is true, otherwise
+      "Best score: B" in #6b7280 44px.
+    - The date the game was won, written with
+      `new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })`,
+      in #6b7280 40px.
+    - At the bottom, "Play at multiply.by" in #1e40af bold 48px.
+    - Nothing may overlap or run off the card; leave at least 60px of space at the bottom.
+- Every share also passes the title 'multiply.by results' (some apps use it, for example as an email
+  subject; others ignore it).
+- The text sent with the picture is ONLY the link, returned by `shareText()`: https://multiply.by/
+  (2 to 9) or https://multiply.by/?12 (up to 12). No sentence, no results: the picture shows them.
+- WHERE IT SHOWS: only on touch devices that can share files. At start-up set
+  `const CAN_SHARE = matchMedia('(pointer: coarse)').matches && !!navigator.canShare;`
+  and hide the button (`display: none`) when CAN_SHARE is false, for example on a desktop computer.
+- On tap, in the click handler itself, try these in order and stop at the first that works:
+  1. SHARE THE PICTURE: if `resultsFile` is ready and `navigator.canShare({ files: [resultsFile] })`
+     is true, call
+     `await navigator.share({ files: [resultsFile], title: 'multiply.by results', text: shareText() });`
+     inside try/catch. This share call MUST be the first `await` in the click handler (nothing is
+     awaited before it, or phones refuse to share), and it MUST itself be awaited, so the catch sees
+     its rejection (the text is the link; do NOT also pass `url`, which some apps would show twice).
+     If it rejects with an AbortError (the player closed the share menu), stop and do nothing. Any
+     other error, or no picture: go on to step 2.
+  2. SHARE THE LINK: call
+     `await navigator.share({ title: 'multiply.by results', text: shareText() })` inside try/catch;
+     AbortError: stop; any other error: go on to step 3.
+  3. COPY THE LINK: try `navigator.clipboard.writeText(shareText())`; if that fails, the button
+     reads "Could not share" for 2 seconds; when it worked, "Link copied" for 2 seconds. Then it
+     reads "Share my results" again.
+- Wrap every step (and `drawResultsCard`) in try/catch: sharing MUST never throw an error or break
+  the game. If the canvas cannot be drawn, `resultsFile` stays null and steps 2 and 3 still work.
+- Sharing changes nothing in `state`, saves nothing and plays no sound.
 
 9. CODE ORGANIZATION
 --------------------
@@ -703,191 +728,184 @@ the dataset MUST be easy to find and read.
      the <title> and the description <meta>.
 
    - Put this comment on the line just before that <script>:
-     <!-- openlang-data: the complete word list for this game, one pair per line: "text" is the left card, "answer" the right card -->
+     <!-- openlang-data: the complete list of facts for this game, one per line: "text" is the question, "answer" the right answer -->
    - Put this comment on the line just after its </script>: <!-- /openlang-data -->
 
    - One item per line, keys in the order id, text, answer. Right-align the id and pad the text
      value with spaces so the "answer" keys line up in one column.
 
    - CRITICAL: RAW_DATA must be a strictly valid JSON array of objects, with double quotes (") for
-     all keys and string values.
+     all keys and string values. The id is a NUMBER, never in quotes; text and answer are strings.
+     The first lines look exactly like this:
+       {"id":  1, "text": "2 x 2",   "answer": "4"},
+       {"id":  2, "text": "2 x 3",   "answer": "6"},
+     The game compares ids as numbers, so an id written as "1" would break every match.
 
    - The main script MUST NOT declare RAW_DATA again; it reads this global RAW_DATA. In its place it
-     has the comment /* RAW_DATA (the word list) is defined near the top of this page. */
+     has the comment /* RAW_DATA (the list of facts) is defined near the top of this page. */
 
-The page body holds the app's fixed HTML (header, stats line, empty game area with its two columns,
-footer, the How to Play panel and the "You Won!" overlay, both hidden at first). The main <script>
-at the very end of the <body> is organized in this order, each part introduced by a short comment:
-1. Configuration and constants (CONFIG, MODE12, GAME_NAME, FACTS, CARD_MAX_HEIGHT, STORAGE_KEY,
-   MUTE_KEY, isMutedNow; RAW_DATA
-   comes from the word-list script at the top of the page).
-
-2. Helper functions (shuffle, speakerSvg, fitCardText, capFontSpread, fitAllCards, getAudioCtx,
-   playSound).
-3. Game state (the `state` object) and saving/loading (loadProgress, saveProgress).
-4. Drawing (renderRound, update).
-5. Game logic (startRound, handleMatch, speakCard, selectCard, clearSelection, handleCardTap).
-
-6. Event listeners (clicks, desktop drag, touch, header buttons, How to Play, Escape, resize/refit,
-   sound unlock, audio unlock, voices), each attached once.
-
-7. Start-up: load progress, build the deck, start the first round (or show "You Won!"), and call
+The page body holds the app's fixed HTML (header, game area with the top row (empty question card
+and the indicators) and the answer grid, footer, the How to Play panel and the "You Won!" overlay, both hidden at
+first). The main <script> at the very end of the <body> is organized in this order, each part
+introduced by a short comment:
+1. Configuration and constants (CONFIG, MODE12, GAME_NAME, FACTS, STORAGE_KEY, applyMode, MUTE_KEY,
+   isMutedNow; RAW_DATA comes from the word-list script at the top of the page).
+2. Helper functions (shuffle, speakerSvg, formatTime, wrongAnswers, getAudioCtx, playSound).
+3. Game state (the `state` object), the timer, and saving/loading (loadProgress, saveProgress).
+4. Drawing (renderQuestion, update).
+5. Game logic (switchMode, nextQuestion, handleAnswer, speakCard).
+6. Event listeners (answers, keyboard, header buttons, How to Play, Escape, timer, clock interval,
+   visibility, sound unlock, audio unlock, voices), each attached once.
+7. Start-up: load progress, build the deck, deal the first question (or show "You Won!"), and call
    update().
 
 
 10. LOGIC TRACE & STATE PROGRESSION EXAMPLE (STRICT REFERENCE)
 --------------------------------------------------------------
-CRITICAL OVERFIT WARNING: The specific facts ([3 x 4], [6 x 7], etc.), their order on screen used in
-the trace below are purely HYPOTHETICAL EXAMPLES to demonstrate the logic and order of operations.
-DO NOT hardcode these facts or this layout into the code. The code must use the generated dataset,
-the shuffled rounds and `CONFIG`.
+CRITICAL OVERFIT WARNING: The specific facts ([6 x 8], [3 x 4], etc.) and the order of the answers
+used in the trace below are purely HYPOTHETICAL EXAMPLES to demonstrate the logic and order of
+operations. DO NOT hardcode these facts or this layout into the code. The code must use the
+generated dataset, the shuffled deck, `wrongAnswers` and `CONFIG`.
 
 [HYPOTHETICAL INITIAL SETUP (For tracing purposes only)]
 - Config as in GLOBAL CONFIGURATION: TARGET_LANGUAGE "Math", LANGUAGE_CODE "EN", CONFIG.MUTED true.
-- Round loads with 3 pairs from the dataset.
+- Mode 2 to 9 (no `?12`): FACTS has 36 facts.
 - State: score 0 | streak 0 | learnedIds [] | mistakes 0
-
 - Hypothetical environment: on an earlier visit the player tapped the speaker button to turn sound
   on, so MUTE_KEY holds 'false' and `isMutedNow()` returns false.
-- Hypothetical Left Column: [3 x 4], [6 x 7], [5 x 9]
-- Hypothetical Right Column: [45], [12], [42]
-- Both columns were shuffled independently (an answer may sometimes sit on the same row as its
-  question; that is fine).
+- Hypothetical deck: [6 x 8], [3 x 4], [7 x 9], ... (33 more)
 
-[TURN 1: Correct Guess (Standard)]
-- Action: Player drags "3 x 4" (Left) and drops it on "12" (Right).
-- State Check: Match is CORRECT.
+[QUESTION 1: Right Answer]
+- Screen: question "6 x 8"; `wrongAnswers` gives three of 40, 56, 42 and 54, say 42, 56 and 54.
+  After shuffling, the grid shows 42 | 56 (top row) and 48 | 54 (bottom row).
+- Action: Player taps "48".
 - Execution:
-  1. Sound: `isMutedNow()` is false, so `playSound('correct')` plays the correct-match sound.
-  2. Score = 0 + (10 base + 0 streak) = 10.
-  3. Streak 0 -> 1.
-  4. Add the id of "3 x 4" to `state.learnedIds`. Remove "3 x 4" from `state.deck`.
-  5. Save `{ score, streak, learnedIds, mistakes }` with safeStorage.setItem.
-  6. Both cards flash green; `update()` shows "Score 10 · Learned 3% · Mistakes 0".
-  7. After 200ms both card elements are removed from the page.
+  1. `playSound('correct')` plays.
+  2. Score = 0 + (10 base + 0 streak) = 10. Streak 0 -> 1.
+  3. The id of "6 x 8" is added to `state.learnedIds` and removed from `state.deck`. Saved.
+  4. "48" turns green; all four buttons are disabled; the indicators show Score 10, Learned 3%,
+     Mistakes 0 and Time 0:02 (the clock started with the tap).
+  5. After 200ms `nextQuestion()` deals "3 x 4".
 
-[TURN 1.5: ALTERNATE AUDIO SCENARIOS]
-- Scenario A (First visit, muted by default): nothing is saved under MUTE_KEY, so `isMutedNow()`
-  returns true (CONFIG.MUTED) and the header button shows the speaker with a cross.
-  `playSound` returns at once: no sound. All other logic identical to Turn 1.
+[QUESTION 1.5: ALTERNATE AUDIO SCENARIO]
+- First visit, muted by default: nothing is saved under MUTE_KEY, so `isMutedNow()` returns true
+  (CONFIG.MUTED) and the header button shows the speaker with a cross. `playSound` returns at once:
+  no sound. All other logic identical.
 
-[TURN 2: Wrong Guess]
-- Action: Player drags "6 x 7" (Left) and drops it on "45" (Right).
-- State Check: Match is INCORRECT.
+[QUESTION 2: Wrong Answer]
+- Screen: question "3 x 4"; the candidates are 8, 16, 9 and 15 (all different from 12), and three
+  of them are shown with 12, e.g. 9 | 12 / 16 | 8.
+- Action: Player taps "16".
 - Execution:
-  1. "6 x 7" and "45" both flash red for 2 seconds; `playSound('wrong')` plays.
-  2. Score = 10 - 5 (penalty) = 5.
-  3. Streak 1 -> 0. Mistakes 0 -> 1.
-  4. Save with safeStorage.setItem; `update()` shows the new stats line.
+  1. `playSound('wrong')` plays.
+  2. Score = 10 - 5 (penalty) = 5. Streak 1 -> 0. Mistakes 0 -> 1.
+  3. "3 x 4" is NOT learned: it moves to the END of `state.deck`. Saved.
+  4. "16" turns red and "12" turns green; all four buttons are disabled; Learned stays 3%.
+  5. After 2000ms `nextQuestion()` deals "7 x 9", the next fact in the deck.
 
-  5. The cards stay on the screen. "6 x 7" (the LEFT card) gets .card-wrong: once the red flash is
-     over it looks like a normal card again, except for a small red "Not learned" label in its
-     corner, kept until it leaves the screen. `state.wrongIds` is [id of 6 x 7].
+[QUESTION 3: Taps During Feedback Are Ignored]
+- Action: during the 2000ms after Question 2, the player taps "12".
+- Execution: `state.feedback` is 'wrong', so `handleAnswer` ignores the tap: no score change, no
+  sound, nothing saved.
 
-[TURN 2.5: Tap Selection Changes (No Scoring)]
-- Action A: Player taps "42" (Right). Nothing was selected -> "42" gets .card-selected.
-- Action B: Player taps "45" (Right). Same column -> the selection moves to "45".
-- Action C: Player taps "45" (Right) again. Same card -> selection cleared; no card is highlighted.
-- Execution: no match attempt, no audio, score stays 5, streak stays 0, nothing saved.
-
-- Mobile note: each tap moved the finger less than 10px, so no drag clone was created; each tap was
-  handled in `touchend`, which called `preventDefault()` so no synthetic click followed (any click
-  that still arrives for the same card within 700ms is ignored via `_lastTouchTap`).
-
-[TURN 3: Correct Guess (by Tap)]
-- Action: Player clicks "6 x 7" (Left), then clicks "42" (Right).
-
-- Tap Logic: "6 x 7" gets .card-selected. Then other column -> leftId = 6 x 7, rightId = 42.
-  Selection cleared, then `handleMatch` runs.
-- State Check: Match is CORRECT.
-
-- Execution: `playSound('correct')`, green flash, score = 5 + (10
-  + 0 streak) = 15, streak becomes 1, saved. Both cards removed after 200ms. Because "6 x 7" is in
-  `state.wrongIds`, it is NOT added to `learnedIds` (the stats line still shows Learned 3%); it is
-  moved to the end of `state.deck` and will be dealt again, unmarked, at the end of the game.
-
-[TURN 3.5: Last Card Refill]
-- After the 200ms removal in Turn 3, only "5 x 9" / "45" are left on screen, and the deck still
-  holds other facts. The last pair would be matched by elimination, so `startRound()` deals a fresh
-  screen at once (with `state.wrongIds` cleared): nothing is scored or learned. "5 x 9" is still
-  unlearned and near the front of the deck, so the new screen shows it again among new facts, with
-  "45" somewhere in the right column.
-
-[TURN 4: Correct Guess (by Tap, Right Column First, on the New Screen)]
-- Action: Player taps "45" (Right), then taps "5 x 9" (Left).
-
-- Tap Logic: other column -> leftId = 5 x 9 (the LEFT card), rightId = 45 (the RIGHT card), even
-  though the right card was tapped first. Selection cleared, then `handleMatch` runs.
-- State Check: Match is CORRECT.
-
-- Execution: `playSound('correct')`, green flash, score = 15 + (10 + 1 streak) = 26, streak
-  becomes 2, added to `learnedIds`, removed from the deck, saved.
-
-- The other cards of the new screen stay. "6 x 7" is still the last fact in the deck, so it comes
-  back at the end of the game.
+[NEAR THE END: The Missed Question Comes Back]
+- When every other fact has been asked, "3 x 4" is at the front of the deck and is asked again with
+  freshly shuffled answers. Answering it right now learns it; answering wrongly sends it to the
+  end again. When the deck is empty, `nextQuestion()` shows "You Won!" and plays the win sound.
+- First win: no best score is saved, so the score is saved as the best and "New best score!" shows.
+  After Play Again, a game with a lower score shows "Best score: " with the first game's score; a
+  higher one replaces it and shows "New best score!" again. The time never decides the best.
 
 
 11. ACCEPTANCE CHECKS (THE FINISHED PAGE MUST PASS ALL OF THESE)
 -----------------------------------------------------------------
+- Complete, valid code: output the entire file, from <!DOCTYPE html> to </html>, with nothing
+  omitted, shortened or replaced by a placeholder. Before finishing, read the script through and
+  confirm that every `{`, `(` and `[` is closed, including inside each `if` block. If a length
+  limit cuts your reply and you are asked to continue, resume at the exact next character,
+  repeating nothing and dropping nothing.
 - Opened from disk: saving the file and opening it by double-click (a file:// address), with no
   internet connection, the game loads and plays normally.
 - No outside requests: the page loads nothing from any server (only its own file).
 
-- Fast taps: on an Android phone, tapping a left card and then its partner on the right as fast as
-  possible (under half a second apart) always attempts the match.
+- Indicators: Score, Learned, Mistakes and Time are in a column to the right of the question, each a
+  small label above a large number, all inside the screen with nothing cut off, on a 360x640 phone,
+  in landscape (as a 2 x 2 block) and on desktop. There is no stats line under the header.
 
-- Phone matching: on a touch phone, tapping a left card and then its partner on the right (or
-  dragging the left card onto it) scores points and removes both cards, in the first round and in
-  every later round.
+- One question per screen: the question card at the top and exactly four answer buttons in a 2 x 2
+  grid below it, all visible without scrolling on a 360x640 phone, in landscape and on desktop.
 
-- Desktop matching: with a mouse, dragging a left card onto its partner, or clicking a card and then
-  its partner, scores points and removes both cards.
+- Answers: exactly one of the four is right; the four are all different; the right one is in a
+  random place; the three wrong ones are near misses from `wrongAnswers` (for 6 x 8 they are taken
+  from 40, 56, 42 and 54).
+
+- Title band: the band at the very top (blue text on white) is ONE line, "Multiply.by: learn the multiplication
+  table", filling the full width of the band without being cut off, on a 360px phone, a large
+  phone, in landscape and on desktop; the menu bar is directly below it.
+
+- No scrolling: the page never scrolls or bounces, in the browser or installed as an app, whatever
+  the phone's font size; a finger dragged across the game does nothing. The footer (the copyright line) is always
+  fully visible at the bottom of the screen, in the browser and installed as an app.
+
+- Tapping: on a phone and with a mouse, one tap or click on an answer answers the question at once,
+  even when the finger slides a little during the tap. A long press answers only once.
+  Taps while the result is shown do nothing.
+
+- Right answer: the button turns green, the score goes up, and the next question appears after
+  200ms. Wrong answer: the tapped button turns red and the right answer green for 2000ms, the score
+  drops by 5 (never below 0), Mistakes goes up by 1, Learned % does not change, and the question
+  is asked again near the end of the game.
+
+- Winning: when every fact has been answered right, "You Won!" shows the final score, "Your time:
+  M:SS", "New best score!" or "Best score: B", the mistakes and a "Share my results" button, and plays
+  the win sound. The timer starts at the first touch of the game
+  (not at page load), does not run while the page is hidden, and continues across reloads. After
+  Play Again the game MUST start fresh (score 0, Learned 0%, a new question, not the "You Won!"
+  screen).
+
+- Clock: the Time indicator shows the playing time, ticking during play, starting at 0:00 and from
+  the first touch; it fits on one line on a 360px-wide phone. Each mode keeps its own best score,
+  which Play Again and RESET keep.
+
+- Win buttons: on a 360x640 phone the "You Won!" buttons (Play Again, the Install button when pwa.js
+  adds it, Practice hard ones, Share my results on phones) are evenly spaced with a 0.75rem gap,
+  never touch, and the whole "You Won!" screen fits without scrolling.
+
+- Share my results: on a phone it opens the phone's share menu with the results card picture
+  (1080 x 1080 PNG: set, time, score, mistakes, best score, date) and only the link to the site
+  (no other text); if the picture cannot be shared it shares or copies the link. On a desktop
+  computer (no touch screen) the button is not shown. It never causes an error.
+
+- Reset: tapping RESET once shows "SURE?" for 3 seconds; tapping it again starts the current set
+  from scratch (score 0, Learned 0%, Mistakes 0, Time 0:00), keeping the best score. One tap alone
+  changes nothing.
 
 - Header buttons and links work on phones: the speaker button, FAQ, ABOUT, RULES, SOURCE, the How to
-  Play panel, "Play Again" and the "up to 12" link on the "You Won!" screen respond to a normal tap.
-
-- Text inside cards: no text ever extends past its card's edges, on first load or later, on a
-  360px-wide phone, in landscape and on desktop.
-
-- Even sizes: all cards on one side of a round show the same font size, and the remaining cards
-  never grow while matched cards are removed.
-
-- Fits the screen: header, stats line, all 8 rows of cards and the footer are visible without
-  scrolling on a 360x640 phone screen and on desktop.
-
-- Resize and rotate: after resizing the window or rotating the phone, all cards are refitted and
-  nothing overflows.
+  Play panel, RESET, "Play Again" and the "up to 12" link on the "You Won!" screen respond to a normal tap.
 
 - Blocked storage: with site data blocked (or `window.localStorage` throwing on access), the game
   loads and plays normally with no console errors; progress is just not kept after reload.
 
 - Normal storage: with storage available, score, streak, learned facts, the mistake count, the
-  playing time, and mute state survive a page reload.
+  playing time, the answer times, and mute state survive a page reload.
 
-- Your time: the "You Won!" screen shows "Your time: M:SS". The timer starts at the first touch of a
-  card (not at page load), does not run while the page is hidden, and continues across reloads; Play
-  Again resets it to 0. After Play Again the game MUST start fresh (score 0, Learned 0%, a new
-  round, not the "You Won!" screen).
+- Practice hard ones: after a game with mistakes, the "You Won!" screen has the button; it
+  starts a practice of every fact answered wrongly plus the slowest others, 10 facts at least when
+  the log has that many. Finishing it shows "Practice done!" with its time and mistakes. The
+  practice never changes the saved game, the best score or the answer times.
 
-- Wrong cards: after a wrong match both cards flash red for 2 seconds; then the LEFT card looks
-  normal except for a small "Not learned" label, which stays until it is cleared; clearing it does
-  not raise Learned %, it is dealt again, unmarked, in the last round(s), and only a correct
-  first-try match there learns it.
+- Answer times: after each answer, the saved progress has one more `{ ms, right }` entry under that
+  fact's id in answerLog, with ms the playing time the answer took.
 
-- Last card: when a match leaves just one pair on screen and other facts are still to play, a fresh
-  screen is dealt at once; that fact is not scored or learned and is usually on the new screen
-  again. Only the very last fact of the game is matched as a single pair.
-
-- Two modes: https://multiply.by/ plays 36 facts (no 11 or 12 in any question) and
-  https://multiply.by/?12 plays 48. The "Up to 12" switch in How to Play shows the current mode and
-  switching it loads the other mode. Each mode keeps its own saved progress across reloads and Play
-  Again stays in its mode; the sound setting is shared. The address alone decides the mode. The
+- Two modes: the page address without `?12` plays 36 facts (no 11 or 12 in any question) and with
+  `?12` plays 48. The "Up to 12" switch in How to Play shows the current mode and switching it
+  changes to the other mode at once with no page load, and also works in a chatbot's sandboxed
+  preview. Each mode keeps its own saved progress across reloads and Play Again stays in its mode;
+  the sound setting is shared. On page load the address alone decides the mode. The
   "Ready for 11 and 12?" line appears only on the 2 to 9 "You Won!" screen.
 - Sound effects: on a first visit the speaker shows a cross and the game is silent. After turning
-  sound on, a correct match, a wrong match and winning each play their own short sound, on phones as
+  sound on, a right answer, a wrong answer and winning each play their own short sound, on phones as
   well as on desktop. Reloading a finished game plays nothing. No fact is ever spoken.
-- Taps after a drag: after a right card is moved with the finger (or a left card is dragged and
-  dropped anywhere), the very next tap on the speaker button, RULES or a card works at once.
 - No console errors at any point.
 
 - Footer text: the one footer line reads exactly "Copyright (c) <current year> by Functional AI Inc.

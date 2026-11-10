@@ -1,0 +1,61 @@
+#!/bin/bash
+# Build a custom game in the current directory (Custom/<Name>).
+#
+# build-instructions.txt is the main (four-answer) game's spec ($ROOT/build-instructions.txt) with custom.txt from
+# this directory inserted after the Note for Human Readers (at the first blank
+# line), under a line saying it overrides the rest. GAME is set to the folder name so
+# each game keeps its own saved progress, and SOURCE links to this game's own spec.
+# index.html is then built from it with Gemini.
+# If index.html is newer than both custom.txt and the main spec, nothing is rebuilt.
+#
+# To build them all, from the top folder:
+#   for d in Custom/*/; do (cd "$d" && ../../mk-custom) || echo "FAILED: $d"; done
+
+ROOT=/var/www/multiply.by
+SPEC=$ROOT/build-instructions.txt
+INPUT=custom.txt
+NAME=`basename "$PWD"`
+
+if [ ! -f "$INPUT" ]; then echo "No $INPUT in `pwd`"; exit 1; fi
+if ! echo "$NAME" | grep -qE '^[A-Za-z0-9_-]+$'; then
+	echo "Folder name \"$NAME\" may use only letters, digits, - and _"; exit 1
+fi
+if [ "`head -1 "$SPEC" | cut -c1-16`" != "NOTE FOR HUMAN R" ]; then
+	echo "$SPEC does not start with the Note for Human Readers"; exit 1
+fi
+if [ "`grep -c '^- GAME: ' "$SPEC"`" != 1 ]; then
+	echo "$SPEC needs exactly one \"- GAME: \" line"; exit 1
+fi
+if [ "`grep -c 'https://multiply.by/build-instructions.txt' "$SPEC"`" != 1 ]; then
+	echo "$SPEC needs exactly one SOURCE link"; exit 1
+fi
+
+echo "CUSTOM: $NAME"
+
+if [ index.html -nt "$INPUT" ] && [ index.html -nt "$SPEC" ]; then
+	echo "index.html is newer than $INPUT and the main spec; not rebuilding."
+	exit
+fi
+
+# Served files are written under a temporary name and renamed into place, so
+# nginx's open-file cache never serves a stale, resized copy.
+sed -e "s/^- GAME: .*/- GAME: $NAME/" \
+	-e "s#https://multiply.by/build-instructions.txt#https://multiply.by/Custom/$NAME/build-instructions.txt#" "$SPEC" |
+awk -v input="$INPUT" '
+	{ print }
+	!done && /^$/ {
+		print "Where this section conflicts with the rest of this file, this section wins."
+		while ((getline line < input) > 0) print line
+		done = 1
+	}
+' > build-instructions.txt.tmp || exit 1
+mv build-instructions.txt.tmp build-instructions.txt
+
+date
+python3.10 /var/www/openlang.ai/SCRIPTS/run-vertex.py build-instructions.txt index.html.tmp || exit 1
+date
+
+python3 $ROOT/check-scripts.py index.html.tmp || exit 1
+python3 $ROOT/check-data.py index.html.tmp || exit 1
+mv index.html.tmp index.html
+echo "Built `pwd`/index.html (`wc -c < index.html` bytes)"

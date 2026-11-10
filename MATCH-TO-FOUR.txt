@@ -1,0 +1,226 @@
+HOW TO TURN A MATCHING GAME INTO A "PICK ONE OF FOUR" GAME
+==========================================================
+
+What we learned converting multiply.by (November 2026). Use it for any openlang-style game whose
+spec builds a page where the player matches cards in two columns. You can hand this file plus the
+old spec to Claude (or any good model) and ask: "Convert this spec following MATCH-TO-FOUR.txt."
+
+The two specs side by side are the best example:
+  /var/www/multiply.by/match/build-instructions.txt   (matching, before)
+  /var/www/multiply.by/build-instructions.txt         (four answers, after)
+(multiply.by still serves its matching game at /match/; other games replace theirs, section 1.)
+
+
+1. THE NEW GAME REPLACES THE MATCHING GAME
+------------------------------------------
+- The pick-four game takes over the matching game's address, spec file and SOURCE link. The
+  matching game is not kept alongside it: no second folder, no links between the two.
+- Work on a copy first: back up the old spec (a dated copy; it also stays in git history), build
+  the new spec into a test folder, play it on a real phone, and only then copy the spec over the
+  old one and run make in the game's own folder.
+- Delete the test folder afterwards, and redirect its address to the game in nginx if anyone may
+  have seen it, keeping the query string (the ?12 style arguments), e.g.
+    location ~ ^/(speed|quiz)(/.*)?$ { rewrite ^/(speed|quiz)/?$ / redirect;
+                                       rewrite ^/(speed|quiz)(/.+)$ $2 redirect; }
+- Rebuild what depends on the spec: custom builds made from it (mk-custom), and the About page if
+  it describes how the game is played.
+- Saved progress: with a new GAME name everyone starts fresh; keeping the old GAME name lets
+  players carry on where they were, since the saved fields are the same (see section 5).
+
+
+2. WHAT STAYS EXACTLY THE SAME
+------------------------------
+Keep these sections word for word; they are game-independent and already debugged:
+- Note for Human Readers, GLOBAL CONFIGURATION, the dataset (RAW_DATA format, number ids).
+- TECHNICAL STACK, SAFE STORAGE, saved-progress keys, TWO MODES / applyMode / switchMode (only the
+  list of things switchMode resets changes).
+- AUDIO SYSTEM (correct / wrong / win sounds, muted by default, iOS unlock).
+- HEADER (speaker, FAQ, ABOUT, RULES, SOURCE), How to Play panel, footer, COPYRIGHT.
+- The "word list at the top of the page" rule in CODE ORGANIZATION.
+- Play Again with the `resetting` flag (without it, pagehide saves the finished game back and the
+  button seems to do nothing).
+- PWA head and pwa.js (only the CSS gap rule on the win buttons matters; see section 6).
+
+
+3. WHAT IS REMOVED
+------------------
+Delete every trace of these, then grep the spec for the words to be sure nothing stale is left
+(stale mentions are the main cause of broken builds: the model tries to honour both versions):
+- Rounds and columns: state.round, renderRound, startRound, "left"/"right" columns, round end.
+- Selection: state.selected, selectCard, clearSelection, .card-selected, handleCardTap, handleMatch.
+- Drag: desktop drag, touch drag, preventDefault on touches, drag ghost, drop targets.
+- Card text fitting: fitCardText, capFontSpread, fitAllCards, CARD_MAX_HEIGHT, resize refit
+  (see 4e: keep a simpler fit rule if the answers can be long words).
+- successKeys / failKeys / wrongIds / .card-wrong (replaced by feedback + picked).
+- The stats line under the header (replaced by the indicators column).
+- The old LOGIC TRACE and the old ACCEPTANCE CHECKS (rewrite both; never patch them).
+Grep: round, column, left, right, select, drag, match, pair, fitCard, stats line, card-wrong.
+
+
+4. WHAT IS NEW (rewrite these sections)
+---------------------------------------
+a. STATE: score, streak, learnedIds, mistakes, deck (fact OBJECTS, never bare ids), question (fact
+   or null), choices (four answer strings in screen order), picked (0-3 or null), feedback (null,
+   'correct', 'wrong'), showInfo, isWon, plus the timer fields if you keep the clock.
+
+b. RENDERING: renderQuestion() builds the question and the four buttons ONLY when a question is
+   dealt; update() sets classes, `disabled`, text and the indicators after EVERY state change and
+   never rebuilds buttons.
+
+c. nextQuestion(): clear feedback/picked; empty deck = won (stop timer, save, win sound);
+   otherwise question = deck[0] (it stays in the deck until answered right), choices = shuffle of
+   the right answer + wrongAnswers(question).
+
+d. WRONG ANSWERS (distractors) - the one part that needs thought for each game:
+   - They must be believable mistakes, never random. For multiplication we use the neighbouring
+     products ((a±1)*b, a*(b±1)), topped up with the nearest other answers in the dataset.
+   - For a word game, take answers of OTHER facts in the same dataset, preferring ones that look
+     alike: same part of speech or category if the data has it, similar length, same first letter,
+     words the player has already met.
+   - Always exactly three, all different from each other and from the right answer. If two facts
+     share the same answer (synonyms, homonyms), compare the answer STRINGS, not the ids, so the
+     right answer never appears twice. If the language has accents or case, compare normalised
+     text too.
+   - Give a worked example in the spec ("for 6 x 8 the candidates are 40, 56, 42 and 54"); the
+     model copies the example's logic much more reliably than a rule alone.
+
+e. LAYOUT: game area = top row (question card left, indicators column right, flex 0 0 36%) and a
+   2 x 2 grid of four <button class="answer" data-index="0..3">. Everything fits a 360x640 phone,
+   landscape (indicators as a 2 x 2 block under @media (max-height: 500px)) and desktop.
+   Numbers are short, so we dropped text fitting. Words are not: give the answers a font size from
+   the longest of the four (or keep a simple fit loop) and `overflow-wrap: anywhere`, and test the
+   longest answer in the dataset on a 360px phone.
+
+f. TAPS (CRITICAL - this bug cost us the most): answer on `pointerdown`, not `click`. On Android a
+   click is cancelled when the finger slides a few pixels, so kids had to tap two or three times
+   (worst on the upper-left button). Spec wording that works:
+   - ONE pointerdown listener on #answers, `e.target.closest('.answer')`, mouse only e.button === 0.
+   - ONE click listener that handles only keyboard clicks (`e.detail === 0`), so Tab + Enter works
+     and a tap is never answered twice (after a long press the click would land on the NEXT
+     question's button).
+   - Keys 1-4 answer too. No preventDefault.
+   - The page must never scroll, even installed as an app (Android's font size and screen bars
+     changed the height; the page scrolled under the finger, losing taps): html and body
+     `height: 100%; overflow: hidden; overscroll-behavior: none;`, and `touch-action: none` on the
+     game area.
+   - Pin the app container to the screen (`position: fixed; top: 0; bottom: 0; left: 0; right: 0;`)
+     instead of `height: 100dvh`: in the installed app on a Moto G Power, 100dvh was taller than
+     the screen, so the page scrolled, and with scrolling blocked the copyright line was cut off.
+
+g. GAME LOGIC: right = sound, score += 10 + streak, streak++, learned, removed from deck, save,
+   green, next after 200ms. Wrong = sound, streak 0, score -5 (not below 0), mistakes++, fact moved
+   to the END of the deck, save, red + right answer green, next after 2000ms. Keep both timeout ids
+   so switchMode can cancel them. While feedback shows, all buttons are disabled and taps ignored.
+
+h. OPTIONAL GAMIFICATION (kids liked these; each is its own spec section, copy from ours):
+   - Indicators column: Score, Learned %, Mistakes, Time (small uppercase label, larger number,
+     right-aligned, not bold, tabular-nums).
+   - TIMER of PLAYING time: starts on the first pointerdown on #game-area only (not the header, so
+     reading RULES is free), pauses on visibilitychange/pagehide, saved with progress.
+   - BEST SCORE (own storage key per mode, kept by Play Again and RESET). The time is shown but
+     never compared: How to Play says finishing is winning, not "as fast as you can".
+   - RESET in the header: two taps ("SURE?" for 3 seconds), no confirm().
+   - ANSWER TIMES: the playing time of every answer, per fact, saved with the progress (answerLog).
+   - PRACTICE HARD ONES (needs ANSWER TIMES): a You Won! button that practises every fact
+     answered wrongly plus the slowest others (10 at least), in place, saving nothing; it ends on
+     "Practice done!".
+   - "Share my results": a 1080x1080 canvas PNG drawn when You Won! appears (BEFORE the tap), shared
+     with the title and only the link; falls back to sharing, then copying, the link; hidden on
+     desktop (`matchMedia('(pointer: coarse)').matches && !!navigator.canShare`).
+
+i. YOU WON! SCREEN AND SHARING (copy the wording from the main spec; adapt these points):
+   - The screen, top to bottom: "You Won!", the final score, "Your time: T", "New best score!" or
+     "Best score: B", "Mistakes: M", then the buttons in one flex column with a 0.75rem gap: Play
+     Again, Install (pwa.js adds it there), Share my results (phones only). Last, a line leading on
+     to the next level, only where there is one (multiply.by: "Ready for 11 and 12?" on the 2 to 9
+     screen only, linking to ?12).
+   - THE SHARE LINK: `shareText()` returns ONLY the game's own address, one per mode (multiply.by:
+     https://multiply.by/ or https://multiply.by/?12). It is written into the spec, so set it for
+     each game; for builds made by a script such as mk-custom, have the script rewrite it to the
+     build's own address (as it does for SOURCE), or every custom game shares the main site. Pass
+     it as `text`, never also as `url` (some apps show it twice). Every share has the same title
+     (multiply.by: 'multiply.by results').
+   - THE PICTURE: draw only with fillRect and the drawText helper, no images: a coloured band with
+     the site name and the game's name, the set or level being played (multiply.by: "2 to 9" or "Up
+     to 12"), a row of TIME / SCORE / MISTAKES, "New best score!" or "Best score: B", the date, and
+     "Play at <site>" at the bottom. Change the names and the set for each game; nothing may
+     overlap or run off the 1080 x 1080 card.
+   - WHEN TO DRAW IT: every time You Won! appears: when a game is won AND when a finished game is
+     restored at start-up (otherwise Share has no picture after a reload). Keep it in
+     `resultsFile`; Play Again and switchMode set it back to null.
+
+j. LOGIC TRACE: rewrite with one right answer, one wrong answer, a tap during feedback, and the
+   missed question coming back at the end, with the actual numbers (score, Learned %, which buttons
+   turn which colour). Keep the "HYPOTHETICAL EXAMPLES, do not hardcode" warning.
+
+k. ACCEPTANCE CHECKS: rewrite for the new game (one question + four buttons fit; exactly one right
+   answer in a random place; near-miss distractors; one tap answers even with a slide; long press
+   answers once; colours and delays; win screen; Play Again starts fresh; reset; blocked storage;
+   both modes; no console errors). Keep the "complete, valid code" check at the top.
+
+
+5. SMALLER EDITS ELSEWHERE IN THE SPEC AND SITE
+-----------------------------------------------
+Easy to forget, because these sections are otherwise kept (section 2):
+- GAME name in GLOBAL CONFIGURATION: storage keys are built from it. A new name (multiply.by:
+  "Speed") starts everyone fresh; the old name lets players continue their matching progress.
+- The opening paragraph ("Build a single, standalone HTML file for ..."), the <title>, the meta
+  description and the titles applyMode sets: describe the new game. Keep the "downloadable
+  index.html" sentence.
+- Saved progress is `{ score, streak, learnedIds, mistakes, playMs }`; a missing field counts as 0,
+  so progress saved by an older build still loads.
+- How to Play: rewrite the points for the new game ("Answer: tap the right answer to the
+  question."), keep the mode switch and the SOURCE point last, and keep the panel short enough to
+  fit a phone without scrolling (check it at 360x640 after the build).
+- Header: adding RESET made the menu bar overflow at 360px; we narrowed the items (padding 0 5px,
+  gap 2px, SOURCE padding 0 8px). Check the bar fits after any added header item.
+- CODE ORGANIZATION: replace the list of function names with the new ones (renderQuestion,
+  nextQuestion, wrongAnswers, handleAnswer, ...); the model follows that list.
+- Hover colours only inside `@media (hover: hover)`: on phones a hover look "sticks" to the tapped
+  place, so the NEXT question's button there would look already chosen.
+- Disabled buttons during feedback keep full opacity: a faded grid between questions flickers.
+- Chatbot previews: no confirm()/alert() (blocked), no page loads (switch modes and restart in
+  place, links that change mode call preventDefault), nothing loaded from other servers.
+- Outside the spec: the About page text, the PWA manifest description, the size claim on the About
+  page (and the Makefile warning), and any page that links to or describes the matching game.
+
+
+6. WORDING THAT PREVENTED GEMINI BUILD BUGS
+------------------------------------------
+Each of these broke at least one build before the wording was added. Keep them:
+- Dataset ids are NUMBERS, never in quotes (string ids broke every comparison - the game was live
+  and unplayable for 10 minutes). Show one example line with a numeric id.
+- "share() MUST be the first await in the click handler and MUST itself be awaited" (otherwise
+  phones refuse to share, or the error is never caught).
+- Canvas text: give the exact drawText helper (font set every time, shrink to maxWidth). The model
+  invented `ctx.font = 'uppercase 40px ...'`, which is invalid and made labels huge, and long times
+  overlapped.
+- Say exactly which element a listener goes on ("#game-area, NOT the whole page, the app container
+  or the header"); a vague "first touch" put the timer on #app.
+- Gaps between stacked buttons: use a flex column with `gap`; pwa.js adds its Install button there
+  and sets margin-top 0 when the parent has a gap. Otherwise Install and Share touch.
+- "Output the entire file ... confirm every { ( [ is closed" in the acceptance checks; and for
+  chatbots, the sentence asking for a downloadable index.html.
+
+
+7. BUILD AND CHECK BEFORE IT GOES LIVE
+--------------------------------------
+- Build into a temporary file; run check-scripts.py (node --check on every script) and a data
+  check like check-data.py (adapt it to the game's dataset: count, number ids 1..N, right
+  answers); only then rename into place (nginx open_file_cache serves stale files otherwise).
+  The Makefile here does all of this; copy it.
+- Every build is fresh code: element ids and function names may change, so automated tests must
+  look elements up again after each build.
+- What we tested with Playwright (headless Chromium), every build:
+  * play a whole game answering right (and a game with mistakes): the win screen appears, the
+    score is what the rules say, the missed question comes back near the end;
+  * touch taps via CDP with a 25-60px slide during the tap: every tap must count;
+  * 360x640 portrait, landscape and desktop: nothing overflows (header too);
+  * blocked localStorage: still playable, no console errors;
+  * reload keeps progress; Play Again starts fresh; ?12 / mode switch in place;
+  * a game with mistakes, then Practice hard ones: the right facts, nothing saved, reload goes
+    back to the game's You Won!;
+  * offline (service worker) and the Install / Share buttons' spacing on the win screen.
+- Then play it yourself on a real phone; headless browsers cannot share files, so Share only shows
+  on the real device.
+- Cost: about $0.04-0.05 per Gemini build; the page stays under 50 KB.

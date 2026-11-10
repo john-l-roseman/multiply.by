@@ -22,19 +22,17 @@ Style:
 - Body text near-black (#111827).
 - Footer text 0.75rem, gray (#6b7280); no extra shrinking such as <small>.
 
-<subheader>Minimalism</subheader>
-  o Zero cost.
-  o No sign-up.
-  o No ads or trackers in the game.
-  o No visual clutter.
-  o The game weighs less than 40 KB.
-
 <subheader>Functionality</subheader>
   o Designed for maximum learning speed.
-  o Know them all? Finish in under 90 seconds.
   o Works on your phone or computer.
   o Install for offline use.
   o Two sets: <a href="https://multiply.by">2 to 9</a>, or <a href="https://multiply.by/?12">up to 12</a>.
+
+<subheader>Minimalism</subheader>
+  o No sign-up, zero cost.
+  o No ads or trackers in the game.
+  o No visual clutter.
+  o The game weighs less than 50 KB.
 
 <subheader>Transparency</subheader>
   o Open source: free to copy, change and share.

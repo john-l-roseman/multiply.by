@@ -1,0 +1,17 @@
+-------------
+CUSTOMIZATION
+-------------
+Create a dataset of 25 encouraging short phrases for wrong answers, along with their Chinese translations. Example: “Keep trying!”.
+
+When you build the game, add these visual and sound effects.
+
+Sound effects:
+Right Answer: Pop / Bubble Click – A short, satisfying, organic "pop" sound with a bright tone.
+Wrong Answer: Select an encouraging phrase, say that phrase in English.
+
+Visual effects:
+Right Answer: The cards turn green and melt away.
+Wrong Answer: The left card displays the Chinese text of the encouraging phrase at xl size for 2 seconds. 
+
+Enable audio by default. 
+

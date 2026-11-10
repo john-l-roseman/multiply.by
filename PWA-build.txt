@@ -37,7 +37,7 @@ FILES
 
 ----- BEGIN FILE: pwa-head.html -----
 <link rel="manifest" href="/manifest.webmanifest">
-<meta name="theme-color" content="#991b1b">
+<meta name="theme-color" content="#2563eb">
 <link rel="icon" type="image/svg+xml" href="/icon.svg">
 <link rel="apple-touch-icon" href="/icon-192.png">
 <script src="/pwa.js"></script>
@@ -47,14 +47,14 @@ FILES
 {
   "name": "multiply.by",
   "short_name": "multiply.by",
-  "description": "Learn the times tables, up to 12, by matching cards.",
+  "description": "Learn the times tables, up to 12, against the clock.",
   "id": "/",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#fafaf9",
-  "theme_color": "#991b1b",
+  "theme_color": "#2563eb",
   "icons": [
     { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
     { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
@@ -200,7 +200,10 @@ self.addEventListener('fetch', function (event) {
     b.style.boxShadow = 'none';
     // Play Again may be styled through its id, which the copy leaves out, so
     // set the shape here too.
-    b.style.marginTop = '0.75rem';
+    // Space it from Play Again, unless the buttons' container already spaces
+    // its children with a gap (then a margin would double the space).
+    var gap = parseFloat(getComputedStyle(playAgain.parentNode).rowGap);
+    b.style.marginTop = gap > 0 ? '0' : '0.75rem';
     b.style.padding = '0.75rem 1.5rem';
     b.style.borderRadius = '0.5rem';
     b.style.fontSize = '1rem';
