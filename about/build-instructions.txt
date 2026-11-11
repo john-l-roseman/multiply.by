@@ -26,7 +26,7 @@ Style:
   o Designed for maximum learning speed.
   o Works on your phone or computer.
   o Install for offline use.
-  o Two sets: <a href="https://multiply.by">2 to 9</a>, or <a href="https://multiply.by/?12">up to 12</a>.
+  o Three sets: <a href="https://multiply.by">2 to 9</a>, <a href="https://multiply.by/?12">up to 12</a>, or <a href="https://multiply.by/?20">up to 20</a>.
 
 <subheader>Minimalism</subheader>
   o No sign-up, zero cost.

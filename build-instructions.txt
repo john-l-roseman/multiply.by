@@ -7,13 +7,23 @@ and open it in your browser.
 
 0. CONTENT GENERATION
 ---------------------
-Create a dataset of exactly these 48 multiplication facts, in exactly this order (ids 1 to 48):
+Create a dataset of exactly these 120 multiplication facts, in exactly this order (ids 1 to 120).
+First these 48 (ids 1 to 48):
 2 x 2, 2 x 3, 2 x 4, 3 x 3, 2 x 5, 2 x 6, 3 x 4, 2 x 7, 3 x 5, 2 x 8, 4 x 4, 2 x 9,
 3 x 6, 4 x 5, 3 x 7, 2 x 12, 3 x 8, 4 x 6, 5 x 5, 3 x 9, 4 x 7, 5 x 6, 4 x 8, 5 x 7,
 3 x 12, 4 x 9, 6 x 6, 5 x 8, 6 x 7, 5 x 9, 4 x 12, 6 x 8, 7 x 7, 6 x 9, 7 x 8, 5 x 12,
 7 x 9, 8 x 8, 6 x 12, 8 x 9, 9 x 9, 7 x 12, 8 x 12, 9 x 12, 10 x 12, 11 x 11, 11 x 12, 12 x 12
-(These are the 2 to 9 times tables, 11 x 11 and the 12 times table, ordered by product.
-The rest of the 10 and 11 times tables is left out on purpose: those facts are easy.)
+Then these 72 (ids 49 to 120):
+2 x 11, 2 x 13, 2 x 14, 2 x 15, 2 x 16, 3 x 11, 2 x 17, 2 x 18, 2 x 19, 3 x 13, 2 x 20, 3 x 14,
+4 x 11, 3 x 15, 3 x 16, 3 x 17, 4 x 13, 3 x 18, 5 x 11, 4 x 14, 3 x 19, 3 x 20, 4 x 15, 4 x 16,
+5 x 13, 6 x 11, 4 x 17, 5 x 14, 4 x 18, 5 x 15, 4 x 19, 7 x 11, 6 x 13, 4 x 20, 5 x 16, 6 x 14,
+5 x 17, 8 x 11, 5 x 18, 6 x 15, 7 x 13, 5 x 19, 6 x 16, 7 x 14, 9 x 11, 5 x 20, 6 x 17, 8 x 13,
+7 x 15, 6 x 18, 7 x 16, 8 x 14, 6 x 19, 9 x 13, 7 x 17, 6 x 20, 8 x 15, 7 x 18, 9 x 14, 8 x 16,
+7 x 19, 9 x 15, 8 x 17, 7 x 20, 8 x 18, 9 x 16, 8 x 19, 9 x 17, 8 x 20, 9 x 18, 9 x 19, 9 x 20
+(The first 48 are the 2 to 9 times tables, 11 x 11 and the 12 times table, ordered by product;
+the 72 after them are the 11 and 13 to 20 times tables, times 2 to 9, ordered by product. The 10
+times table and times 1 are left out on purpose: those facts are easy. Keep this order: saved
+progress refers to the ids.)
 
 Dataset Fields: id | text (the multiplication, e.g. "7 x 8") | answer (the product as digits, e.g.
 "56")
@@ -62,7 +72,7 @@ IMPORTANT: Do not add any notes at the top or bottom of the HTML file.
   <title>Multiply.by – Speed Times Tables</title>
 
 - Directly after the title, include exactly:
-  <meta name="description" content="Speed through the multiplication table (times tables): one tap per answer, against the clock. Free and open source. No ads, no sign-up.">
+  <meta name="description" content="Speed through the multiplication table (times tables 2 to 9, up to 12 or up to 20): one tap per answer, against the clock. Free and open source. No ads, no sign-up.">
 
 
 3. ARCHITECTURE & STATE (CRITICAL)
@@ -95,26 +105,34 @@ IMPORTANT: Do not add any notes at the top or bottom of the HTML file.
 
   - `update()` changes classes, properties and text only. It MUST NOT rebuild the answer buttons.
 
-- TWO MODES (CRITICAL): one page plays either the 2 to 9 tables (the default) or the tables up to 12
-  (when the page address has the argument `?12`, as in https://multiply.by/?12). The choice is
-  not remembered: on page load only the address decides. Define, with the global constants:
-  `let MODE12, GAME_NAME, FACTS, STORAGE_KEY, BEST_KEY;`
-  `function applyMode(mode12) { MODE12 = mode12; GAME_NAME = mode12 ? CONFIG.GAME + '12' : CONFIG.GAME;`
-  `  FACTS = mode12 ? RAW_DATA : RAW_DATA.filter(f => !/1[12]/.test(f.text));`
+- THREE MODES (CRITICAL): one page plays one of three sets of tables: 2 to 9 (the default), up to
+  12 (when the page address has the argument `?12`, as in https://multiply.by/?12) or up to 20
+  (`?20`, as in https://multiply.by/?20). The choice is not remembered: on page load only the
+  address decides. Define, with the global constants:
+  `let MODE, GAME_NAME, FACTS, STORAGE_KEY, BEST_KEY;` (MODE is the number 9, 12 or 20)
+  `function factors(f) { return f.text.split(' x ').map(Number); }` (the smaller factor first)
+  `function applyMode(mode) { MODE = mode; GAME_NAME = mode === 9 ? CONFIG.GAME : CONFIG.GAME + mode;`
+  `  FACTS = mode === 12 ? RAW_DATA.filter(f => f.id <= 48)`
+  `        : mode === 20 ? RAW_DATA.filter(f => factors(f)[0] <= 9)`
+  `        : RAW_DATA.filter(f => factors(f)[1] <= 9);`
   `  STORAGE_KEY = 'openlang_' + CONFIG.TARGET_LANGUAGE + '_' + GAME_NAME + '_progress';`
   `  BEST_KEY = 'openlang_' + CONFIG.TARGET_LANGUAGE + '_' + GAME_NAME + '_best_score'; }`
-  `applyMode(new URLSearchParams(window.location.search).has('12'));`
-  FACTS holds 48 facts up to 12 and 36 otherwise. Everything in the game (the deck, Learned %, the
-  win check, the "already finished" check at start-up, the wrong answers) uses FACTS. RAW_DATA is
-  read only in applyMode.
-  applyMode also sets `document.title`: 'Multiply.by – Speed Times Tables to 12' when mode12 is
-  true, otherwise the page title given in section 2.
+  `const params = new URLSearchParams(window.location.search);`
+  `applyMode(params.has('20') ? 20 : params.has('12') ? 12 : 9);`
+  FACTS holds 36 facts for 2 to 9 (both factors 9 or less), 48 for up to 12 (ids 1 to 48) and 116
+  for up to 20 (every fact whose smaller factor is 9 or less: tables 2 to 20, times 2 to 9).
+  Everything in the game (the deck, Learned %, the win check, the "already finished" check at
+  start-up, the wrong answers) uses FACTS. RAW_DATA is read only in applyMode.
+  applyMode also sets `document.title`: 'Multiply.by – Speed Times Tables to 12' for 12,
+  'Multiply.by – Speed Times Tables to 20' for 20, otherwise the page title given in section 2.
+  The name of each set, wherever it is shown: "2 to 9", "Up to 12", "Up to 20".
 
-- `switchMode(mode12)` changes mode in place, WITHOUT loading a page, because a chatbot's sandboxed
-  preview cannot navigate. In this order: `pauseTimer()`; `saveProgress()`; cancel the pending
-  feedback timeout, if any (keep its id in a variable, so the old mode's next question is never
-  dealt into the new mode); `applyMode(mode12)`; update the address where that is allowed:
-  `try { history.replaceState(null, '', mode12 ? '?12' : window.location.pathname); } catch (e) {}`;
+- `switchMode(mode)` changes mode in place, WITHOUT loading a page, because a chatbot's sandboxed
+  preview cannot navigate. If mode equals MODE, do nothing. Otherwise, in this order:
+  `pauseTimer()`; `saveProgress()`; cancel the pending feedback timeout, if any (keep its id in a
+  variable, so the old mode's next question is never dealt into the new mode); `applyMode(mode)`;
+  update the address where that is allowed:
+  `try { history.replaceState(null, '', mode === 9 ? window.location.pathname : '?' + mode); } catch (e) {}`;
   reset `state` to its initial values (with the timer stopped, no question, no feedback, How to Play
   closed, not won); then run the same steps as start-up: read the saved progress for the new
   STORAGE_KEY, write the total, build the deck, and show "You Won!" or `nextQuestion()` as at
@@ -181,6 +199,14 @@ IMPORTANT: Do not add any notes at the top or bottom of the HTML file.
   from each other and from `fact.answer`, that are believable mistakes ("near misses"), never random
   numbers:
   1. Read the two factors a and b from `fact.text` ("6 x 8" gives a = 6, b = 8).
+  SAME LAST DIGIT (when a or b is 10 or more, e.g. 7 x 12 or 8 x 17): all three wrong answers MUST
+  end in the same digit as the right answer, so the player cannot find the right one by
+  multiplying the last digits. Use the right answer minus 10, plus 10, minus 20 and plus 20, as
+  strings; drop any that are 0 or less; shuffle the rest and keep three (if fewer than three are
+  left, add the right answer plus 30, plus 40, and so on). Steps 2 and 3 below are then skipped.
+  For 8 x 17 (answer 136) the candidates are 126, 146, 116 and 156; for 7 x 12 (answer 84) they
+  are 74, 94, 64 and 104.
+  When both a and b are 9 or less, use steps 2 and 3:
   2. Candidates: the products of the neighbouring facts, `(a - 1) * b`, `(a + 1) * b`, `a * (b - 1)`
      and `a * (b + 1)`, as strings. Drop any that are 0 or less, equal to `fact.answer`, or
      repeated. Shuffle the rest and keep up to three.
@@ -265,7 +291,7 @@ IMPORTANT: Do not add any notes at the top or bottom of the HTML file.
     set `state.question = null` and `state.isWon = true`, call `update()`, then `playSound('win')`.
     The "You Won!" overlay then shows the practice: the heading "Practice done!" instead of "You
     Won!", the lines "Your time: T" and "Mistakes: M" of the practice, and only the buttons Play
-    Again and "Practice hard ones" (no score, no best score, no Share, no "up to 12" line).
+    Again and "Practice hard ones" (no score, no best score, no Share, no next-level line).
     Play Again works as always (a new full game); "Practice hard ones" practises the same set
     again, in a new order.
 
@@ -579,20 +605,20 @@ INFO: A <button> with the exact text "RULES". Tapping it sets `state.showInfo = 
            end."
       Do not add icons, examples or any other explanation to these points.
 
-    - After these four points, one more point, which is the mode switch, exactly:
-      <li><label class="mode-switch"><strong>Up to 12:</strong> <input type="checkbox" role="switch" id="mode-12"></label></li>
-      `#mode-12` is checked when MODE12 is true. On its `change` event: `switchMode(!MODE12);` (each
-      mode resumes its own saved progress). Use MODE12, not `this.checked`: a click inside the panel
-      may close it and re-render, which resets the checkbox before `change` fires.
-      Look: the label is `display: flex; align-items: center; gap: 0.5rem;`
-
-      and the input is a small switch, not a tick box:
-      `appearance: none; -webkit-appearance: none; position: relative; width: 2.5rem; height: 1.4rem; margin: 0; border-radius: 1rem; background: #9ca3af; cursor: pointer;`
-      with a white round knob drawn by `::before`:
-      `content: ''; position: absolute; top: 0.15rem; left: 0.15rem; width: 1.1rem; height: 1.1rem; border-radius: 50%; background: white;`
-
-      When `:checked` the background is #2563eb and the knob moves right
-      (`transform: translateX(1.1rem)`).
+    - After these four points, one more point, which is the MODE CHOICE, exactly:
+      <li class="mode-row"><strong>Tables:</strong> <span class="mode-choice" role="radiogroup" aria-label="Tables"><button type="button" role="radio" data-mode="9">2–9</button><button type="button" role="radio" data-mode="12">Up to 12</button><button type="button" role="radio" data-mode="20">Up to 20</button></span></li>
+      `update()` sets `aria-checked="true"` on the button whose data-mode equals MODE and "false" on
+      the other two. One `click` listener on .mode-choice (event delegation with
+      `e.target.closest('[data-mode]')`) calls `switchMode(parseInt(button.dataset.mode))`; the
+      click then also closes the panel as usual, so the player sees the new set at once. Each set
+      resumes its own saved progress.
+      Look: the li is `display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;`. The
+      .mode-choice is a segmented control: `display: inline-flex;` with a 1px #2563eb border,
+      `border-radius: 0.5rem; overflow: hidden;`. Its buttons: `font: inherit; font-size: 0.85rem;
+      font-weight: bold; padding: 0.35rem 0.6rem; border: none; margin: 0; background: white;
+      color: #2563eb; cursor: pointer; white-space: nowrap;`, with a 1px #2563eb left border on the
+      2nd and 3rd. The checked button (`[aria-checked="true"]`): background #2563eb, white text.
+      It fits on a 360px-wide phone.
 
     - Last point in the list, worded exactly: "Tap SOURCE to see how this game was
       built."
@@ -610,14 +636,11 @@ INFO: A <button> with the exact text "RULES". Tapping it sets `state.showInfo = 
       call `e.stopPropagation()` or otherwise swallow the click. Also close it when "Escape" is
       pressed (a `keydown` listener on window).
 
-RESET: A <button> with the exact text "RESET", to start the current set again from scratch. It
-needs two taps, so a child cannot wipe their progress by accident:
-    - First tap: its text changes to "SURE?" (color #dc2626) for 3 seconds, then back to "RESET".
-    - A second tap while it shows "SURE?" resets, with exactly the same steps as Play Again
-      (`resetting = true`, `safeStorage.removeItem(STORAGE_KEY)`, `window.location.reload()`). It
-      clears only the current set's progress (score, learned facts, mistakes, time) and keeps the
-      best score (BEST_KEY) and the sound setting (MUTE_KEY). Do NOT use `confirm()`: it is blocked in
-      chatbot previews.
+RESET: A <button> with the exact text "RESET", to start the current set again from scratch. ONE
+tap resets at once, with no confirmation (no "Sure?", no second tap, no `confirm()`), with exactly
+the same steps as Play Again (`resetting = true`, `safeStorage.removeItem(STORAGE_KEY)`,
+`window.location.reload()`). It clears only the current set's progress (score, learned facts,
+mistakes, time) and keeps the best score (BEST_KEY) and the sound setting (MUTE_KEY).
 
 SOURCE: A link with the exact text "SOURCE": <a href="https://multiply.by/build-instructions.txt">
 (NO `download` attribute: the file opens in the browser).
@@ -666,12 +689,14 @@ FAQ: A link with the exact text "FAQ": <a href="https://multiply.by/faq">.
   when there is nothing to practise). The container is `display: flex; flex-direction: column;
   align-items: center; gap: 0.75rem;` and the buttons themselves have NO margins: the gap alone
   spaces them. pwa.js may insert an "Install for offline play" button into this same container,
-  right after Play Again; the gap then separates all the buttons evenly. Below that, with a 1.5rem gap, one line (1rem,
-  #374151), shown ONLY when MODE12 is false: <div>Ready for 11 and 12? Try <a href="?12">up to
-  12</a></div>.
-  Clicking the link calls `preventDefault()` and then `switchMode(true)`, with no page load. The
-  link has NO target attribute and is styled like the footer links (no underline, bold, dark blue
-  #1e40af).
+  right after Play Again; the gap then separates all the buttons evenly. Below that, with a 1.5rem gap, one
+  NEXT-LEVEL line (1rem, #374151), depending on MODE:
+    - 9: <div>Ready for more? Try <a href="?12">up to 12</a> or <a href="?20">up to 20</a></div>
+    - 12: <div>Ready for more? Try <a href="?20">up to 20</a></div>
+    - 20: no line.
+  Clicking a link calls `preventDefault()` and then `switchMode(12)` or `switchMode(20)`, with no
+  page load. The links have NO target attribute and are styled like the footer links (no
+  underline, bold, dark blue #1e40af).
 
 SHARE MY RESULTS (the "Share my results" button on the "You Won!" screen):
 - RESULTS CARD (a picture): `drawResultsCard()` draws the results on a 1080 x 1080 <canvas> (made
@@ -692,7 +717,7 @@ SHARE MY RESULTS (the "Share my results" button on the "You Won!" screen):
   images):
     - Background #f9fafb. A blue band (#2563eb) across the top, 220px high, with "multiply.by" in
       white bold 96px, and under it in the band "Speed times tables" in white 44px.
-    - Below the band: the set, "2 to 9" or "Up to 12", in #374151 bold 56px.
+    - Below the band: the set, "2 to 9", "Up to 12" or "Up to 20", in #374151 bold 56px.
     - Three results in one row (centers at x = 200, 540 and 880): "TIME" T, "SCORE" X, "MISTAKES" M.
       Each label is `drawText(ctx, label, x, 470, 40, '#6b7280', true)` and each number
       `drawText(ctx, value, x, 590, 110, color, true, 320)` with color #111827 (Mistakes #dc2626 when M is
@@ -708,7 +733,7 @@ SHARE MY RESULTS (the "Share my results" button on the "You Won!" screen):
 - Every share also passes the title 'multiply.by results' (some apps use it, for example as an email
   subject; others ignore it).
 - The text sent with the picture is ONLY the link, returned by `shareText()`: https://multiply.by/
-  (2 to 9) or https://multiply.by/?12 (up to 12). No sentence, no results: the picture shows them.
+  (2 to 9), https://multiply.by/?12 (up to 12) or https://multiply.by/?20 (up to 20). No sentence, no results: the picture shows them.
 - WHERE IT SHOWS: only on touch devices that can share files. At start-up set
   `const CAN_SHARE = matchMedia('(pointer: coarse)').matches && !!navigator.canShare;`
   and hide the button (`display: none`) when CAN_SHARE is false, for example on a desktop computer.
@@ -760,7 +785,7 @@ The page body holds the app's fixed HTML (header, game area with the top row (em
 and the indicators) and the answer grid, footer, the How to Play panel and the "You Won!" overlay, both hidden at
 first). The main <script> at the very end of the <body> is organized in this order, each part
 introduced by a short comment:
-1. Configuration and constants (CONFIG, MODE12, GAME_NAME, FACTS, STORAGE_KEY, applyMode, MUTE_KEY,
+1. Configuration and constants (CONFIG, MODE, GAME_NAME, factors, FACTS, STORAGE_KEY, applyMode, MUTE_KEY,
    isMutedNow; RAW_DATA comes from the word-list script at the top of the page).
 2. Helper functions (shuffle, speakerSvg, formatTime, wrongAnswers, getAudioCtx, playSound).
 3. Game state (the `state` object), the timer, and saving/loading (loadProgress, saveProgress).
@@ -781,7 +806,7 @@ generated dataset, the shuffled deck, `wrongAnswers` and `CONFIG`.
 
 [HYPOTHETICAL INITIAL SETUP (For tracing purposes only)]
 - Config as in GLOBAL CONFIGURATION: TARGET_LANGUAGE "Math", LANGUAGE_CODE "EN", CONFIG.MUTED false.
-- Mode 2 to 9 (no `?12`): FACTS has 36 facts.
+- Mode 2 to 9 (no `?12` or `?20`): FACTS has 36 facts.
 - State: score 0 | streak 0 | learnedIds [] | mistakes 0
 - Hypothetical environment: a first visit, so nothing is saved under MUTE_KEY and `isMutedNow()`
   returns false (CONFIG.MUTED false: sound is ON by default).
@@ -849,7 +874,9 @@ generated dataset, the shuffled deck, `wrongAnswers` and `CONFIG`.
 
 - Answers: exactly one of the four is right; the four are all different; the right one is in a
   random place; the three wrong ones are near misses from `wrongAnswers` (for 6 x 8 they are taken
-  from 40, 56, 42 and 54).
+  from 40, 56, 42 and 54). For every fact with a factor of 10 or more (all of the 12 times table,
+  11 x 11, and every fact in up to 20 with a factor above 9), all four answers end in the same
+  digit (for 8 x 17: 136 with three of 126, 146, 116, 156).
 
 - Title band: the band at the very top (blue text on white) is ONE line, "Multiply.by: learn the multiplication
   table", filling the full width of the band without being cut off, on a 360px phone, a large
@@ -888,12 +915,12 @@ generated dataset, the shuffled deck, `wrongAnswers` and `CONFIG`.
   (no other text); if the picture cannot be shared it shares or copies the link. On a desktop
   computer (no touch screen) the button is not shown. It never causes an error.
 
-- Reset: tapping RESET once shows "SURE?" for 3 seconds; tapping it again starts the current set
-  from scratch (score 0, Learned 0%, Mistakes 0, Time 0:00), keeping the best score. One tap alone
-  changes nothing.
+- Reset: one tap on RESET starts the current set from scratch at once, with no confirmation (score
+  0, Learned 0%, Mistakes 0, Time 0:00), keeping the best score.
 
 - Header buttons and links work on phones: the speaker button, FAQ, ABOUT, RULES, SOURCE, the How to
-  Play panel, RESET, "Play Again" and the "up to 12" link on the "You Won!" screen respond to a normal tap.
+  Play panel, RESET, "Play Again", the Tables choice and the next-level links on the "You Won!" screen respond
+  to a normal tap.
 
 - Blocked storage: with site data blocked (or `window.localStorage` throwing on access), the game
   loads and plays normally with no console errors; progress is just not kept after reload.
@@ -909,12 +936,13 @@ generated dataset, the shuffled deck, `wrongAnswers` and `CONFIG`.
 - Answer times: after each answer, the saved progress has one more `{ ms, right }` entry under that
   fact's id in answerLog, with ms the playing time the answer took.
 
-- Two modes: the page address without `?12` plays 36 facts (no 11 or 12 in any question) and with
-  `?12` plays 48. The "Up to 12" switch in How to Play shows the current mode and switching it
-  changes to the other mode at once with no page load, and also works in a chatbot's sandboxed
-  preview. Each mode keeps its own saved progress across reloads and Play Again stays in its mode;
-  the sound setting is shared. On page load the address alone decides the mode. The
-  "Ready for 11 and 12?" line appears only on the 2 to 9 "You Won!" screen.
+- Three modes: the page address without an argument plays 36 facts (no factor above 9), with `?12`
+  48 (ids 1 to 48) and with `?20` 116 (smaller factor 9 or less, larger up to 20, e.g. 8 x 17).
+  The Tables choice in How to Play shows the current set and tapping another changes to it at once
+  with no page load, also in a chatbot's sandboxed preview. Each mode keeps its own saved progress
+  and best score across reloads, and Play Again stays in its mode; the sound setting is shared. On
+  page load the address alone decides the mode. The next-level line on the "You Won!" screen
+  offers up to 12 and up to 20 after 2 to 9, up to 20 after up to 12, and nothing after up to 20.
 - Sound effects: sound is ON by default: on a first visit the speaker shows the sound waves, and
   from the first tap on (phones allow sound only after a touch) a right answer, a wrong answer and winning each play their own short sound, on phones as
   well as on desktop. The right-answer chime rises one semitone with each right answer in a row;

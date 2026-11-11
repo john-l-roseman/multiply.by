@@ -47,7 +47,7 @@ FILES
 {
   "name": "multiply.by",
   "short_name": "multiply.by",
-  "description": "Learn the times tables, up to 12, against the clock.",
+  "description": "Learn the times tables, up to 12 or 20, against the clock.",
   "id": "/",
   "start_url": "/",
   "scope": "/",
