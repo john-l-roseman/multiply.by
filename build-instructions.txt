@@ -7,12 +7,13 @@ and open it in your browser.
 
 0. CONTENT GENERATION
 ---------------------
-Create a dataset of these multiplication facts, smaller number first (48 facts, ids 1-48, ordered by
-product):
-- all facts from the 2 to 9 times tables, 2 x 2 to 9 x 9 (36 facts);
-- 11 x 11;
-- the whole 12 times table, 2 x 12 to 12 x 12 (11 facts).
-The rest of the 10 and 11 times tables is left out on purpose: those facts are easy.
+Create a dataset of exactly these 48 multiplication facts, in exactly this order (ids 1 to 48):
+2 x 2, 2 x 3, 2 x 4, 3 x 3, 2 x 5, 2 x 6, 3 x 4, 2 x 7, 3 x 5, 2 x 8, 4 x 4, 2 x 9,
+3 x 6, 4 x 5, 3 x 7, 2 x 12, 3 x 8, 4 x 6, 5 x 5, 3 x 9, 4 x 7, 5 x 6, 4 x 8, 5 x 7,
+3 x 12, 4 x 9, 6 x 6, 5 x 8, 6 x 7, 5 x 9, 4 x 12, 6 x 8, 7 x 7, 6 x 9, 7 x 8, 5 x 12,
+7 x 9, 8 x 8, 6 x 12, 8 x 9, 9 x 9, 7 x 12, 8 x 12, 9 x 12, 10 x 12, 11 x 11, 11 x 12, 12 x 12
+(These are the 2 to 9 times tables, 11 x 11 and the 12 times table, ordered by product.
+The rest of the 10 and 11 times tables is left out on purpose: those facts are easy.)
 
 Dataset Fields: id | text (the multiplication, e.g. "7 x 8") | answer (the product as digits, e.g.
 "56")

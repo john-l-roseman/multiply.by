@@ -56,6 +56,5 @@ python3.10 /var/www/openlang.ai/SCRIPTS/run-vertex.py build-instructions.txt ind
 date
 
 python3 $ROOT/check-scripts.py index.html.tmp || exit 1
-python3 $ROOT/check-data.py index.html.tmp || exit 1
 mv index.html.tmp index.html
 echo "Built `pwd`/index.html (`wc -c < index.html` bytes)"

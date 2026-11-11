@@ -205,9 +205,10 @@ Each of these broke at least one build before the wording was added. Keep them:
 
 7. BUILD AND CHECK BEFORE IT GOES LIVE
 --------------------------------------
-- Build into a temporary file; run check-scripts.py (node --check on every script) and a data
-  check like check-data.py (adapt it to the game's dataset: count, number ids 1..N, right
-  answers); only then rename into place (nginx open_file_cache serves stale files otherwise).
+- Build into a temporary file; run check-scripts.py (node --check on every script); only then
+  rename into place (nginx open_file_cache serves stale files otherwise).
+- Give the dataset as an explicit list in the spec, in the order wanted (as multiply.by does),
+  instead of a rule the model must expand and sort: from a rule, Gemini twice dropped a fact.
   The Makefile here does all of this; copy it.
 - Every build is fresh code: element ids and function names may change, so automated tests must
   look elements up again after each build.

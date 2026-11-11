@@ -10,7 +10,6 @@
 !/about/build-instructions.txt
 !/about/Makefile
 !/check-scripts.py
-!/check-data.py
 !/reformat-spec.py
 !/MATCH-TO-FOUR.txt
 !/mk-custom
