@@ -23,7 +23,7 @@ Dataset Fields: id | text (the multiplication, e.g. "7 x 8") | answer (the produ
 - TARGET_LANGUAGE: Math
 - GAME: Speed
 - LANGUAGE_CODE: EN
-- MUTED: true
+- MUTED: false
 
 
 Act as an expert Frontend Engineer.
@@ -88,7 +88,7 @@ IMPORTANT: Do not add any notes at the top or bottom of the HTML file.
     `state.question` and `state.choices`. Call it ONLY when a new question is dealt.
 
   - `update()` brings everything else on screen in line with `state`, and MUST be called after EVERY
-    change to `state`: the four indicator values (see INDICATORS), the speaker button (icon, aria-label, title), the
+    change to `state`: the five indicator values (see INDICATORS), the speaker button (icon, aria-label, title), the
     classes and `disabled` property of the answer buttons (see FEEDBACK), the "You Won!" texts
     (final score, time, best score, mistakes), the How to Play panel
     (shown or hidden from `state.showInfo`) and the "You Won!" overlay (from `state.isWon`).
@@ -318,23 +318,25 @@ IMPORTANT: Do not add any notes at the top or bottom of the HTML file.
     when tapped.
 
   - INDICATORS: a <div id="indicators"> to the right of the question card, `flex: 0 0 6.5rem`, a flex
-    column with `justify-content: space-between`, holding four <div class="indicator"> blocks, in
-    this order from top to bottom: Score, Learned, Mistakes, Time. Each block has a small label on top
+    column with `justify-content: space-between`, holding five <div class="indicator"> blocks, in
+    this order from top to bottom: Score, Streak, Learned, Mistakes, Time. Each block has a small label on top
     and a large number under it:
       <div class="indicator"><div class="indicator-label">Score</div><div class="indicator-value" id="ind-score">26</div></div>
-    - Labels, exactly: "Score", "Learned", "Mistakes", "Time". Look: 0.7rem, uppercase,
+    - Labels, exactly: "Score", "Streak", "Learned", "Mistakes", "Time". Look: 0.7rem, uppercase,
       `letter-spacing: 0.05em`, color #6b7280, `line-height: 1.1`.
-    - Values: X (the score), Y% (the percentage of FACTS learned, or of the practice set during a practice, rounded to a whole number, e.g.
+    - Values: X (the score), S (`state.streak`: the right answers in a row, 0 after a wrong answer;
+      during a practice, the practice's own streak), Y% (the percentage of FACTS learned, or of the practice set during a practice, rounded to a whole number, e.g.
       "6%"), M (the number of wrong answers) and T (the playing time so far,
       `formatTime(currentPlayMs())`, e.g. "0:12"). Look: NOT bold (`font-weight: normal`), font size
       `clamp(1.05rem, 5.2vmin, 1.7rem)`, color #111827, `line-height: 1.1`,
       `font-variant-numeric: tabular-nums` (so numbers do not shift as the clock ticks),
-      `white-space: nowrap`. All four values, Mistakes included, are #111827 (never red).
+      `white-space: nowrap`. All five values, Mistakes included, are #111827 (never red).
     - The column is RIGHT-aligned: labels and numbers are `text-align: right` and end at the column's
       right edge. No borders or backgrounds; they never wrap or overflow.
-    - Short screens (`@media (max-height: 500px)`, e.g. a phone in landscape): the four blocks form a
-      2 x 2 grid instead (Score and Learned on top, Mistakes and Time below), with the column
-      `flex: 0 0 11rem`, so everything still fits.
+    - Short screens (`@media (max-height: 500px)`, e.g. a phone in landscape): the five blocks form a
+      grid of three columns instead (`display: grid; grid-template-columns: repeat(3, 1fr);
+      column-gap: 0.75rem;`): Score, Streak and Learned on top, Mistakes and Time below, with the
+      column `flex: 0 0 15rem`, so everything still fits.
     - Mistakes counts every wrong answer in the whole game (saved with the progress, so they survive
       a reload) and starts again at 0 with Play Again (which clears the saved progress).
 
@@ -403,7 +405,14 @@ IMPORTANT: Do not add any notes at the top or bottom of the HTML file.
   answers are compared as strings; the four choices are always different, so exactly one is right).
 
 - RIGHT ANSWER:
-  1. Call `playSound('correct')`.
+  1. Call `playSound(Math.floor(state.streak / 12) % 2 === 0 ? 'correct' : 'correct2', state.streak % 12)`,
+     BEFORE the streak goes up (STREAK CHIME): the chime climbs one semitone for each right answer
+     in a row, in rounds of 12. Right answers 1 to 12 in a row play the three-note chime
+     ('correct'), the 1st at its own pitch, the 2nd one semitone higher, up to the 12th (11
+     semitones higher). Answers 13 to 24 play the four-note chime ('correct2') climbing the same
+     way, from its own pitch; answers 25 to 36 the three-note chime again, and so on, alternating.
+     A wrong answer sets the streak to 0, so the next right answer starts again with the
+     three-note chime at the bottom.
   2. Increase `state.score` by (10 + `state.streak`).
   3. Increase `state.streak` by 1.
   4. Add the question's id to `state.learnedIds` (if not already there) and remove it from
@@ -415,7 +424,8 @@ IMPORTANT: Do not add any notes at the top or bottom of the HTML file.
 
 - WRONG ANSWER:
   1. Call `playSound('wrong')`.
-  2. Set `state.streak` to 0. Decrease `state.score` by 5 (never below 0). Increase `state.mistakes`
+  2. Set `state.streak` to 0. Decrease `state.score` by 5. The score MAY go below 0
+     (a wrong first answer gives -5); it is never clamped, and is shown with its minus sign. Increase `state.mistakes`
      by 1.
   3. The fact is NOT learned: move it from its place in `state.deck` to the END of `state.deck`, so
      it comes back at the end of the game.
@@ -437,10 +447,11 @@ Sound effects (short tones made in the browser with the Web Audio API; no audio 
 - Define exactly these, with no other sound code:
   `let audioCtx = null;`
   `function getAudioCtx() { try { const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return null; if (!audioCtx) audioCtx = new AC(); if (audioCtx.state !== 'running') { const p = audioCtx.resume(); if (p && p.catch) p.catch(() => {}); } return audioCtx; } catch (e) { return null; } }`
-  `const SOUNDS = { correct: ['sine', [[660, 0, 0.08], [880, 0.08, 0.14]]], wrong: ['triangle', [[196, 0, 0.25]]], win: ['sine', [[523, 0, 0.12], [659, 0.12, 0.12], [784, 0.24, 0.12], [1047, 0.36, 0.35]]] };`
-  `function playSound(name) { if (isMutedNow()) return; const ctx = getAudioCtx(); if (!ctx) return; try { const [wave, notes] = SOUNDS[name]; const t0 = ctx.currentTime + 0.01; for (const [freq, start, dur] of notes) { const osc = ctx.createOscillator(); const gain = ctx.createGain(); osc.type = wave; osc.frequency.value = freq; gain.gain.setValueAtTime(0.0001, t0 + start); gain.gain.exponentialRampToValueAtTime(0.2, t0 + start + 0.01); gain.gain.exponentialRampToValueAtTime(0.0001, t0 + start + dur); osc.connect(gain); gain.connect(ctx.destination); osc.start(t0 + start); osc.stop(t0 + start + dur); } } catch (e) {} }`
+  `const SOUNDS = { correct: ['triangle', [[1047, 0, 0.05], [1319, 0.05, 0.05], [1568, 0.10, 0.18]], 0.35], correct2: ['triangle', [[784, 0, 0.05], [988, 0.05, 0.05], [1175, 0.10, 0.05], [1568, 0.15, 0.18]], 0.35], wrong: ['triangle', [[196, 0, 0.25]], 0.2], win: ['sine', [[523, 0, 0.12], [659, 0.12, 0.12], [784, 0.24, 0.12], [1047, 0.36, 0.35]], 0.2] };`
+  (each sound: wave, notes as [frequency, start, duration], peak volume)
+  `function playSound(name, semitones = 0) { if (isMutedNow()) return; const ctx = getAudioCtx(); if (!ctx) return; try { const [wave, notes, vol] = SOUNDS[name]; const k = Math.pow(2, semitones / 12); const t0 = ctx.currentTime + 0.01; for (const [freq, start, dur] of notes) { const osc = ctx.createOscillator(); const gain = ctx.createGain(); osc.type = wave; osc.frequency.value = freq * k; gain.gain.setValueAtTime(0.0001, t0 + start); gain.gain.exponentialRampToValueAtTime(vol, t0 + start + 0.01); gain.gain.exponentialRampToValueAtTime(0.0001, t0 + start + dur); osc.connect(gain); gain.connect(ctx.destination); osc.start(t0 + start); osc.stop(t0 + start + dur); } } catch (e) {} }`
 
-- Sound plays ONLY at three moments: `playSound('correct')` (see RIGHT ANSWER), `playSound('wrong')`
+- Sound plays ONLY at three moments: `playSound('correct' or 'correct2', ...)` (see RIGHT ANSWER), `playSound('wrong')`
   (see WRONG ANSWER) and `playSound('win')` (see `nextQuestion()`). Dealing a question and loading
   saved progress are silent, so a finished game restored at start-up plays nothing.
 - While sound is off, `playSound` returns at once and no AudioContext is created.
@@ -769,11 +780,11 @@ operations. DO NOT hardcode these facts or this layout into the code. The code m
 generated dataset, the shuffled deck, `wrongAnswers` and `CONFIG`.
 
 [HYPOTHETICAL INITIAL SETUP (For tracing purposes only)]
-- Config as in GLOBAL CONFIGURATION: TARGET_LANGUAGE "Math", LANGUAGE_CODE "EN", CONFIG.MUTED true.
+- Config as in GLOBAL CONFIGURATION: TARGET_LANGUAGE "Math", LANGUAGE_CODE "EN", CONFIG.MUTED false.
 - Mode 2 to 9 (no `?12`): FACTS has 36 facts.
 - State: score 0 | streak 0 | learnedIds [] | mistakes 0
-- Hypothetical environment: on an earlier visit the player tapped the speaker button to turn sound
-  on, so MUTE_KEY holds 'false' and `isMutedNow()` returns false.
+- Hypothetical environment: a first visit, so nothing is saved under MUTE_KEY and `isMutedNow()`
+  returns false (CONFIG.MUTED false: sound is ON by default).
 - Hypothetical deck: [6 x 8], [3 x 4], [7 x 9], ... (33 more)
 
 [QUESTION 1: Right Answer]
@@ -781,7 +792,7 @@ generated dataset, the shuffled deck, `wrongAnswers` and `CONFIG`.
   After shuffling, the grid shows 42 | 56 (top row) and 48 | 54 (bottom row).
 - Action: Player taps "48".
 - Execution:
-  1. `playSound('correct')` plays.
+  1. `playSound('correct', 0)` plays (streak 0: the chime at its own pitch).
   2. Score = 0 + (10 base + 0 streak) = 10. Streak 0 -> 1.
   3. The id of "6 x 8" is added to `state.learnedIds` and removed from `state.deck`. Saved.
   4. "48" turns green; all four buttons are disabled; the indicators show Score 10, Learned 3%,
@@ -789,9 +800,9 @@ generated dataset, the shuffled deck, `wrongAnswers` and `CONFIG`.
   5. After 200ms `nextQuestion()` deals "3 x 4".
 
 [QUESTION 1.5: ALTERNATE AUDIO SCENARIO]
-- First visit, muted by default: nothing is saved under MUTE_KEY, so `isMutedNow()` returns true
-  (CONFIG.MUTED) and the header button shows the speaker with a cross. `playSound` returns at once:
-  no sound. All other logic identical.
+- The player turned sound off earlier with the speaker button: MUTE_KEY holds 'true', so
+  `isMutedNow()` returns true and the header button shows the speaker with a cross. `playSound`
+  returns at once: no sound. All other logic identical.
 
 [QUESTION 2: Wrong Answer]
 - Screen: question "3 x 4"; the candidates are 8, 16, 9 and 15 (all different from 12), and three
@@ -829,9 +840,9 @@ generated dataset, the shuffled deck, `wrongAnswers` and `CONFIG`.
   internet connection, the game loads and plays normally.
 - No outside requests: the page loads nothing from any server (only its own file).
 
-- Indicators: Score, Learned, Mistakes and Time are in a column to the right of the question, each a
+- Indicators: Score, Streak, Learned, Mistakes and Time are in a column to the right of the question, each a
   small label above a large number, all inside the screen with nothing cut off, on a 360x640 phone,
-  in landscape (as a 2 x 2 block) and on desktop. There is no stats line under the header.
+  in landscape (as a 3 + 2 block) and on desktop. There is no stats line under the header.
 
 - One question per screen: the question card at the top and exactly four answer buttons in a 2 x 2
   grid below it, all visible without scrolling on a 360x640 phone, in landscape and on desktop.
@@ -854,7 +865,7 @@ generated dataset, the shuffled deck, `wrongAnswers` and `CONFIG`.
 
 - Right answer: the button turns green, the score goes up, and the next question appears after
   200ms. Wrong answer: the tapped button turns red and the right answer green for 2000ms, the score
-  drops by 5 (never below 0), Mistakes goes up by 1, Learned % does not change, and the question
+  drops by 5 (also below 0: a wrong first answer shows Score -5), Mistakes goes up by 1, Learned % does not change, and the question
   is asked again near the end of the game.
 
 - Winning: when every fact has been answered right, "You Won!" shows the final score, "Your time:
@@ -904,9 +915,13 @@ generated dataset, the shuffled deck, `wrongAnswers` and `CONFIG`.
   preview. Each mode keeps its own saved progress across reloads and Play Again stays in its mode;
   the sound setting is shared. On page load the address alone decides the mode. The
   "Ready for 11 and 12?" line appears only on the 2 to 9 "You Won!" screen.
-- Sound effects: on a first visit the speaker shows a cross and the game is silent. After turning
-  sound on, a right answer, a wrong answer and winning each play their own short sound, on phones as
-  well as on desktop. Reloading a finished game plays nothing. No fact is ever spoken.
+- Sound effects: sound is ON by default: on a first visit the speaker shows the sound waves, and
+  from the first tap on (phones allow sound only after a touch) a right answer, a wrong answer and winning each play their own short sound, on phones as
+  well as on desktop. The right-answer chime rises one semitone with each right answer in a row;
+  every 12 answers in a row it switches between the three-note and the four-note chime and starts
+  climbing again from that chime's own pitch; after a wrong answer it starts at the bottom of the
+  three-note chime.
+  Reloading a finished game plays nothing. No fact is ever spoken.
 - No console errors at any point.
 
 - Footer text: the one footer line reads exactly "Copyright (c) <current year> by Functional AI Inc.

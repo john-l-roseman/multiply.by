@@ -38,7 +38,7 @@ if [ index.html -nt "$INPUT" ] && [ index.html -nt "$SPEC" ]; then
 fi
 
 # Served files are written under a temporary name and renamed into place, so
-# nginx's open-file cache never serves a stale, resized copy.
+# a visitor never gets a half-written page.
 sed -e "s/^- GAME: .*/- GAME: $NAME/" \
 	-e "s#https://multiply.by/build-instructions.txt#https://multiply.by/Custom/$NAME/build-instructions.txt#" "$SPEC" |
 awk -v input="$INPUT" '

@@ -18,7 +18,7 @@ build/pwa-head.html: $(PWA) extract-files.py
 	python3 extract-files.py $(PWA) build pwa-head.html
 
 # Every served file is written under a temporary name and renamed into place,
-# so nginx's open-file cache never serves a stale, resized copy.
+# so a visitor never gets a half-written page.
 
 # The served page: the plain page with the PWA tags inserted before </head>.
 index.html: build/index.html build/pwa-head.html check-scripts.py

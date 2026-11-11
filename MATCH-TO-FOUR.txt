@@ -120,6 +120,9 @@ h. OPTIONAL GAMIFICATION (kids liked these; each is its own spec section, copy f
    - BEST SCORE (own storage key per mode, kept by Play Again and RESET). The time is shown but
      never compared: How to Play says finishing is winning, not "as fast as you can".
    - RESET in the header: two taps ("SURE?" for 3 seconds), no confirm().
+   - STREAK CHIME: the right-answer sound is a three-note triangle-wave chime (louder than the
+     others) that rises one semitone per right answer in a row for 12 answers, then switches to a
+     four-note chime that climbs the next 12, alternating, until a wrong answer resets the streak.
    - ANSWER TIMES: the playing time of every answer, per fact, saved with the progress (answerLog).
    - PRACTICE HARD ONES (needs ANSWER TIMES): a You Won! button that practises every fact
      answered wrongly plus the slowest others (10 at least), in place, saving nothing; it ends on
@@ -206,7 +209,7 @@ Each of these broke at least one build before the wording was added. Keep them:
 7. BUILD AND CHECK BEFORE IT GOES LIVE
 --------------------------------------
 - Build into a temporary file; run check-scripts.py (node --check on every script); only then
-  rename into place (nginx open_file_cache serves stale files otherwise).
+  rename into place, so a visitor never gets a half-written page.
 - Give the dataset as an explicit list in the spec, in the order wanted (as multiply.by does),
   instead of a rule the model must expand and sort: from a rule, Gemini twice dropped a fact.
   The Makefile here does all of this; copy it.
