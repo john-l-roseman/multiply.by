@@ -238,4 +238,4 @@ Each of these broke at least one build before the wording was added. Keep them:
   * offline (service worker) and the Install / Share buttons' spacing on the win screen.
 - Then play it yourself on a real phone; headless browsers cannot share files, so Share only shows
   on the real device.
-- Cost: about $0.04-0.05 per Gemini build; the page stays under 50 KB.
+- Cost: about $0.04-0.05 per Gemini build; the page stays under 60 KB.

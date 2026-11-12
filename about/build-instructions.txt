@@ -32,7 +32,7 @@ Style:
   o No sign-up, zero cost.
   o No ads or trackers in the game.
   o No visual clutter.
-  o The game weighs less than 50 KB.
+  o The game weighs less than 60 KB.
 
 <subheader>Transparency</subheader>
   o Open source: free to copy, change and share.

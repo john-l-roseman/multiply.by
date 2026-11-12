@@ -598,17 +598,65 @@ Unlock (at start-up):
     margin: 0; cursor: pointer;`, at least 30px x 30px so it is easy to tap. Hover: #1e40af.
   - Shown on EVERY device (phones, tablets and computers) and in every mode, during play and
     behind the "You Won!" overlay. It is outside #game-area, so tapping it never starts the timer.
-  - On tap (`click`), in the click handler itself, stop at the first step that works:
+  - PHONE OR COMPUTER: at start-up set `const IS_TOUCH = matchMedia('(pointer: coarse)').matches;`
+    (true on phones and tablets, false on computers with a mouse).
+  - On a PHONE or TABLET (IS_TOUCH true), on tap (`click`), in the click handler itself, stop at the
+    first step that works:
     1. If `navigator.share` exists:
        `await navigator.share({ title: 'multiply.by', text: siteShareText() })` inside try/catch, as
        the FIRST `await` of the handler (text only: no `url`, no files).
        AbortError (the player closed the share menu): stop and do nothing. Any other error: step 2.
-    2. COPY THE LINK: try `navigator.clipboard.writeText(shareText())`.
-    Then, after step 2 only, show a small message for 2 seconds: "Link copied" when copying worked,
-    "Could not share" when it failed. The message is a <span id="share-msg" role="status"> inside
-    the band, `position: absolute; right: 0.5rem; top: 100%; margin-top: 4px; z-index: 30;` white
-    background, 1px #e5e7eb border, rounded (0.25rem), `padding: 2px 8px`, text 12px bold #1e40af,
-    `white-space: nowrap; pointer-events: none;`, hidden (`display: none`) the rest of the time.
+    2. COPY THE LINK: try `navigator.clipboard.writeText(shareText())`, then show the share message
+       (below) for 2 seconds: "Link copied" when copying worked, "Could not share" when it failed.
+  - On a COMPUTER (IS_TOUCH false), a click on the icon opens (or, if open, closes) the SHARE MENU,
+    a small panel just under the icon. It never calls `navigator.share` on a computer: desktop share
+    menus rarely offer social networks.
+  - SHARE MENU: a <div id="share-menu" role="menu"> inside the title band, hidden (`display: none`)
+    until opened; `position: absolute; right: 0.5rem; top: 100%; margin-top: 4px; z-index: 40;
+    min-width: 12rem; padding: 4px 0;` white background, 1px #e5e7eb border, rounded (0.5rem),
+    `box-shadow: 0 4px 12px rgba(0,0,0,0.15)`. It holds eight items, one per line, in this order:
+    WhatsApp, Facebook, X, Bluesky, LinkedIn, Reddit, Email, Copy link. Each item has
+    `role="menuitem"`, is
+    `display: block; padding: 8px 16px; font-size: 14px; font-weight: bold; color: #374151; text-decoration: none; text-align: left; white-space: nowrap;`
+    with a #eff6ff background and #1e40af text on hover and on keyboard focus. Text only: no logos,
+    no images, and no script, button or widget from any of these sites (the page stays free of
+    trackers).
+  - The first seven items are <a> links; set their `href` every time the menu opens (the set may
+    have changed), with every value passed through `encodeURIComponent`. LINK is `shareText()`,
+    MESSAGE is `siteShareText()`, FIRST is the first line of MESSAGE (for example "Multiply.by:
+    learn the multiplication table, fast."):
+      WhatsApp: https://wa.me/?text=MESSAGE
+      Facebook: https://www.facebook.com/sharer/sharer.php?u=LINK
+      X:        https://twitter.com/intent/tweet?text=FIRST&url=LINK
+      Bluesky:  https://bsky.app/intent/compose?text=POST, where POST is FIRST, a space and LINK
+                (before encoding), for example "Multiply.by: learn the multiplication table,
+                fast. https://multiply.by/"
+      LinkedIn: https://www.linkedin.com/sharing/share-offsite/?url=LINK
+      Reddit:   https://www.reddit.com/submit?url=LINK&title=FIRST
+      Email:    mailto:?subject=SUBJECT&body=MESSAGE, where SUBJECT is "multiply.by: learn the
+                multiplication table"
+    WhatsApp, Facebook, X, Bluesky, LinkedIn and Reddit open in a new tab (`target="_blank"
+    rel="noopener noreferrer"`); Email has no target (it opens the mail program).
+  - Copy link is a <button> (same look, `width: 100%; border: none; background: none;
+    font-family: inherit; cursor: pointer;` plus the item look above): it copies `shareText()` with
+    `navigator.clipboard.writeText` and shows the share message for 2 seconds ("Link copied", or
+    "Could not share" if copying failed).
+  - The menu closes after any item is chosen, when the icon is clicked again, on a press anywhere
+    outside the menu and the icon, and on Escape (the same `keydown` listener on window as the How
+    to Play panel; Escape closes the menu first if it is open).
+  - CLOSING ON A PRESS OUTSIDE (CRITICAL): use ONE `pointerdown` listener on `window` registered
+    with `{ capture: true }`, NOT a `click` listener: answers count on `pointerdown`, which comes
+    before `click`, and the answer buttons are briefly `disabled` after each answer, and disabled
+    buttons fire no `click`. In it: if the menu is open and `e.target` is not inside #share-menu or
+    #share-site, close the menu and call `e.stopPropagation()`, so that press ONLY closes the menu:
+    it does not answer and does not start the timer. When the menu is closed it does nothing.
+  - Opening the menu sets `aria-expanded="true"` on the icon button (otherwise "false"; the button
+    also has `aria-haspopup="menu"`). While the menu is open the answer keys 1 to 4 still work.
+  - SHARE MESSAGE (shown after copying, on any device): a <span id="share-msg" role="status">
+    inside the band, `position: absolute; right: 0.5rem; top: 100%; margin-top: 4px; z-index: 30;`
+    white background, 1px #e5e7eb border, rounded (0.25rem), `padding: 2px 8px`, text 12px bold
+    #1e40af, `white-space: nowrap; pointer-events: none;`, hidden (`display: none`) the rest of the
+    time.
   - THE SHARED MESSAGE, returned by `siteShareText()`: three lines joined with '\n', the last one
     being `shareText()` (the link for the current set: https://multiply.by/, ?12 or ?20), so the
     person receiving it lands on the same tables. For 2 to 9 (MODE 9):
@@ -618,7 +666,8 @@ Unlock (at start-up):
     For up to 12 the first line is "Multiply.by: learn the multiplication table up to 12, fast." and
     the link is https://multiply.by/?12; for up to 20 it is "Multiply.by: learn the multiplication
     table up to 20, fast." with https://multiply.by/?20. The second line is the same in every set.
-  - Step 2 (copying, on a computer) copies ONLY the link, `shareText()`, never the three lines.
+  - Copying (step 2 on a phone, Copy link on a computer) copies ONLY the link, `shareText()`, never
+    the three lines.
   - "Share my results" on the "You Won!" screen is unchanged: it still sends only the link.
   - Sharing changes nothing in `state`, saves nothing, plays no sound and never throws (wrap each
     step in try/catch).
@@ -962,8 +1011,11 @@ generated dataset, the shuffled deck, `wrongAnswers` and `CONFIG`.
   desktop; the menu bar is directly below it.
 
 - Share icon: tapping it on a phone opens the phone's share menu with the three-line message from
-  `siteShareText()`, ending with the link for the current set (https://multiply.by/, ?12 or ?20); on
-  a computer it copies that link and shows "Link copied" for 2 seconds. It does not start the timer.
+  `siteShareText()`, ending with the link for the current set (https://multiply.by/, ?12 or ?20). On
+  a computer it opens a small menu under the icon: WhatsApp, Facebook, X, Bluesky, LinkedIn, Reddit,
+  Email and Copy link, in that order; each site opens in a new tab with the link (and, for WhatsApp
+  and Email, the three-line message) filled in, and Copy link shows "Link copied" for 2 seconds. The
+  menu closes on a choice, a click outside it, or Escape. It does not start the timer.
 
 - No scrolling: the page never scrolls or bounces, in the browser or installed as an app, whatever
   the phone's font size; a finger dragged across the game does nothing. The footer (the copyright

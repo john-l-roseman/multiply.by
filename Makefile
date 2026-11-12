@@ -24,8 +24,8 @@ build/pwa-head.html: $(PWA) extract-files.py
 index.html: build/index.html build/pwa-head.html check-scripts.py
 	test "$$(grep -c "</head>" build/index.html)" = 1
 	sed "/<\/head>/e cat build/pwa-head.html" build/index.html > index.html.tmp
-	@size=$$(wc -c < index.html.tmp); if [ $$size -ge 50000 ]; then \
-	  echo "WARNING: index.html is $$size bytes; the About page says less than 50 KB"; fi
+	@size=$$(wc -c < index.html.tmp); if [ $$size -ge 60000 ]; then \
+	  echo "WARNING: index.html is $$size bytes; the About page says less than 60 KB"; fi
 	python3 check-scripts.py index.html.tmp
 	mv index.html.tmp index.html
 
