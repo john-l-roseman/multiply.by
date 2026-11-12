@@ -73,7 +73,18 @@ c. nextQuestion(): clear feedback/picked; empty deck = won (stop timer, save, wi
 
 d. WRONG ANSWERS (distractors) - the one part that needs thought for each game:
    - They must be believable mistakes, never random. For multiplication we use the neighbouring
-     products ((a±1)*b, a*(b±1)), topped up with the nearest other answers in the dataset.
+     products ((a±1)*b, a*(b±1), then ±2), topped up with the nearest other answers in the dataset.
+   - Do not let the right answer's position among the choices give it away. Our first version took
+     three of the four neighbours (two smaller, two bigger), so the right answer was never the
+     smallest or largest and players could rule out two choices. Fix: pick at random how many wrong
+     answers (0-3) are smaller than the right one, then take that many nearest from below and the
+     rest nearest from above. For numbers with a factor of 10 or more, use right answer ±10, ±20,
+     ±30 so all four end in the same digit (otherwise multiplying last digits finds the answer).
+     Also keep only wrong answers with the right answer's odd/even: all four neighbours of
+     7 x 9 = 63 are even, so "the odd one" was always right.
+   - Generally: after building, test every fact a few hundred times and check that no simple rule
+     (position among the sorted choices, last digit, odd/even) picks the right answer more often
+     than one time in four.
    - For a word game, take answers of OTHER facts in the same dataset, preferring ones that look
      alike: same part of speech or category if the data has it, similar length, same first letter,
      words the player has already met.

@@ -38,8 +38,8 @@ Dataset Fields: id | text (the multiplication, e.g. "7 x 8") | answer (the produ
 
 Act as an expert Frontend Engineer.
 Build a single, standalone HTML file (index.html) for the speed version of a times tables game: each
-screen shows one multiplication and four answers, the player taps the right answer, and a clock shows
-how fast they go.
+screen shows one multiplication and four answers, the player taps the right answer, and a clock
+shows how fast they go.
 Deliver the finished page as a downloadable file named index.html, not as text in the chat. If you
 can't create an HTML file, create a plain text file with the same content, and tell the user to
 rename it to index.html.
@@ -98,10 +98,10 @@ IMPORTANT: Do not add any notes at the top or bottom of the HTML file.
     `state.question` and `state.choices`. Call it ONLY when a new question is dealt.
 
   - `update()` brings everything else on screen in line with `state`, and MUST be called after EVERY
-    change to `state`: the five indicator values (see INDICATORS), the speaker button (icon, aria-label, title), the
-    classes and `disabled` property of the answer buttons (see FEEDBACK), the "You Won!" texts
-    (final score, time, best score, mistakes), the How to Play panel
-    (shown or hidden from `state.showInfo`) and the "You Won!" overlay (from `state.isWon`).
+    change to `state`: the five indicator values (see INDICATORS), the speaker button (icon,
+    aria-label, title), the classes and `disabled` property of the answer buttons (see FEEDBACK),
+    the "You Won!" texts (final score, time, best score, mistakes), the How to Play panel (shown or
+    hidden from `state.showInfo`) and the "You Won!" overlay (from `state.isWon`).
 
   - `update()` changes classes, properties and text only. It MUST NOT rebuild the answer buttons.
 
@@ -175,8 +175,8 @@ IMPORTANT: Do not add any notes at the top or bottom of the HTML file.
   ignored. Also write the total number of facts:
   `safeStorage.setItem('openlang_' + CONFIG.TARGET_LANGUAGE + '_' + GAME_NAME + '_total', FACTS.length);`
 
-- `saveProgress()` writes `{ score, streak, learnedIds, mistakes, playMs, answerLog }` from `state`, where
-  playMs is `currentPlayMs()` (see TIMER), with
+- `saveProgress()` writes `{ score, streak, learnedIds, mistakes, playMs, answerLog }` from `state`,
+  where playMs is `currentPlayMs()` (see TIMER), with
   `safeStorage.setItem(STORAGE_KEY, JSON.stringify(...))`.
 
 - Deck: `state.deck` is a Fisher-Yates shuffle of the FACTS items (the fact objects themselves,
@@ -190,39 +190,55 @@ IMPORTANT: Do not add any notes at the top or bottom of the HTML file.
   the game is won (if `state.practice` is true, the practice is done instead: see PRACTICE HARD
   ONES): stop the timer for good (`pauseTimer()`, then `state.timerActive = false`), set
   `state.question = null` and `state.isWon = true`, record the best score (see BEST SCORE), call
-  `saveProgress()` and `update()`, then `playSound('win')`. Otherwise set `state.question = state.deck[0]` (it stays in the deck until it
-  is answered right), set `state.choices` to a Fisher-Yates shuffle of the question's answer plus
-  `wrongAnswers(state.question)`, so the right answer lands in a random one of the four places,
-  set `state.questionStartMs = currentPlayMs()`, then call `renderQuestion()` and `update()`.
+  `saveProgress()` and `update()`, then `playSound('win')`. Otherwise set
+  `state.question = state.deck[0]` (it stays in the deck until it is answered right), set
+  `state.choices` to a Fisher-Yates shuffle of the question's answer plus
+  `wrongAnswers(state.question)`, so the right answer lands in a random one of the four places, set
+  `state.questionStartMs = currentPlayMs()`, then call `renderQuestion()` and `update()`.
 
 - WRONG ANSWERS (CRITICAL): `wrongAnswers(fact)` returns exactly three answer strings, all different
   from each other and from `fact.answer`, that are believable mistakes ("near misses"), never random
-  numbers:
-  1. Read the two factors a and b from `fact.text` ("6 x 8" gives a = 6, b = 8).
-  SAME LAST DIGIT (when a or b is 10 or more, e.g. 7 x 12 or 8 x 17): all three wrong answers MUST
-  end in the same digit as the right answer, so the player cannot find the right one by
-  multiplying the last digits. Use the right answer minus 10, plus 10, minus 20 and plus 20, as
-  strings; drop any that are 0 or less; shuffle the rest and keep three (if fewer than three are
-  left, add the right answer plus 30, plus 40, and so on). Steps 2 and 3 below are then skipped.
-  For 8 x 17 (answer 136) the candidates are 126, 146, 116 and 156; for 7 x 12 (answer 84) they
-  are 74, 94, 64 and 104.
-  When both a and b are 9 or less, use steps 2 and 3:
-  2. Candidates: the products of the neighbouring facts, `(a - 1) * b`, `(a + 1) * b`, `a * (b - 1)`
-     and `a * (b + 1)`, as strings. Drop any that are 0 or less, equal to `fact.answer`, or
-     repeated. Shuffle the rest and keep up to three.
-  3. If fewer than three are left (this happens for small facts such as 2 x 2), add the other
-     distinct answers of FACTS, nearest in value to `fact.answer` first (ties in random order),
-     skipping `fact.answer` and any answer already chosen, until there are three.
-  For 6 x 8 (answer 48) the candidates are 40, 56, 42 and 54, and three of them are shown.
+  numbers. The right answer must be equally likely to be the smallest, second, third or largest of
+  the four numbers, so a player can never rule out the highest and lowest choices. (Taking three of
+  two answers below and two above would always leave the right answer in the middle: do NOT do
+  that.)
+  1. Read the two factors a and b from `fact.text` ("6 x 8" gives a = 6, b = 8); ans = the right
+     answer as a number.
+  2. Build two lists of candidate numbers, each with no repeats, never ans, never 0 or less:
+     BELOW (smaller than ans, nearest first) and ABOVE (bigger than ans, nearest first).
+     - SAME LAST DIGIT (when a or b is 10 or more, e.g. 7 x 12 or 8 x 17): all wrong answers MUST
+       end in the same digit as the right answer, so the player cannot find the right one by
+       multiplying the last digits. BELOW = ans - 10, ans - 20, ans - 30 (dropping any that are 0 or
+       less); ABOVE = ans + 10, ans + 20, ans + 30.
+     - When both a and b are 9 or less, fill each list in THREE GROUPS, in this order, sorting only
+       WITHIN a group (nearest to ans first) and never mixing groups:
+       group 1: the neighbouring products (a - 1) * b, (a + 1) * b, a * (b - 1), a * (b + 1);
+       group 2: (a - 2) * b, (a + 2) * b, a * (b - 2), a * (b + 2);
+       group 3 (only for small facts that run short): the other distinct answers of FACTS.
+       SAME ODD/EVEN: in every group, skip any number that is odd when ans is even or even when ans
+       is odd; otherwise "odd times odd is odd" finds the answer (all four neighbours of 7 x 9 = 63
+       are even, and 3 x 8 = 24 has odd neighbours 21 and 27). Each remaining number goes into BELOW
+       or ABOVE by value; skip numbers already in a list. For 7 x 9 (answer 63): group 1 is all even
+       and skipped; group 2 gives BELOW 49, 45 and ABOVE 77, 81. For 6 x 8: group 1 gives BELOW 42,
+       40 and ABOVE 54, 56; group 2 gives BELOW 36, 32 and ABOVE 60, 64. So BELOW = 42, 40, 36, 32
+       and ABOVE = 54, 56, 60, 64, and 45 and 49 (other facts' answers, and odd) are NOT used.
+  3. Pick k, the number of wrong answers below the right one, at random from 0, 1, 2 and 3, keeping
+     only values where BELOW has at least k entries and ABOVE has at least 3 - k (for 2 x 2 only
+     k = 0 or 1 is possible).
+  4. Return the first k of BELOW and the first 3 - k of ABOVE, as strings.
+  Examples: for 8 x 17 (answer 136), k = 0 gives 146, 156, 166; k = 1 gives 126, 146, 156; k = 2
+  gives 126, 116, 146; k = 3 gives 126, 116, 106. For 7 x 12 (answer 84), k = 2 gives 74, 64, 94.
+  For 6 x 8 (answer 48) BELOW is 42, 40, 36, 32, ... and ABOVE is 54, 56, 60, 64, ...: k = 1 gives
+  42, 54, 56; k = 3 gives 42, 40, 36.
 
 - Round end: there is no separate round end. Each screen is one question; after the feedback of a
   tap (see GAME LOGIC) `nextQuestion()` deals the next one.
 
-- TIMER (the Time indicator next to the question, and "Your time" on the "You Won!" screen): it measures PLAYING
-  time, not the time from start to finish.
+- TIMER (the Time indicator next to the question, and "Your time" on the "You Won!" screen): it
+  measures PLAYING time, not the time from start to finish.
 
-  - The clock is always visible as the Time indicator during play (see INDICATORS). While the timer runs,
-    a `setInterval` every 250ms (started once at start-up) calls `update()` when
+  - The clock is always visible as the Time indicator during play (see INDICATORS). While the timer
+    runs, a `setInterval` every 250ms (started once at start-up) calls `update()` when
     `state.timerStart !== null`, so the clock ticks. It shows 0:00 until the first touch.
 
   - `currentPlayMs()` returns `state.playMs` plus, if `state.timerStart` is not null,
@@ -255,10 +271,10 @@ IMPORTANT: Do not add any notes at the top or bottom of the HTML file.
   the questions the player got wrong or was unsure of (slow, even when right). Nothing on screen
   shows the times.
   - `state.answerLog` is an object keyed by fact id; each value is a list of that fact's answers in
-    order, each `{ ms, right }`: ms is the whole milliseconds of PLAYING time from the question being
-    dealt to the tap, `Math.round(currentPlayMs() - state.questionStartMs)`, and right is true or
-    false. Example: `{ "17": [{ "ms": 2350, "right": true }], "4": [{ "ms": 5120, "right": false },
-    { "ms": 1890, "right": true }] }`.
+    order, each `{ ms, right }`: ms is the whole milliseconds of PLAYING time from the question
+    being dealt to the tap, `Math.round(currentPlayMs() - state.questionStartMs)`, and right is true
+    or false. Example:
+    `{ "17": [{ "ms": 2350, "right": true }], "4": [{ "ms": 5120, "right": false }, { "ms": 1890, "right": true }] }`.
   - Record it in `handleAnswer`, before the score changes, for every answer, right or wrong. Skip
     the record (not the answer) when `state.timerStart` is null at that moment: the clock has not
     started yet, so there is no time to measure (the tap that starts the clock). Also skip it while
@@ -318,19 +334,22 @@ IMPORTANT: Do not add any notes at the top or bottom of the HTML file.
   page itself NEVER scrolls, not even by a pixel, in the browser or installed as an app (where
   Android's font size and screen bars can change the height). A scroll that starts under the
   finger cancels the tap, so the player must tap again. Only the How to Play panel may scroll,
-  inside itself. `body` has margin 0, background #f3f4f6, font-family: system-ui, -apple-system, "Segoe UI",
-  Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif. Use `box-sizing: border-box` for all
-  elements.
+  inside itself. `body` has margin 0, background #f3f4f6, font-family: system-ui, -apple-system,
+  "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif. Use `box-sizing: border-box`
+  for all elements.
 
 - App container: one element wrapping the whole game (title band, header, game area, footer), a flex
   column, PINNED to the visible screen: `position: fixed; top: 0; bottom: 0; left: 0; right: 0;`
   (NO `height` in vh or dvh: an installed app on Android can count 100dvh taller than the visible
   screen, which cut the footer off), background #f9fafb. Width 100% on phones; on screens 768px
-  wide or wider, `width: 400px` and centered (`margin: 0 auto`, which centers a fixed element
-  whose left and right are 0). The title band, header, game area and footer all take
+  wide or wider, `width: min(720px, max(400px, 75vh))` and centered (`margin: 0 auto`, which
+  centers a fixed element whose left and right are 0). So a tablet held upright uses almost its
+  whole width (768x1024: 720px; 800x1280: 720px) instead of a narrow strip, while a computer screen
+  or a tablet on its side gets a column three-quarters as wide as the screen is tall (1280x800:
+  600px), never narrower than 400px. The title band, header, game area and footer all take
   exactly the container's width.
-- Title band, header and footer: `flex-shrink: 0`. There is no stats line under the header: the score and the
-  other indicators sit next to the question (see INDICATORS).
+- Title band, header and footer: `flex-shrink: 0`. There is no stats line under the header: the
+  score and the other indicators sit next to the question (see INDICATORS).
 
 - Game Area (the screen of one question): `touch-action: none` (a finger drag there never scrolls or
   zooms anything), `flex: 1`, `min-height: 0`, a flex column,
@@ -340,29 +359,31 @@ IMPORTANT: Do not add any notes at the top or bottom of the HTML file.
     `gap: 0.75rem`, holding the question card on the left and the indicators column on the right.
 
   - Question card: a <div id="question">, `flex: 1`, `min-width: 0`, showing the fact's `text` (e.g.
-    "6 x 8"), font size `clamp(1.8rem, 9vmin, 3.5rem)`, bold. It is not a button and does nothing
+    "6 x 8"), font size `clamp(1.8rem, 9vmin, 4.5rem)`, bold. It is not a button and does nothing
     when tapped.
 
-  - INDICATORS: a <div id="indicators"> to the right of the question card, `flex: 0 0 6.5rem`, a flex
-    column with `justify-content: space-between`, holding five <div class="indicator"> blocks, in
-    this order from top to bottom: Score, Streak, Learned, Mistakes, Time. Each block has a small label on top
-    and a large number under it:
+  - INDICATORS: a <div id="indicators"> to the right of the question card, `flex: 0 0 6.5rem`, a
+    flex column with `justify-content: space-between`, holding five <div class="indicator"> blocks,
+    in this order from top to bottom: Score, Streak, Learned, Mistakes, Time. Each block has a small
+    label on top and a large number under it:
       <div class="indicator"><div class="indicator-label">Score</div><div class="indicator-value" id="ind-score">26</div></div>
     - Labels, exactly: "Score", "Streak", "Learned", "Mistakes", "Time". Look: 0.7rem, uppercase,
       `letter-spacing: 0.05em`, color #6b7280, `line-height: 1.1`.
     - Values: X (the score), S (`state.streak`: the right answers in a row, 0 after a wrong answer;
-      during a practice, the practice's own streak), Y% (the percentage of FACTS learned, or of the practice set during a practice, rounded to a whole number, e.g.
+      during a practice, the practice's own streak), Y% (the percentage of FACTS learned, or of the
+      practice set during a practice, rounded to a whole number, e.g.
       "6%"), M (the number of wrong answers) and T (the playing time so far,
       `formatTime(currentPlayMs())`, e.g. "0:12"). Look: NOT bold (`font-weight: normal`), font size
       `clamp(1.05rem, 5.2vmin, 1.7rem)`, color #111827, `line-height: 1.1`,
       `font-variant-numeric: tabular-nums` (so numbers do not shift as the clock ticks),
       `white-space: nowrap`. All five values, Mistakes included, are #111827 (never red).
-    - The column is RIGHT-aligned: labels and numbers are `text-align: right` and end at the column's
-      right edge. No borders or backgrounds; they never wrap or overflow.
-    - Short screens (`@media (max-height: 500px)`, e.g. a phone in landscape): the five blocks form a
-      grid of three columns instead (`display: grid; grid-template-columns: repeat(3, 1fr);
-      column-gap: 0.75rem;`): Score, Streak and Learned on top, Mistakes and Time below, with the
-      column `flex: 0 0 15rem`, so everything still fits.
+    - The column is RIGHT-aligned: labels and numbers are `text-align: right` and end at the
+      column's right edge. No borders or backgrounds; they never wrap or overflow.
+    - Short screens (`@media (max-height: 500px)`, e.g. a phone in landscape): the five blocks form
+      a grid of three columns instead
+      (`display: grid; grid-template-columns: repeat(3, 1fr); column-gap: 0.75rem;`): Score, Streak
+      and Learned on top, Mistakes and Time below, with the column `flex: 0 0 15rem`, so everything
+      still fits.
     - Mistakes counts every wrong answer in the whole game (saved with the progress, so they survive
       a reload) and starts again at 0 with Play Again (which clears the saved progress).
 
@@ -370,7 +391,7 @@ IMPORTANT: Do not add any notes at the top or bottom of the HTML file.
     (`display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 1rem;`)
     holding four <button class="answer"> elements, each showing one answer and carrying its place in
     `data-index` (0 to 3, in the order of `state.choices`): places 0 and 1 are the top row, 2 and 3
-    the bottom row. Font size `clamp(1.5rem, 8vmin, 3rem)`.
+    the bottom row. Font size `clamp(1.5rem, 8vmin, 4rem)`.
 
 - Question card and answer buttons share one look: white background, `border: 1px solid #e5e7eb`,
   `border-radius: 0.5rem`, `box-shadow: 0 1px 3px rgba(0,0,0,0.1)`, text color #111827, text
@@ -392,7 +413,8 @@ IMPORTANT: Do not add any notes at the top or bottom of the HTML file.
     no faded look: keep full opacity and colors), so nothing can be tapped twice.
 
 - Mobile: the whole UI fits on one screen with no horizontal or vertical scrolling, on a 360x640
-  phone, in landscape and on desktop.
+  phone, in landscape, on a tablet held upright (768x1024, 800x1280: the game is 720px wide, not a
+  narrow strip, and the menu bar scaled up to match) and on desktop.
 
 - Footer: the element <div id="footer"> (exactly this id). One line (padding 0.5rem 0), white
   background, a 1px #e5e7eb top border, text 10px, color #6b7280, centered. Contains only the
@@ -401,13 +423,13 @@ IMPORTANT: Do not add any notes at the top or bottom of the HTML file.
 
 5. INTERACTION & EVENTS
 -----------------------
-- ANSWER ON TOUCH (CRITICAL): an answer counts the moment the finger or mouse button goes DOWN on it,
-  not on `click`. On phones the browser cancels a click when the finger slides a little during the
-  tap (it takes it for the start of a scroll or pull-to-refresh), so children would have to tap
+- ANSWER ON TOUCH (CRITICAL): an answer counts the moment the finger or mouse button goes DOWN on
+  it, not on `click`. On phones the browser cancels a click when the finger slides a little during
+  the tap (it takes it for the start of a scroll or pull-to-refresh), so children would have to tap
   two or three times. Attach ONE `pointerdown` listener to #answers at start-up, using event
-  delegation with `e.target.closest('.answer')`, so the buttons of later questions work without
-  new listeners. If the pointer is a mouse, only the main button counts (`e.button === 0`). It
-  calls `handleAnswer(parseInt(button.dataset.index))`.
+  delegation with `e.target.closest('.answer')`, so the buttons of later questions work without new
+  listeners. If the pointer is a mouse, only the main button counts (`e.button === 0`). It calls
+  `handleAnswer(parseInt(button.dataset.index))`.
 
 - KEYBOARD: the answers are real <button> elements, so Tab, then Enter or Space, also works. Attach
   ONE `click` listener to #answers that handles ONLY clicks made by the keyboard (`e.detail === 0`)
@@ -423,15 +445,16 @@ IMPORTANT: Do not add any notes at the top or bottom of the HTML file.
 
 6. GAME LOGIC
 -------------
-- `handleAnswer(index)`: ignore the call if the How to Play panel is open (`state.showInfo`), the game
-  is won, there is no question, or feedback is being shown (`state.feedback !== null`). Otherwise
-  set `state.picked = index` and record the answer's time (see ANSWER TIMES).
+- `handleAnswer(index)`: ignore the call if the How to Play panel is open (`state.showInfo`), the
+  game is won, there is no question, or feedback is being shown (`state.feedback !== null`).
+  Otherwise set `state.picked = index` and record the answer's time (see ANSWER TIMES).
 
 - ANSWER VALIDATION: the answer is right if `state.choices[index] === state.question.answer` (the
   answers are compared as strings; the four choices are always different, so exactly one is right).
 
 - RIGHT ANSWER:
-  1. Call `playSound(Math.floor(state.streak / 12) % 2 === 0 ? 'correct' : 'correct2', state.streak % 12)`,
+  1. Call
+     `playSound(Math.floor(state.streak / 12) % 2 === 0 ? 'correct' : 'correct2', state.streak % 12)`,
      BEFORE the streak goes up (STREAK CHIME): the chime climbs one semitone for each right answer
      in a row, in rounds of 12. Right answers 1 to 12 in a row play the three-note chime
      ('correct'), the 1st at its own pitch, the 2nd one semitone higher, up to the 12th (11
@@ -451,8 +474,8 @@ IMPORTANT: Do not add any notes at the top or bottom of the HTML file.
 - WRONG ANSWER:
   1. Call `playSound('wrong')`.
   2. Set `state.streak` to 0. Decrease `state.score` by 5. The score MAY go below 0
-     (a wrong first answer gives -5); it is never clamped, and is shown with its minus sign. Increase `state.mistakes`
-     by 1.
+     (a wrong first answer gives -5); it is never clamped, and is shown with its minus sign.
+     Increase `state.mistakes` by 1.
   3. The fact is NOT learned: move it from its place in `state.deck` to the END of `state.deck`, so
      it comes back at the end of the game.
   4. Call `saveProgress()`.
@@ -477,9 +500,10 @@ Sound effects (short tones made in the browser with the Web Audio API; no audio 
   (each sound: wave, notes as [frequency, start, duration], peak volume)
   `function playSound(name, semitones = 0) { if (isMutedNow()) return; const ctx = getAudioCtx(); if (!ctx) return; try { const [wave, notes, vol] = SOUNDS[name]; const k = Math.pow(2, semitones / 12); const t0 = ctx.currentTime + 0.01; for (const [freq, start, dur] of notes) { const osc = ctx.createOscillator(); const gain = ctx.createGain(); osc.type = wave; osc.frequency.value = freq * k; gain.gain.setValueAtTime(0.0001, t0 + start); gain.gain.exponentialRampToValueAtTime(vol, t0 + start + 0.01); gain.gain.exponentialRampToValueAtTime(0.0001, t0 + start + dur); osc.connect(gain); gain.connect(ctx.destination); osc.start(t0 + start); osc.stop(t0 + start + dur); } } catch (e) {} }`
 
-- Sound plays ONLY at three moments: `playSound('correct' or 'correct2', ...)` (see RIGHT ANSWER), `playSound('wrong')`
-  (see WRONG ANSWER) and `playSound('win')` (see `nextQuestion()`). Dealing a question and loading
-  saved progress are silent, so a finished game restored at start-up plays nothing.
+- Sound plays ONLY at three moments: `playSound('correct' or 'correct2', ...)` (see RIGHT ANSWER),
+  `playSound('wrong')` (see WRONG ANSWER) and `playSound('win')` (see `nextQuestion()`). Dealing a
+  question and loading saved progress are silent, so a finished game restored at start-up plays
+  nothing.
 - While sound is off, `playSound` returns at once and no AudioContext is created.
 
 - Phones allow audio only after a touch, and iOS can suspend it again (for example after a call). At
@@ -539,23 +563,65 @@ Unlock (at start-up):
 ---------
 - TITLE BAND (branding, the very top of the page, above the menu bar): a <header id="title-band">,
   white background, blue text (#2563eb, both parts), a 1px #e5e7eb bottom border separating it
-  from the menu bar, `padding: 0.35rem 0.5rem`, holding ONE line, the page's heading:
+  from the menu bar, `padding: 0.35rem 0.5rem`, holding ONE line, the page's heading, followed by
+  the SHARE ICON button at the right end of the same line (see SHARE THE SITE below):
     <h1><span id="tagline"><strong>Multiply.by:</strong> learn the multiplication table</span></h1>
+  - The band is `display: flex; align-items: center; gap: 6px; position: relative;`. The h1 is
+    `flex: 1; min-width: 0;` so it takes all the width the share icon leaves; the icon never
+    shrinks (`flex: none`).
   - h1: `margin: 0; font-weight: normal; line-height: 1.2; white-space: nowrap; overflow: hidden;
-    text-align: center;` ("Multiply.by:" bold, the rest normal). The span is `display: inline-block`.
+    text-align: center;` ("Multiply.by:" bold, the rest normal). The span is `display:
+    inline-block`.
   - THE HEADING FILLS THE FULL WIDTH: its font size is chosen so the line runs from the band's left
     padding to its right padding, whatever the screen width and the phone's fonts, in portrait and
     landscape alike. `fitTagline()`: set the span's font size to 100px, measure its width with
     `getBoundingClientRect().width`, then set the font size to
     `Math.max(10, Math.min(cap, Math.floor(100 * avail / width * 10) / 10)) + 'px'`, where avail
-    is the h1's own width (`h1.clientWidth`) and cap is 28, or 18 on short screens
-    (`matchMedia('(max-height: 500px)').matches`, a phone in landscape, to save height). Set this
-    same size on the h1 too (`h1.style.fontSize`), so the band is only as tall as the line: about
-    1.2 times the font size plus its padding, never taller. Call it at start-up, on every `resize`, and once more in
-    `document.fonts.ready.then(fitTagline)` (in a try/catch) because a late font changes the width.
+    is the h1's own width (`h1.clientWidth`, which already leaves room for the share icon) and cap
+    is 28, or 18 on short screens (`matchMedia('(max-height: 500px)').matches`, a phone in
+    landscape, to save height). Set this same size on the h1 too (`h1.style.fontSize`), so the band
+    is only as tall as the line: about 1.2 times the font size plus its padding, never taller. Call
+    it at start-up, on every `resize`, and once more in `document.fonts.ready.then(fitTagline)` (in
+    a try/catch) because a late font changes the width.
     It never makes the line wider than the band, so nothing is cut off.
   - Plain text: not a link and not a button; tapping it does nothing (and does not start the
-    timer). The same text in both modes.
+    timer). The same text in all modes.
+
+- SHARE THE SITE (the share icon at the right end of the title band): a <button id="share-site">
+  with `aria-label="Share multiply.by"` and `title="Share multiply.by"`, no text, showing ONLY an
+  inline SVG share icon, 22px x 22px, viewBox "0 0 24 24", fill="none", stroke="currentColor",
+  stroke-width="2.2", stroke-linecap="round", stroke-linejoin="round", drawn as three circles
+  (cx 18 cy 5 r 3; cx 6 cy 12 r 3; cx 18 cy 19 r 3) and the path "M8.6 13.5 L15.4 17.5 M15.4 6.5
+  L8.6 10.5".
+  - Look: no border, no background, no shadow, color #2563eb (the same blue as the heading),
+    `display: flex; align-items: center; justify-content: center; flex: none; padding: 4px;
+    margin: 0; cursor: pointer;`, at least 30px x 30px so it is easy to tap. Hover: #1e40af.
+  - Shown on EVERY device (phones, tablets and computers) and in every mode, during play and
+    behind the "You Won!" overlay. It is outside #game-area, so tapping it never starts the timer.
+  - On tap (`click`), in the click handler itself, stop at the first step that works:
+    1. If `navigator.share` exists:
+       `await navigator.share({ title: 'multiply.by', text: siteShareText() })` inside try/catch, as
+       the FIRST `await` of the handler (text only: no `url`, no files).
+       AbortError (the player closed the share menu): stop and do nothing. Any other error: step 2.
+    2. COPY THE LINK: try `navigator.clipboard.writeText(shareText())`.
+    Then, after step 2 only, show a small message for 2 seconds: "Link copied" when copying worked,
+    "Could not share" when it failed. The message is a <span id="share-msg" role="status"> inside
+    the band, `position: absolute; right: 0.5rem; top: 100%; margin-top: 4px; z-index: 30;` white
+    background, 1px #e5e7eb border, rounded (0.25rem), `padding: 2px 8px`, text 12px bold #1e40af,
+    `white-space: nowrap; pointer-events: none;`, hidden (`display: none`) the rest of the time.
+  - THE SHARED MESSAGE, returned by `siteShareText()`: three lines joined with '\n', the last one
+    being `shareText()` (the link for the current set: https://multiply.by/, ?12 or ?20), so the
+    person receiving it lands on the same tables. For 2 to 9 (MODE 9):
+        Multiply.by: learn the multiplication table, fast.
+        Free, open source, no sign-up, no ads. Works on phone or computer.
+        https://multiply.by/
+    For up to 12 the first line is "Multiply.by: learn the multiplication table up to 12, fast." and
+    the link is https://multiply.by/?12; for up to 20 it is "Multiply.by: learn the multiplication
+    table up to 20, fast." with https://multiply.by/?20. The second line is the same in every set.
+  - Step 2 (copying, on a computer) copies ONLY the link, `shareText()`, never the three lines.
+  - "Share my results" on the "You Won!" screen is unchanged: it still sends only the link.
+  - Sharing changes nothing in `state`, saves nothing, plays no sound and never throws (wrap each
+    step in try/catch).
 - Header Elements
 ABOUT: A link with the exact text "ABOUT": <a href="https://multiply.by/about">.
 
@@ -649,16 +715,16 @@ SOURCE: A link with the exact text "SOURCE": <a href="https://multiply.by/build-
   menu: a flex row,
   'display: flex; align-items: stretch; gap: 2px; padding: 0 6px; width: 100%; height: 2.5rem;
   box-sizing: border-box;', white background, a 1px #e5e7eb bottom border. From left to right:
-  MUTE (the speaker icon), then the menu items FAQ, ABOUT, RULES (INFO) and RESET, left-aligned, each only
-  as wide as its text plus its padding (NOT equal widths, NOT stretched to fill the bar). SOURCE is
-  a button in the far right corner ('margin-left: auto'). There is no logo. The score is NOT in this
-  bar; it is in the INDICATORS next to the question.
+  MUTE (the speaker icon), then the menu items FAQ, ABOUT, RULES (INFO) and RESET, left-aligned,
+  each only as wide as its text plus its padding (NOT equal widths, NOT stretched to fill the bar).
+  SOURCE is a button in the far right corner ('margin-left: auto'). There is no logo. The score is
+  NOT in this bar; it is in the INDICATORS next to the question.
 
-- Menu items (MUTE, FAQ, ABOUT, RULES, RESET): no button look, no border, background, box or shadow; plain
-  text (and the plain icon) on the white bar. They share one CSS class (for example `menu-item`):
-  'display: flex; align-items: center; height: 100%; padding: 0 5px; margin: 0; border: none;
-  background: none; text-decoration: none; cursor: pointer; font: inherit;'. The full bar height
-  is the tap area. On hover (desktop) the text turns dark blue #1e40af.
+- Menu items (MUTE, FAQ, ABOUT, RULES, RESET): no button look, no border, background, box or shadow;
+  plain text (and the plain icon) on the white bar. They share one CSS class (for example
+  `menu-item`): 'display: flex; align-items: center; height: 100%; padding: 0 5px; margin: 0;
+  border: none; background: none; text-decoration: none; cursor: pointer; font: inherit;'. The full
+  bar height is the tap area. On hover (desktop) the text turns dark blue #1e40af.
 
 - MUTE: the plain speaker icon, color #4b5563.
 
@@ -671,6 +737,14 @@ SOURCE: A link with the exact text "SOURCE": <a href="https://multiply.by/build-
   background #f9fafb, rounded corners (0.25rem), text 12px bold #374151, no underline,
   'white-space: nowrap', `cursor: pointer`.
 
+- WIDER SCREENS (tablets and computers, where the game is up to 720px wide): inside
+  `@media (min-width: 768px) and (min-height: 600px)` the menu bar scales up so it matches the
+  bigger game: bar height 3.25rem; menu items `padding: 0 10px`; FAQ, ABOUT, RULES and RESET text
+  17px; the speaker icon 26px x 26px (set its width and height in CSS); SOURCE height 2.25rem,
+  `padding: 0 12px`, text 16px; the share icon in the title band 28px x 28px. Everything else
+  stays the same. Phones (narrower than 768px) and phones on their side (shorter than 600px) keep
+  the sizes above.
+
 FAQ: A link with the exact text "FAQ": <a href="https://multiply.by/faq">.
 
 "YOU WON!" OVERLAY:
@@ -680,8 +754,9 @@ FAQ: A link with the exact text "FAQ": <a href="https://multiply.by/faq">.
   then either "New best score!" (1rem, bold, #16a34a) when `state.newBest` is true, or "Best score:
   B" (1rem, #6b7280, B is the saved best score) otherwise, then "Mistakes: M" (1rem, #6b7280), then
   the buttons.
-- BUTTONS: one <div class="win-buttons"> holds the "Play Again" button (padding 1rem 2rem, background
-  #2563eb, white bold 1.25rem text, rounded, shadow) and, below it, a <button> "Share my results"
+- BUTTONS: one <div class="win-buttons"> holds the "Play Again" button (padding 1rem 2rem,
+  background #2563eb, white bold 1.25rem text, rounded, shadow) and, below it, a <button> "Share my
+  results"
   (padding 0.75rem 1.5rem, white background, a 2px solid #2563eb border, #2563eb bold 1rem text,
   rounded; see SHARE MY RESULTS), shown ONLY on phones and tablets that can share pictures (see
   SHARE MY RESULTS; on a desktop computer the button is hidden). Between them, a <button> "Practice
@@ -689,8 +764,8 @@ FAQ: A link with the exact text "FAQ": <a href="https://multiply.by/faq">.
   when there is nothing to practise). The container is `display: flex; flex-direction: column;
   align-items: center; gap: 0.75rem;` and the buttons themselves have NO margins: the gap alone
   spaces them. pwa.js may insert an "Install for offline play" button into this same container,
-  right after Play Again; the gap then separates all the buttons evenly. Below that, with a 1.5rem gap, one
-  NEXT-LEVEL line (1rem, #374151), depending on MODE:
+  right after Play Again; the gap then separates all the buttons evenly. Below that, with a 1.5rem
+  gap, one NEXT-LEVEL line (1rem, #374151), depending on MODE:
     - 9: <div>Ready for more? Try <a href="?12">up to 12</a> or <a href="?20">up to 20</a></div>
     - 12: <div>Ready for more? Try <a href="?20">up to 20</a></div>
     - 20: no line.
@@ -720,9 +795,9 @@ SHARE MY RESULTS (the "Share my results" button on the "You Won!" screen):
     - Below the band: the set, "2 to 9", "Up to 12" or "Up to 20", in #374151 bold 56px.
     - Three results in one row (centers at x = 200, 540 and 880): "TIME" T, "SCORE" X, "MISTAKES" M.
       Each label is `drawText(ctx, label, x, 470, 40, '#6b7280', true)` and each number
-      `drawText(ctx, value, x, 590, 110, color, true, 320)` with color #111827 (Mistakes #dc2626 when M is
-      more than 0). All three labels are the same small size; only the numbers are large. T is `formatTime(state.playMs)`, X the final score, M the
-      number of mistakes.
+      `drawText(ctx, value, x, 590, 110, color, true, 320)` with color #111827 (Mistakes #dc2626
+      when M is more than 0). All three labels are the same small size; only the numbers are large.
+      T is `formatTime(state.playMs)`, X the final score, M the number of mistakes.
     - Under the row, "New best score!" in #16a34a bold 52px when `state.newBest` is true, otherwise
       "Best score: B" in #6b7280 44px.
     - The date the game was won, written with
@@ -733,7 +808,8 @@ SHARE MY RESULTS (the "Share my results" button on the "You Won!" screen):
 - Every share also passes the title 'multiply.by results' (some apps use it, for example as an email
   subject; others ignore it).
 - The text sent with the picture is ONLY the link, returned by `shareText()`: https://multiply.by/
-  (2 to 9), https://multiply.by/?12 (up to 12) or https://multiply.by/?20 (up to 20). No sentence, no results: the picture shows them.
+  (2 to 9), https://multiply.by/?12 (up to 12) or https://multiply.by/?20 (up to 20). No sentence,
+  no results: the picture shows them.
 - WHERE IT SHOWS: only on touch devices that can share files. At start-up set
   `const CAN_SHARE = matchMedia('(pointer: coarse)').matches && !!navigator.canShare;`
   and hide the button (`display: none`) when CAN_SHARE is false, for example on a desktop computer.
@@ -782,11 +858,11 @@ the dataset MUST be easy to find and read.
      has the comment /* RAW_DATA (the list of facts) is defined near the top of this page. */
 
 The page body holds the app's fixed HTML (header, game area with the top row (empty question card
-and the indicators) and the answer grid, footer, the How to Play panel and the "You Won!" overlay, both hidden at
-first). The main <script> at the very end of the <body> is organized in this order, each part
-introduced by a short comment:
-1. Configuration and constants (CONFIG, MODE, GAME_NAME, factors, FACTS, STORAGE_KEY, applyMode, MUTE_KEY,
-   isMutedNow; RAW_DATA comes from the word-list script at the top of the page).
+and the indicators) and the answer grid, footer, the How to Play panel and the "You Won!" overlay,
+both hidden at first). The main <script> at the very end of the <body> is organized in this order,
+each part introduced by a short comment:
+1. Configuration and constants (CONFIG, MODE, GAME_NAME, factors, FACTS, STORAGE_KEY, applyMode,
+   MUTE_KEY, isMutedNow; RAW_DATA comes from the word-list script at the top of the page).
 2. Helper functions (shuffle, speakerSvg, formatTime, wrongAnswers, getAudioCtx, playSound).
 3. Game state (the `state` object), the timer, and saving/loading (loadProgress, saveProgress).
 4. Drawing (renderQuestion, update).
@@ -813,7 +889,7 @@ generated dataset, the shuffled deck, `wrongAnswers` and `CONFIG`.
 - Hypothetical deck: [6 x 8], [3 x 4], [7 x 9], ... (33 more)
 
 [QUESTION 1: Right Answer]
-- Screen: question "6 x 8"; `wrongAnswers` gives three of 40, 56, 42 and 54, say 42, 56 and 54.
+- Screen: question "6 x 8"; `wrongAnswers` picks k = 1 and gives 42, 54 and 56.
   After shuffling, the grid shows 42 | 56 (top row) and 48 | 54 (bottom row).
 - Action: Player taps "48".
 - Execution:
@@ -865,26 +941,33 @@ generated dataset, the shuffled deck, `wrongAnswers` and `CONFIG`.
   internet connection, the game loads and plays normally.
 - No outside requests: the page loads nothing from any server (only its own file).
 
-- Indicators: Score, Streak, Learned, Mistakes and Time are in a column to the right of the question, each a
-  small label above a large number, all inside the screen with nothing cut off, on a 360x640 phone,
-  in landscape (as a 3 + 2 block) and on desktop. There is no stats line under the header.
+- Indicators: Score, Streak, Learned, Mistakes and Time are in a column to the right of the
+  question, each a small label above a large number, all inside the screen with nothing cut off, on
+  a 360x640 phone, in landscape (as a 3 + 2 block) and on desktop. There is no stats line under the
+  header.
 
 - One question per screen: the question card at the top and exactly four answer buttons in a 2 x 2
   grid below it, all visible without scrolling on a 360x640 phone, in landscape and on desktop.
 
 - Answers: exactly one of the four is right; the four are all different; the right one is in a
-  random place; the three wrong ones are near misses from `wrongAnswers` (for 6 x 8 they are taken
-  from 40, 56, 42 and 54). For every fact with a factor of 10 or more (all of the 12 times table,
-  11 x 11, and every fact in up to 20 with a factor above 9), all four answers end in the same
-  digit (for 8 x 17: 136 with three of 126, 146, 116, 156).
+  random place; the three wrong ones are near misses from `wrongAnswers` (for 6 x 8 with k = 1: 42,
+  54, 56), and the right answer is equally often the smallest, second, third or largest of the four.
+  For every fact with a factor of 10 or more (all of the 12 times table, 11 x 11, and every fact in
+  up to 20 with a factor above 9), all four answers end in the same digit (for 8 x 17: 136 with,
+  say, 126, 146 and 156).
 
-- Title band: the band at the very top (blue text on white) is ONE line, "Multiply.by: learn the multiplication
-  table", filling the full width of the band without being cut off, on a 360px phone, a large
-  phone, in landscape and on desktop; the menu bar is directly below it.
+- Title band: the band at the very top (blue text on white) is ONE line, "Multiply.by: learn the
+  multiplication table", followed at the right end by the blue share icon, the text filling the rest
+  of the band's width without being cut off, on a 360px phone, a large phone, in landscape and on
+  desktop; the menu bar is directly below it.
+
+- Share icon: tapping it on a phone opens the phone's share menu with the three-line message from
+  `siteShareText()`, ending with the link for the current set (https://multiply.by/, ?12 or ?20); on
+  a computer it copies that link and shows "Link copied" for 2 seconds. It does not start the timer.
 
 - No scrolling: the page never scrolls or bounces, in the browser or installed as an app, whatever
-  the phone's font size; a finger dragged across the game does nothing. The footer (the copyright line) is always
-  fully visible at the bottom of the screen, in the browser and installed as an app.
+  the phone's font size; a finger dragged across the game does nothing. The footer (the copyright
+  line) is always fully visible at the bottom of the screen, in the browser and installed as an app.
 
 - Tapping: on a phone and with a mouse, one tap or click on an answer answers the question at once,
   even when the finger slides a little during the tap. A long press answers only once.
@@ -892,15 +975,14 @@ generated dataset, the shuffled deck, `wrongAnswers` and `CONFIG`.
 
 - Right answer: the button turns green, the score goes up, and the next question appears after
   200ms. Wrong answer: the tapped button turns red and the right answer green for 2000ms, the score
-  drops by 5 (also below 0: a wrong first answer shows Score -5), Mistakes goes up by 1, Learned % does not change, and the question
-  is asked again near the end of the game.
+  drops by 5 (also below 0: a wrong first answer shows Score -5), Mistakes goes up by 1, Learned %
+  does not change, and the question is asked again near the end of the game.
 
 - Winning: when every fact has been answered right, "You Won!" shows the final score, "Your time:
-  M:SS", "New best score!" or "Best score: B", the mistakes and a "Share my results" button, and plays
-  the win sound. The timer starts at the first touch of the game
-  (not at page load), does not run while the page is hidden, and continues across reloads. After
-  Play Again the game MUST start fresh (score 0, Learned 0%, a new question, not the "You Won!"
-  screen).
+  M:SS", "New best score!" or "Best score: B", the mistakes and a "Share my results" button, and
+  plays the win sound. The timer starts at the first touch of the game (not at page load), does not
+  run while the page is hidden, and continues across reloads. After Play Again the game MUST start
+  fresh (score 0, Learned 0%, a new question, not the "You Won!" screen).
 
 - Clock: the Time indicator shows the playing time, ticking during play, starting at 0:00 and from
   the first touch; it fits on one line on a 360px-wide phone. Each mode keeps its own best score,
@@ -919,8 +1001,8 @@ generated dataset, the shuffled deck, `wrongAnswers` and `CONFIG`.
   0, Learned 0%, Mistakes 0, Time 0:00), keeping the best score.
 
 - Header buttons and links work on phones: the speaker button, FAQ, ABOUT, RULES, SOURCE, the How to
-  Play panel, RESET, "Play Again", the Tables choice and the next-level links on the "You Won!" screen respond
-  to a normal tap.
+  Play panel, RESET, "Play Again", the Tables choice and the next-level links on the "You Won!"
+  screen respond to a normal tap.
 
 - Blocked storage: with site data blocked (or `window.localStorage` throwing on access), the game
   loads and plays normally with no console errors; progress is just not kept after reload.
@@ -944,11 +1026,11 @@ generated dataset, the shuffled deck, `wrongAnswers` and `CONFIG`.
   page load the address alone decides the mode. The next-level line on the "You Won!" screen
   offers up to 12 and up to 20 after 2 to 9, up to 20 after up to 12, and nothing after up to 20.
 - Sound effects: sound is ON by default: on a first visit the speaker shows the sound waves, and
-  from the first tap on (phones allow sound only after a touch) a right answer, a wrong answer and winning each play their own short sound, on phones as
-  well as on desktop. The right-answer chime rises one semitone with each right answer in a row;
-  every 12 answers in a row it switches between the three-note and the four-note chime and starts
-  climbing again from that chime's own pitch; after a wrong answer it starts at the bottom of the
-  three-note chime.
+  from the first tap on (phones allow sound only after a touch) a right answer, a wrong answer and
+  winning each play their own short sound, on phones as well as on desktop. The right-answer chime
+  rises one semitone with each right answer in a row; every 12 answers in a row it switches between
+  the three-note and the four-note chime and starts climbing again from that chime's own pitch;
+  after a wrong answer it starts at the bottom of the three-note chime.
   Reloading a finished game plays nothing. No fact is ever spoken.
 - No console errors at any point.
 
