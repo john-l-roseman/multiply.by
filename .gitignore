@@ -13,11 +13,9 @@
 !/reformat-spec.py
 !/MATCH-TO-FOUR.txt
 !/mk-custom
-!/Custom/
-/Custom/*
-!/Custom/*/
-/Custom/*/*
-!/Custom/*/custom.txt
+!/chinese/
+/chinese/*
+!/chinese/custom.txt
 !/match/
 /match/*
 !/match/build-instructions.txt

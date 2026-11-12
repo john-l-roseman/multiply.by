@@ -504,10 +504,14 @@ IMPORTANT: Do not add any notes at the top or bottom of the HTML file.
     `.indicator` that holds #ind-score, which gets `position: relative`):
     `position: absolute; right: 0; top: 0; color: #16a34a; font-weight: bold; font-size: 1rem;
     white-space: nowrap; pointer-events: none;` with
-    `@keyframes float-points { from { opacity: 1; transform: translateY(0); } to { opacity: 0;
-    transform: translateY(-24px); } }`, `.float-points { animation: float-points 600ms ease-out
-    forwards; }`. Remove the span on `animationend`, and also after 700ms with `setTimeout` (in
-    case the event never comes). Only right answers float points.
+    `@keyframes float-points { 0% { opacity: 1; transform: translateY(0); } 40% { opacity: 1;
+    transform: translateY(-14px); } 100% { opacity: 0; transform: translateY(-32px); } }`,
+    `.float-points { animation: float-points 1500ms ease-out forwards; }` (it stays fully visible
+    for the first 600ms, then drifts on and fades). Remove the span on `animationend`, and also
+    after 1600ms with `setTimeout` (in case the event never comes). It runs on by itself and NEVER
+    delays the next question: the game goes on as usual 200ms after the tap. When the player answers
+    faster than that, each right answer adds its own span, so several can float at once (the older
+    ones higher and fainter). Only right answers float points.
   - 5. STREAK CELEBRATION (`celebrateStreak()`, at 12, 24, 36, ... right answers in a row, the same
     moment the chime switches): (a) a burst of 12 small dots from the middle of the question card,
     and (b) the Streak number glows.
@@ -553,8 +557,11 @@ Sound effects (short tones made in the browser with the Web Audio API; no audio 
 - Define exactly these, with no other sound code:
   `let audioCtx = null;`
   `function getAudioCtx() { try { const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return null; if (!audioCtx) audioCtx = new AC(); if (audioCtx.state !== 'running') { const p = audioCtx.resume(); if (p && p.catch) p.catch(() => {}); } return audioCtx; } catch (e) { return null; } }`
-  `const SOUNDS = { correct: ['triangle', [[1047, 0, 0.05], [1319, 0.05, 0.05], [1568, 0.10, 0.18]], 0.35], correct2: ['triangle', [[784, 0, 0.05], [988, 0.05, 0.05], [1175, 0.10, 0.05], [1568, 0.15, 0.18]], 0.35], wrong: ['triangle', [[196, 0, 0.25]], 0.2], win: ['sine', [[523, 0, 0.12], [659, 0.12, 0.12], [784, 0.24, 0.12], [1047, 0.36, 0.35]], 0.2] };`
+  `const SOUNDS = { correct: ['triangle', [[1047, 0, 0.05], [1319, 0.05, 0.05], [1568, 0.10, 0.18]], 0.35], correct2: ['triangle', [[784, 0, 0.05], [988, 0.05, 0.05], [1175, 0.10, 0.05], [1568, 0.15, 0.18]], 0.35], wrong: ['triangle', [[659, 0, 0.14], [523, 0.14, 0.22]], 0.3], win: ['sine', [[523, 0, 0.12], [659, 0.12, 0.12], [784, 0.24, 0.12], [1047, 0.36, 0.35]], 0.2] };`
   (each sound: wave, notes as [frequency, start, duration], peak volume)
+  The wrong-answer sound is a gentle falling "uh-oh", E5 then C5: the opposite of the rising
+  right-answer chime, kind rather than harsh, and high enough to be heard on a phone's small
+  speaker (a low note such as 196 Hz is nearly silent there).
   `function playSound(name, semitones = 0) { if (isMutedNow()) return; const ctx = getAudioCtx(); if (!ctx) return; try { const [wave, notes, vol] = SOUNDS[name]; const k = Math.pow(2, semitones / 12); const t0 = ctx.currentTime + 0.01; for (const [freq, start, dur] of notes) { const osc = ctx.createOscillator(); const gain = ctx.createGain(); osc.type = wave; osc.frequency.value = freq * k; gain.gain.setValueAtTime(0.0001, t0 + start); gain.gain.exponentialRampToValueAtTime(vol, t0 + start + 0.01); gain.gain.exponentialRampToValueAtTime(0.0001, t0 + start + dur); osc.connect(gain); gain.connect(ctx.destination); osc.start(t0 + start); osc.stop(t0 + start + dur); } } catch (e) {} }`
 
 - Sound plays ONLY at three moments: `playSound('correct' or 'correct2', ...)` (see RIGHT ANSWER),
@@ -1068,10 +1075,10 @@ generated dataset, the shuffled deck, `wrongAnswers` and `CONFIG`.
   desktop; the menu bar is directly below it.
 
 - Animations after a right answer: the tapped answer pops (grows a little and settles) while it is
-  green, a green "+points" floats up from the Score, and the next question slides in from the right
-  with its answers fading in; at every 12 right answers in a row a burst of colored dots comes out
-  of the question card and the Streak number glows. None of it delays the next question or blocks
-  a tap, and none of it plays when the phone is set to reduce motion.
+  green, a green "+points" floats up from the Score for about 1.5 seconds, and the next question
+  slides in from the right with its answers fading in; at every 12 right answers in a row a burst of
+  colored dots comes out of the question card and the Streak number glows. None of it delays the
+  next question or blocks a tap, and none of it plays when the phone is set to reduce motion.
 
 - Share icon: tapping it on a phone opens the phone's share menu with the three-line message from
   `siteShareText()`, ending with the link for the current set (https://multiply.by/, ?12 or ?20). On

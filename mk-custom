@@ -1,20 +1,25 @@
 #!/bin/bash
-# Build a custom game in the current directory (Custom/<Name>).
+# Build a custom game in the current directory, a folder of the site (for example
+# /var/www/multiply.by/chinese, served at https://multiply.by/chinese/).
 #
 # build-instructions.txt is the main (four-answer) game's spec ($ROOT/build-instructions.txt) with custom.txt from
 # this directory inserted after the Note for Human Readers (at the first blank
 # line), under a line saying it overrides the rest. GAME is set to the folder name so
-# each game keeps its own saved progress, and SOURCE links to this game's own spec.
+# each game keeps its own saved progress, and SOURCE links to this game's own spec
+# (its address is worked out from the folder's place under the site folder).
 # index.html is then built from it with Gemini.
 # If index.html is newer than both custom.txt and the main spec, nothing is rebuilt.
 #
-# To build them all, from the top folder:
-#   for d in Custom/*/; do (cd "$d" && ../../mk-custom) || echo "FAILED: $d"; done
+# Usage, from the game's folder:  ../mk-custom
 
 ROOT=/var/www/multiply.by
 SPEC=$ROOT/build-instructions.txt
 INPUT=custom.txt
 NAME=`basename "$PWD"`
+case "$PWD/" in
+	"$ROOT"/?*/) REL=${PWD#$ROOT/} ;;
+	*) echo "`pwd` is not a folder under $ROOT"; exit 1 ;;
+esac
 
 if [ ! -f "$INPUT" ]; then echo "No $INPUT in `pwd`"; exit 1; fi
 if ! echo "$NAME" | grep -qE '^[A-Za-z0-9_-]+$'; then
@@ -40,7 +45,7 @@ fi
 # Served files are written under a temporary name and renamed into place, so
 # a visitor never gets a half-written page.
 sed -e "s/^- GAME: .*/- GAME: $NAME/" \
-	-e "s#https://multiply.by/build-instructions.txt#https://multiply.by/Custom/$NAME/build-instructions.txt#" "$SPEC" |
+	-e "s#https://multiply.by/build-instructions.txt#https://multiply.by/$REL/build-instructions.txt#" "$SPEC" |
 awk -v input="$INPUT" '
 	{ print }
 	!done && /^$/ {
