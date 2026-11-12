@@ -367,6 +367,8 @@ IMPORTANT: Do not add any notes at the top or bottom of the HTML file.
     in this order from top to bottom: Score, Streak, Learned, Mistakes, Time. Each block has a small
     label on top and a large number under it:
       <div class="indicator"><div class="indicator-label">Score</div><div class="indicator-value" id="ind-score">26</div></div>
+    The five values have exactly these ids: #ind-score, #ind-streak, #ind-learned, #ind-mistakes and
+    #ind-time.
     - Labels, exactly: "Score", "Streak", "Learned", "Mistakes", "Time". Look: 0.7rem, uppercase,
       `letter-spacing: 0.05em`, color #6b7280, `line-height: 1.1`.
     - Values: X (the score), S (`state.streak`: the right answers in a row, 0 after a wrong answer;
@@ -468,8 +470,63 @@ IMPORTANT: Do not add any notes at the top or bottom of the HTML file.
      `state.deck`.
   5. Call `saveProgress()`.
   6. Set `state.feedback = 'correct'` and call `update()` (the button turns green at once).
+     Then play the right-answer ANIMATIONS (below): `popAnswer(index)`, `floatPoints(points)` with
+     the points just added in step 2, and, when the new `state.streak` is a multiple of 12 (12, 24,
+     36, ...), `celebrateStreak()`.
   7. After 200ms (a speed game: just long enough to see the green; a `setTimeout` whose id is kept
      for switchMode), call `nextQuestion()`.
+
+- ANIMATIONS (small and quick; they NEVER delay the game or block a tap):
+  - Use only `transform` and `opacity` in the keyframes (smooth on cheap phones). Every element the
+    animations add has `pointer-events: none`, so taps go straight through to the answers.
+  - REDUCED MOTION: at start-up set
+    `const REDUCED_MOTION = matchMedia('(prefers-reduced-motion: reduce)').matches;`. When it is
+    true, `popAnswer`, `floatPoints` and `celebrateStreak` do nothing and `renderQuestion` adds no
+    animation class; also add `@media (prefers-reduced-motion: reduce) { .pop, .slide-in,
+    .answer.fade-in, .float-points, .burst-dot, .streak-glow { animation: none !important; } }`.
+  - 1. POP (`popAnswer(index)`): add the class `pop` to the tapped answer button.
+    `@keyframes pop { 0% { transform: scale(1); } 50% { transform: scale(1.08); }
+    100% { transform: scale(1); } }`, `.pop { animation: pop 180ms ease-out; }`. The button is
+    replaced by `renderQuestion()` 200ms later, so the class never needs removing.
+  - 2. SLIDE IN THE NEXT QUESTION: every time `renderQuestion()` shows a new question EXCEPT the
+    first one after the page loads, it restarts the class `slide-in` on #question (remove the class,
+    read `question.offsetWidth` to restart the animation, add the class again) and gives each new
+    answer button the class `fade-in`.
+    `@keyframes slide-in { from { opacity: 0; transform: translateX(24px); } to { opacity: 1;
+    transform: none; } }`, `.slide-in { animation: slide-in 150ms ease-out; }`.
+    `@keyframes fade-in { from { opacity: 0; transform: scale(0.96); } to { opacity: 1;
+    transform: none; } }`, `.answer.fade-in { animation: fade-in 150ms ease-out both; }`, with
+    `animation-delay` 0ms, 30ms, 60ms and 90ms for the answers at places 0, 1, 2 and 3
+    (`.answer.fade-in:nth-child(2) { animation-delay: 30ms; }` and so on). The answers can be
+    tapped while they fade in: nothing waits for the animation.
+  - 4. FLOATING POINTS (`floatPoints(points)`): a <span class="float-points"> with the text "+"
+    and the points (for example "+13"), added inside the Score indicator block (the
+    `.indicator` that holds #ind-score, which gets `position: relative`):
+    `position: absolute; right: 0; top: 0; color: #16a34a; font-weight: bold; font-size: 1rem;
+    white-space: nowrap; pointer-events: none;` with
+    `@keyframes float-points { from { opacity: 1; transform: translateY(0); } to { opacity: 0;
+    transform: translateY(-24px); } }`, `.float-points { animation: float-points 600ms ease-out
+    forwards; }`. Remove the span on `animationend`, and also after 700ms with `setTimeout` (in
+    case the event never comes). Only right answers float points.
+  - 5. STREAK CELEBRATION (`celebrateStreak()`, at 12, 24, 36, ... right answers in a row, the same
+    moment the chime switches): (a) a burst of 12 small dots from the middle of the question card,
+    and (b) the Streak number glows.
+    (a) Read the question card's `getBoundingClientRect()`; for i = 0 to 11 add to `document.body` a
+    <span class="burst-dot"> with `position: fixed; left: CXpx; top: CYpx;` (CX, CY the card's
+    center), `width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%;
+    pointer-events: none; z-index: 50;`, a background color taken in turn from #2563eb, #16a34a,
+    #f59e0b and #ec4899, and the custom properties `--dx` and `--dy` set to
+    `Math.round(Math.cos(i * Math.PI / 6) * 90) + 'px'` and the same with `Math.sin`.
+    `@keyframes burst { from { opacity: 1; transform: translate(0, 0) scale(1); } to { opacity: 0;
+    transform: translate(var(--dx), var(--dy)) scale(0.4); } }`,
+    `.burst-dot { animation: burst 600ms ease-out forwards; }`. Remove every dot after 700ms.
+    (b) Restart the class `streak-glow` on #ind-streak (the Streak value):
+    `@keyframes streak-glow { 0% { transform: scale(1); } 40% { transform: scale(1.35); }
+    100% { transform: scale(1); } }`, `.streak-glow { animation: streak-glow 600ms ease-out;
+    color: #16a34a; transform-origin: right center; }`; remove the class after 700ms.
+  - These animations add nothing to `state`, save nothing and never throw (wrap each in
+    try/catch). Play Again, RESET, switchMode and a reload simply leave any running animation to
+    finish or disappear.
 
 - WRONG ANSWER:
   1. Call `playSound('wrong')`.
@@ -1009,6 +1066,12 @@ generated dataset, the shuffled deck, `wrongAnswers` and `CONFIG`.
   multiplication table", followed at the right end by the blue share icon, the text filling the rest
   of the band's width without being cut off, on a 360px phone, a large phone, in landscape and on
   desktop; the menu bar is directly below it.
+
+- Animations after a right answer: the tapped answer pops (grows a little and settles) while it is
+  green, a green "+points" floats up from the Score, and the next question slides in from the right
+  with its answers fading in; at every 12 right answers in a row a burst of colored dots comes out
+  of the question card and the Streak number glows. None of it delays the next question or blocks
+  a tap, and none of it plays when the phone is set to reduce motion.
 
 - Share icon: tapping it on a phone opens the phone's share menu with the three-line message from
   `siteShareText()`, ending with the link for the current set (https://multiply.by/, ?12 or ?20). On
