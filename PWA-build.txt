@@ -17,8 +17,9 @@ BUILD STEPS
 2. Every file between a BEGIN FILE and END FILE marker line below is copied out exactly, without the marker lines (extract-files.py does this). pwa-head.html goes into build/; all other files go into the site folder.
 3. index.html is build/index.html with the contents of build/pwa-head.html inserted on the line just before </head>. The plain page must contain exactly one </head>.
 4. icon-192.png and icon-512.png are converted from icon.svg with ImageMagick at exactly 192x192 and 512x512 pixels.
+5. og-image.png (the link preview picture, 1200x630) is converted from og-image.svg with ImageMagick.
 
-The result in the site folder: index.html, manifest.webmanifest, sw.js, pwa.js, icon.svg, icon-192.png, icon-512.png.
+The result in the site folder: index.html, manifest.webmanifest, sw.js, pwa.js, icon.svg, icon-192.png, icon-512.png, og-image.svg, og-image.png.
 
 HOW IT WORKS
 ------------
@@ -30,6 +31,7 @@ HOW IT WORKS
 - pwa.js also adds one point to the game's How to Play popup (the list in the Info modal), just before the last point ("Tap SOURCE to see..."), saying in one short sentence how to install the app for offline use. It finds that last point by its text (whether the points are list items or paragraphs) and adds the new point as the same kind of element with the same classes, so build-instructions.txt needs no change. When the game is already running as an installed app, the point says so instead.
 - sw.js makes the installed app work offline. It is network-first: every request goes to the network as usual (so updates to the game show up at once) and a copy of each successful response is kept in the cache; only when the network fails is the cached copy served (and, for a page, the cached game at /).
 - The game page has already loaded when sw.js starts, so the service worker never sees that request. pwa.js therefore sends sw.js the list of the page's own files (the page, pwa.js, the manifest, the icons) once the worker is ready, and sw.js fetches and caches them, together with the About page (/about/). From then on the whole game and the About page work offline.
+- LINK PREVIEWS: pwa-head.html also carries Open Graph tags (og:title, og:description, og:image and the rest) and a twitter:card tag. WhatsApp, Facebook, LinkedIn, X, Slack, iMessage and others read them to show a card with the title, a short description and a picture when someone shares a multiply.by link. The picture, og-image.png, shows the game: the title band, a "7 x 8" question, four answers with 56 in green, and "Free · open source · no sign-up · no ads". Its SVG names the DejaVu Sans font (installed on the server), and its title is two separate texts (bold "Multiply.by:" ending where "learn the multiplication table" starts) because ImageMagick's own SVG renderer ignores <tspan>. There is no og:url, so a shared ?12 or ?20 link keeps its own address. Apps keep their own copy of a preview for days, so a changed picture shows up slowly; to change it, also change the file name (for example og-image-2.png) in the og:image tag and in the Makefile.
 - The icon is "2x2" drawn with strokes only (no text or fonts), so it renders the same with any SVG converter.
 
 FILES
@@ -41,6 +43,16 @@ FILES
 <link rel="icon" type="image/svg+xml" href="/icon.svg">
 <link rel="apple-touch-icon" href="/icon-192.png">
 <script src="/pwa.js"></script>
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="multiply.by">
+<meta property="og:title" content="Multiply.by: learn the multiplication table">
+<meta property="og:description" content="Speed through the multiplication table. Free and open source. No ads, no sign-up.">
+<meta property="og:image" content="https://multiply.by/og-image.png">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="The multiply.by game: 7 x 8 with four answers, the right one, 56, in green">
+<meta name="twitter:card" content="summary_large_image">
 ----- END FILE: pwa-head.html -----
 
 ----- BEGIN FILE: manifest.webmanifest -----
@@ -366,3 +378,29 @@ self.addEventListener('fetch', function (event) {
   </g>
 </svg>
 ----- END FILE: icon.svg -----
+
+----- BEGIN FILE: og-image.svg -----
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#f9fafb"/>
+  <rect width="1200" height="120" fill="#ffffff"/>
+  <rect y="119" width="1200" height="2" fill="#e5e7eb"/>
+  <text x="406" y="80" text-anchor="end" font-family="DejaVu Sans" font-weight="bold" font-size="48" fill="#2563eb">Multiply.by:</text>
+  <text x="420" y="80" text-anchor="start" font-family="DejaVu Sans" font-size="48" fill="#2563eb">learn the multiplication table</text>
+  <rect x="200" y="160" width="520" height="150" rx="12" fill="#ffffff" stroke="#e5e7eb" stroke-width="2"/>
+  <text x="460" y="262" text-anchor="middle" font-family="DejaVu Sans" font-weight="bold" font-size="84" fill="#111827">7 x 8</text>
+  <text x="1000" y="200" text-anchor="end" font-family="DejaVu Sans" font-size="22" fill="#6b7280">SCORE</text>
+  <text x="1000" y="250" text-anchor="end" font-family="DejaVu Sans" font-size="44" fill="#111827">26</text>
+  <text x="1000" y="285" text-anchor="end" font-family="DejaVu Sans" font-size="22" fill="#6b7280">STREAK 5</text>
+  <rect x="200" y="330" width="390" height="100" rx="12" fill="#ffffff" stroke="#e5e7eb" stroke-width="2"/>
+  <rect x="610" y="330" width="390" height="100" rx="12" fill="#bbf7d0" stroke="#22c55e" stroke-width="3"/>
+  <rect x="200" y="445" width="390" height="100" rx="12" fill="#ffffff" stroke="#e5e7eb" stroke-width="2"/>
+  <rect x="610" y="445" width="390" height="100" rx="12" fill="#ffffff" stroke="#e5e7eb" stroke-width="2"/>
+  <g font-family="DejaVu Sans" font-weight="bold" font-size="56" text-anchor="middle">
+    <text x="395" y="400" fill="#111827">42</text>
+    <text x="805" y="400" fill="#166534">56</text>
+    <text x="395" y="515" fill="#111827">48</text>
+    <text x="805" y="515" fill="#111827">64</text>
+  </g>
+  <text x="600" y="600" text-anchor="middle" font-family="DejaVu Sans" font-size="30" fill="#374151">Free · open source · no sign-up · no ads</text>
+</svg>
+----- END FILE: og-image.svg -----

@@ -31,7 +31,7 @@ Dataset Fields: id | text (the multiplication, e.g. "7 x 8") | answer (the produ
 1. GLOBAL CONFIGURATION
 -----------------------
 - TARGET_LANGUAGE: Math
-- GAME: Speed
+- GAME: Multiply
 - LANGUAGE_CODE: EN
 - MUTED: false
 
@@ -69,7 +69,7 @@ IMPORTANT: Do not add any notes at the top or bottom of the HTML file.
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">.
 
 - The page title MUST be exactly:
-  <title>Multiply.by – Speed Times Tables</title>
+  <title>Multiply.by – Learn Times Tables</title>
 
 - Directly after the title, include exactly:
   <meta name="description" content="Speed through the multiplication table (times tables 2 to 9, up to 12 or up to 20): one tap per answer, against the clock. Free and open source. No ads, no sign-up.">
@@ -123,8 +123,8 @@ IMPORTANT: Do not add any notes at the top or bottom of the HTML file.
   for up to 20 (every fact whose smaller factor is 9 or less: tables 2 to 20, times 2 to 9).
   Everything in the game (the deck, Learned %, the win check, the "already finished" check at
   start-up, the wrong answers) uses FACTS. RAW_DATA is read only in applyMode.
-  applyMode also sets `document.title`: 'Multiply.by – Speed Times Tables to 12' for 12,
-  'Multiply.by – Speed Times Tables to 20' for 20, otherwise the page title given in section 2.
+  applyMode also sets `document.title`: 'Multiply.by – Learn Times Tables to 12' for 12,
+  'Multiply.by – Learn Times Tables to 20' for 20, otherwise the page title given in section 2.
   The name of each set, wherever it is shown: "2 to 9", "Up to 12", "Up to 20".
 
 - `switchMode(mode)` changes mode in place, WITHOUT loading a page, because a chatbot's sandboxed
@@ -791,7 +791,7 @@ SHARE MY RESULTS (the "Share my results" button on the "You Won!" screen):
 - The card's look (all text centered horizontally on its x; draw with fillRect and drawText only, no
   images):
     - Background #f9fafb. A blue band (#2563eb) across the top, 220px high, with "multiply.by" in
-      white bold 96px, and under it in the band "Speed times tables" in white 44px.
+      white bold 96px, and under it in the band "Learn multiplication table" in white 44px.
     - Below the band: the set, "2 to 9", "Up to 12" or "Up to 20", in #374151 bold 56px.
     - Three results in one row (centers at x = 200, 540 and 880): "TIME" T, "SCORE" X, "MISTAKES" M.
       Each label is `drawText(ctx, label, x, 470, 40, '#6b7280', true)` and each number

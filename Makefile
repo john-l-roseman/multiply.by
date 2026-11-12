@@ -1,9 +1,9 @@
 SPEC  = build-instructions.txt
 PWA   = PWA-build.txt
-FILES = manifest.webmanifest sw.js pwa.js icon.svg
+FILES = manifest.webmanifest sw.js pwa.js icon.svg og-image.svg
 ICONS = icon-192.png icon-512.png
 
-all: index.html $(FILES) $(ICONS)
+all: index.html $(FILES) $(ICONS) og-image.png
 
 # The plain game page, built from build-instructions.txt (no PWA).
 build/index.html: $(SPEC)
@@ -33,5 +33,10 @@ index.html: build/index.html build/pwa-head.html check-scripts.py
 icon-%.png: icon.svg
 	convert -background none -density 300 icon.svg -resize $*x$* -depth 8 -strip $@.tmp.png
 	mv $@.tmp.png $@
+
+# Link preview picture (Open Graph), rendered from og-image.svg.
+og-image.png: og-image.svg
+	convert -background none -density 96 og-image.svg -depth 8 -strip og-image.tmp.png
+	mv og-image.tmp.png og-image.png
 
 .PHONY: all
