@@ -1,17 +1,38 @@
 -------------
 CUSTOMIZATION
 -------------
-Create a dataset of 25 encouraging short phrases for wrong answers, along with their Chinese translations. Example: “Keep trying!”.
+Create a dataset of 10 encouraging short phrases for wrong answers:
+“Keep trying!”
+“You can do it!”
+“Mistakes help us learn!”
+“Don’t give up!”
+“Nice effort!”
+“You’ll get the next one!”
+“Keep going!”
+“Every try makes you stronger!”
+“That’s how we learn!”
+“On to the next one!”
+
+Add a Chinese translation for each phrase to the dataset.
 
 When you build the game, add these visual and sound effects.
 
 Sound effects:
-Right Answer: Pop / Bubble Click – A short, satisfying, organic "pop" sound with a bright tone.
-Wrong Answer: Select an encouraging phrase, say that phrase in English.
+Wrong Answer: Select an encouraging phrase at random, say that phrase in Chinese.
 
 Visual effects:
-Right Answer: The cards turn green and melt away.
-Wrong Answer: The left card displays the Chinese text of the encouraging phrase at xl size for 2 seconds. 
+Right Answer: Flip the question card. It turns over like a flash card to show the next fact. 
+It's charming, but a flip needs about 300 ms to read well, so it adds a noticeable pause, and 
+fast players may find that annoying.
 
-Enable audio by default. 
+Wrong Answer: The right answer card switches to green background.
+The wrong answer that was selected shows red background.
+One of the other wrong answer cards displays the text in Chinese of the encouraging 
+phrase that is spoken in the "Sound effects", at xxl size dark grey for 4 seconds.  
+After 4 seconds, the next round starts.
 
+Use Chinese translation for the labels in the indicators column.
+Translate the Rules into Chinese.
+
+Treat this CUSTOMIZATION section as the primary source, override any conflicting items 
+in the specification below it.
