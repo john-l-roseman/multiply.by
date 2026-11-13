@@ -3,11 +3,14 @@
 !/.gitignore
 !/Makefile
 !/extract-files.py
-!/build-instructions.txt
+!/CLAUDE.md
+!/game.txt
+!/layout.txt
+!/assemble-spec
 !/PWA-build.txt
 !/about/
 /about/*
-!/about/build-instructions.txt
+!/about/about.txt
 !/about/Makefile
 !/check-scripts.py
 !/reformat-spec.py

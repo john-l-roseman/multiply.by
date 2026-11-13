@@ -1,0 +1,194 @@
+SITE LAYOUT (THE SAME ON EVERY PAGE OF MULTIPLY.BY)
+---------------------------------------------------
+Every page of multiply.by has the same frame: the TITLE BAND at the very top, the MENU BAR directly
+under it, the page's own content, and the FOOTER as the very last line of the page. This section
+describes the frame; the rest of this file describes the page itself, including which menu items it
+has and the address of its SOURCE.
+
+- PAGE COLUMN: the title band, the menu bar, the page's content and the footer sit in one column:
+  width 100% on phones; on screens 768px wide or wider, `width: min(720px, max(400px, 75vh))`,
+  centered. The title band, menu bar and footer each take exactly the column's width, and none of
+  them ever shrinks (`flex-shrink: 0` where the column is a flex column).
+- Font, on the whole page: font-family: system-ui, -apple-system, "Segoe UI", Roboto,
+  "Helvetica Neue", Arial, "Noto Sans", sans-serif. Use `box-sizing: border-box` for all elements.
+
+TITLE BAND (branding, the very top of the page, above the menu bar)
+- A <header id="title-band">, white background, blue text (#2563eb, both parts), a 1px #e5e7eb
+  bottom border separating it from the menu bar, `padding: 0.35rem 0.5rem`, holding ONE line, the
+  site's heading, followed by the SHARE ICON button at the right end of the same line (see SHARE THE
+  SITE below):
+    <h1><a id="tagline" href="https://multiply.by/"><strong>Multiply.by:</strong> learn the multiplication table</a></h1>
+  - THE HEADING IS A LINK TO THE HOME PAGE: tapping or clicking it opens https://multiply.by/ (the
+    game), in the same tab. It looks exactly like plain text: the same blue #2563eb, no underline
+    (`text-decoration: none`), `color: inherit`, `cursor: pointer`; on hover (desktop) it turns dark
+    blue #1e40af.
+  - The band is `display: flex; align-items: center; gap: 6px; position: relative;`. The h1 is
+    `flex: 1; min-width: 0;` so it takes all the width the share icon leaves; the icon never
+    shrinks (`flex: none`).
+  - h1: `margin: 0; font-weight: normal; line-height: 1.2; white-space: nowrap; overflow: hidden;
+    text-align: center;` ("Multiply.by:" bold, the rest normal). The link (#tagline) is `display:
+    inline-block`.
+  - THE HEADING FILLS THE FULL WIDTH: its font size is chosen so the line runs from the band's left
+    padding to its right padding, whatever the screen width and the phone's fonts, in portrait and
+    landscape alike. `fitTagline()`: set #tagline's font size to 100px, measure its width with
+    `getBoundingClientRect().width`, then set the font size to
+    `Math.max(10, Math.min(cap, Math.floor(100 * avail / width * 10) / 10)) + 'px'`, where avail
+    is the h1's own width (`h1.clientWidth`, which already leaves room for the share icon) and cap
+    is 28, or 18 on short screens (`matchMedia('(max-height: 500px)').matches`, a phone in
+    landscape, to save height). Set this same size on the h1 too (`h1.style.fontSize`), so the band
+    is only as tall as the line: about 1.2 times the font size plus its padding, never taller. Call
+    it at start-up, on every `resize`, and once more in `document.fonts.ready.then(fitTagline)` (in
+    a try/catch) because a late font changes the width.
+    It never makes the line wider than the band, so nothing is cut off.
+  - The same text on every page.
+
+SHARE THE SITE (the share icon at the right end of the title band)
+- A <button id="share-site"> with `aria-label="Share multiply.by"` and `title="Share multiply.by"`,
+  no text, showing ONLY an inline SVG share icon, 22px x 22px, viewBox "0 0 24 24", fill="none",
+  stroke="currentColor", stroke-width="2.2", stroke-linecap="round", stroke-linejoin="round", drawn
+  as three circles (cx 18 cy 5 r 3; cx 6 cy 12 r 3; cx 18 cy 19 r 3) and the path "M8.6 13.5 L15.4
+  17.5 M15.4 6.5 L8.6 10.5".
+  - Look: no border, no background, no shadow, color #2563eb (the same blue as the heading),
+    `display: flex; align-items: center; justify-content: center; flex: none; padding: 4px;
+    margin: 0; cursor: pointer;`, at least 30px x 30px so it is easy to tap. Hover: #1e40af.
+  - Shown on EVERY device (phones, tablets and computers).
+  - THE LINK: `shareText()` returns the address to share. A page that does not define its own
+    returns 'https://multiply.by/'.
+  - PHONE OR COMPUTER: at start-up set `const IS_TOUCH = matchMedia('(pointer: coarse)').matches;`
+    (true on phones and tablets, false on computers with a mouse).
+  - On a PHONE or TABLET (IS_TOUCH true), on tap (`click`), in the click handler itself, stop at the
+    first step that works:
+    1. If `navigator.share` exists:
+       `await navigator.share({ title: 'multiply.by', text: siteShareText() })` inside try/catch, as
+       the FIRST `await` of the handler (text only: no `url`, no files).
+       AbortError (the visitor closed the share menu): stop and do nothing. Any other error: step 2.
+    2. COPY THE LINK: try `navigator.clipboard.writeText(shareText())`, then show the share message
+       (below) for 2 seconds: "Link copied" when copying worked, "Could not share" when it failed.
+  - On a COMPUTER (IS_TOUCH false), a click on the icon opens (or, if open, closes) the SHARE MENU,
+    a small panel just under the icon. It never calls `navigator.share` on a computer: desktop share
+    menus rarely offer social networks.
+  - SHARE MENU: a <div id="share-menu" role="menu"> inside the title band, hidden (`display: none`)
+    until opened; `position: absolute; right: 0.5rem; top: 100%; margin-top: 4px; z-index: 40;
+    min-width: 12rem; padding: 4px 0;` white background, 1px #e5e7eb border, rounded (0.5rem),
+    `box-shadow: 0 4px 12px rgba(0,0,0,0.15)`. It holds eight items, one per line, in this order:
+    WhatsApp, Facebook, X, Bluesky, LinkedIn, Reddit, Email, Copy link. Each item has
+    `role="menuitem"`, is
+    `display: block; padding: 8px 16px; font-size: 14px; font-weight: bold; color: #374151; text-decoration: none; text-align: left; white-space: nowrap;`
+    with a #eff6ff background and #1e40af text on hover and on keyboard focus. Text only: no logos,
+    no images, and no script, button or widget from any of these sites (the page stays free of
+    trackers).
+  - The first seven items are <a> links; set their `href` every time the menu opens (the link may
+    have changed), with every value passed through `encodeURIComponent`. LINK is `shareText()`,
+    MESSAGE is `siteShareText()`, FIRST is the first line of MESSAGE (for example "Multiply.by:
+    learn the multiplication table, fast."):
+      WhatsApp: https://wa.me/?text=MESSAGE
+      Facebook: https://www.facebook.com/sharer/sharer.php?u=LINK
+      X:        https://twitter.com/intent/tweet?text=FIRST&url=LINK
+      Bluesky:  https://bsky.app/intent/compose?text=POST, where POST is FIRST, a space and LINK
+                (before encoding), for example "Multiply.by: learn the multiplication table,
+                fast. https://multiply.by/"
+      LinkedIn: https://www.linkedin.com/sharing/share-offsite/?url=LINK
+      Reddit:   https://www.reddit.com/submit?url=LINK&title=FIRST
+      Email:    mailto:?subject=SUBJECT&body=MESSAGE, where SUBJECT is "multiply.by: learn the
+                multiplication table"
+    WhatsApp, Facebook, X, Bluesky, LinkedIn and Reddit open in a new tab (`target="_blank"
+    rel="noopener noreferrer"`); Email has no target (it opens the mail program).
+  - Copy link is a <button> (same look, `width: 100%; border: none; background: none;
+    font-family: inherit; cursor: pointer;` plus the item look above): it copies `shareText()` with
+    `navigator.clipboard.writeText` and shows the share message for 2 seconds ("Link copied", or
+    "Could not share" if copying failed).
+  - The menu closes after any item is chosen, when the icon is clicked again, on a press anywhere
+    outside the menu and the icon, and on Escape (a `keydown` listener on window; if the page
+    already has one, for example to close a panel, use that same listener, and Escape closes the
+    share menu first if it is open).
+  - CLOSING ON A PRESS OUTSIDE (CRITICAL): use ONE `pointerdown` listener on `window` registered
+    with `{ capture: true }`, NOT a `click` listener: a page may have buttons that act on
+    `pointerdown`, which comes before `click`, or buttons that are briefly `disabled`, and disabled
+    buttons fire no `click`. In it: if the menu is open and `e.target` is not inside #share-menu or
+    #share-site, close the menu and call `e.stopPropagation()`, so that press ONLY closes the menu
+    and does nothing else on the page. When the menu is closed it does nothing.
+  - Opening the menu sets `aria-expanded="true"` on the icon button (otherwise "false"; the button
+    also has `aria-haspopup="menu"`).
+  - SHARE MESSAGE (shown after copying, on any device): a <span id="share-msg" role="status">
+    inside the band, `position: absolute; right: 0.5rem; top: 100%; margin-top: 4px; z-index: 30;`
+    white background, 1px #e5e7eb border, rounded (0.25rem), `padding: 2px 8px`, text 12px bold
+    #1e40af, `white-space: nowrap; pointer-events: none;`, hidden (`display: none`) the rest of the
+    time.
+  - THE SHARED MESSAGE, returned by `siteShareText()`: three lines joined with '\n', the last one
+    being `shareText()`. When the link is https://multiply.by/ (and on every page that does not
+    define its own sets):
+        Multiply.by: learn the multiplication table, fast.
+        Free, open source, no sign-up, no ads. Works on phone or computer.
+        https://multiply.by/
+    When the link is https://multiply.by/?12 the first line is "Multiply.by: learn the
+    multiplication table up to 12, fast."; when it is https://multiply.by/?20, "Multiply.by: learn
+    the multiplication table up to 20, fast.". The second line is the same everywhere.
+  - Copying (step 2 on a phone, Copy link on a computer) copies ONLY the link, `shareText()`, never
+    the three lines.
+  - Sharing changes nothing on the page, saves nothing, plays no sound and never throws (wrap each
+    step in try/catch).
+
+MENU BAR (directly under the title band)
+- A <nav id="menu-bar">, like a standard website menu: a flex row,
+  'display: flex; align-items: stretch; gap: 2px; padding: 0 6px; width: 100%; height: 2.5rem;
+  box-sizing: border-box;', white background, a 1px #e5e7eb bottom border. From left to right: the
+  page's menu items, in the order the page lists them, left-aligned, each only as wide as its text
+  plus its padding (NOT equal widths, NOT stretched to fill the bar). SOURCE is a button in the far
+  right corner ('margin-left: auto'). There is no logo.
+- Menu items shared by the pages (each page says which of them it shows, and may add its own):
+  - PLAY: a link with the exact text "PLAY": <a href="https://multiply.by/">. It opens the game.
+  - FAQ: a link with the exact text "FAQ": <a href="https://multiply.by/faq">.
+  - ABOUT: a link with the exact text "ABOUT": <a href="https://multiply.by/about">.
+  - SOURCE: a link with the exact text "SOURCE" to the page's own build instructions (the address
+    is given by the page) (NO `download` attribute: the file opens in the browser).
+- THE CURRENT PAGE: the menu item for the page being shown (ABOUT on the About page, FAQ on the
+  FAQ page) has `aria-current="page"` and dark blue text #1e40af; it still works as a link.
+- Menu items (everything except SOURCE): no button look, no border, background, box or shadow;
+  plain text (or a plain icon) on the white bar. They share one CSS class (for example
+  `menu-item`): 'display: flex; align-items: center; height: 100%; padding: 0 5px; margin: 0;
+  border: none; background: none; text-decoration: none; cursor: pointer; font: inherit;'. The full
+  bar height is the tap area. On hover (desktop) the text turns dark blue #1e40af.
+- Text items: 13px, bold, #374151, 'white-space: nowrap'.
+- SOURCE: the only button in the bar. 'align-self: center; display: flex; align-items: center;
+  height: 1.75rem; padding: 0 8px; margin-left: auto;', a 1px #e5e7eb border, light gray
+  background #f9fafb, rounded corners (0.25rem), text 12px bold #374151, no underline,
+  'white-space: nowrap', `cursor: pointer`.
+- The whole bar fits on one line on a 360px-wide phone, with nothing cut off: SOURCE ends inside
+  the screen's right edge.
+- WIDER SCREENS (tablets and computers, where the column is up to 720px wide): inside
+  `@media (min-width: 768px) and (min-height: 600px)` the menu bar scales up to match: bar height
+  3.25rem; menu items `padding: 0 10px`; text items 17px; SOURCE height 2.25rem, `padding: 0 12px`,
+  text 16px; the share icon in the title band 28px x 28px. Everything else stays the same. Phones
+  (narrower than 768px) and phones on their side (shorter than 600px) keep the sizes above.
+
+FOOTER (the very last line of the page)
+- The element <div id="footer"> (exactly this id), at the bottom of the page column: one line
+  (padding 0.5rem 0), white background, a 1px #e5e7eb top border, text 10px, color #6b7280,
+  centered. It contains only the copyright line, which MUST be the very last line of the page.
+- Use exactly this HTML, character for character (both links open in a new tab and are not
+  underlined; no margin or padding on the links, so no gap appears before the full stops). Keep the
+  single space after "by" and after "the": the visible text MUST read "Copyright (c) 2026 by
+  Functional AI Inc. Published under the MIT License." (with the current year), never
+  "byFunctional":
+    <div>Copyright (c) <span id="year"></span> by <a href="https://functional.by" target="_blank" rel="noreferrer">Functional AI Inc</a>. Published under the <a href="https://opensource.org/licenses/MIT" target="_blank" rel="noreferrer">MIT License</a>.</div>
+- The year is NOT hard-coded: it is the current year, read from the visitor's clock
+  (`new Date().getFullYear()`) by the script at start-up and written into the empty
+  <span id="year"></span>, so it updates by itself every January.
+- The footer has no other lines: no link to OpenLang.ai or any other site.
+- Footer links: no underline (text-decoration: none), bold, dark blue #1e40af.
+
+CHECKS FOR THE SITE LAYOUT (THE FINISHED PAGE MUST PASS ALL OF THESE)
+- Title band: the band at the very top (blue text on white) is ONE line, "Multiply.by: learn the
+  multiplication table", followed at the right end by the blue share icon, the text filling the rest
+  of the band's width without being cut off, on a 360px phone, a large phone, in landscape and on
+  desktop; the menu bar is directly below it. Tapping the text opens https://multiply.by/.
+- Share icon: tapping it on a phone opens the phone's share menu with the three-line message from
+  `siteShareText()`, ending with the link from `shareText()`. On a computer it opens a small menu
+  under the icon: WhatsApp, Facebook, X, Bluesky, LinkedIn, Reddit, Email and Copy link, in that
+  order; each site opens in a new tab with the link (and, for WhatsApp and Email, the three-line
+  message) filled in, and Copy link shows "Link copied" for 2 seconds. The menu closes on a choice,
+  a press outside it, or Escape.
+- Menu bar: the page's menu items and SOURCE fit on one line on a 360px phone and respond to a
+  normal tap; the current page's item is dark blue.
+- Footer text: the one footer line reads exactly "Copyright (c) <current year> by Functional AI Inc.
+  Published under the MIT License.", with normal spaces between all words.

@@ -7,7 +7,7 @@ old spec to Claude (or any good model) and ask: "Convert this spec following MAT
 
 The two specs side by side are the best example:
   /var/www/multiply.by/match/build-instructions.txt   (matching, before)
-  /var/www/multiply.by/build-instructions.txt         (four answers, after)
+  /var/www/multiply.by/game.txt                       (four answers, after; with layout.txt)
 (multiply.by still serves its matching game at /match/; other games replace theirs, section 1.)
 
 

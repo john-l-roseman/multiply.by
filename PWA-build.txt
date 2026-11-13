@@ -9,7 +9,7 @@ ENVIRONMENT
 -----------
 - Site folder: /var/www/multiply.by (served as the root of https://multiply.by).
 - Tools: GNU make, python3, ImageMagick (`convert`).
-- `make` in the site folder runs the whole build. Never edit generated files by hand; change build-instructions.txt or this file and run `make` again.
+- `make` in the site folder runs the whole build. Never edit generated files by hand; change game.txt, layout.txt or this file and run `make` again (make puts game.txt and layout.txt together into build-instructions.txt).
 
 BUILD STEPS
 -----------

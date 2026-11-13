@@ -5,6 +5,12 @@ ICONS = icon-192.png icon-512.png
 
 all: index.html $(FILES) $(ICONS) og-image.png
 
+# The game's complete build instructions (the file SOURCE links to): game.txt with the
+# site's shared layout.txt put in at its "#include layout.txt" line.
+$(SPEC): game.txt layout.txt assemble-spec
+	./assemble-spec game.txt > $(SPEC).tmp
+	mv $(SPEC).tmp $(SPEC)
+
 # The plain game page, built from build-instructions.txt (no PWA).
 build/index.html: $(SPEC)
 	mkdir -p build
