@@ -12,6 +12,9 @@
 /about/*
 !/about/about.txt
 !/about/Makefile
+!/demo/
+/demo/*
+!/demo/demo.txt
 !/check-scripts.py
 !/reformat-spec.py
 !/MATCH-TO-FOUR.txt

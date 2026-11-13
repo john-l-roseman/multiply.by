@@ -1,0 +1,71 @@
+NOTE FOR HUMAN READERS (the person reading
+this file, not the AI building the video):
+This file describes a short demo video of
+https://multiply.by. To build it, give this
+file to an AI coding agent that can drive a
+browser (for example Claude Code) and ask it
+to produce demo.webm.
+
+
+Act as an expert in browser automation and video production.
+Produce one video file, demo.webm, by recording a real browser playing the live game at
+https://multiply.by/ exactly as described below. Deliver the video file, not a description of it.
+The video is a screen recording of the real page: do not redraw, mock or imitate the game.
+
+
+1. OUTPUT
+---------
+- File name: demo.webm (WebM container, VP9 video, no audio track).
+- Picture: 720 x 1280 pixels (portrait, a phone screen), 30 frames per second.
+- Length: under 15 seconds. Size: under 1 MB.
+- It must play in current Chrome, Firefox, Safari and Edge, and loop cleanly: the first and the last
+  second are still (nothing moving except the game's clock).
+
+
+2. RECORDING SETUP
+------------------
+- Browser: Chromium, driven by a script (Playwright or similar), showing https://multiply.by/ with
+  no browser frame: only the page.
+- Viewport: 360 x 640 CSS pixels at device pixel ratio 2, as a touch phone (so the page shows its
+  phone layout and the picture is sharp at 720 x 1280).
+- The recording must be sharp: captured at 720 x 1280 real pixels, never 360 x 640 enlarged and
+  never the page in one corner of a bigger frame. (Playwright's own video recording ignores the
+  device pixel ratio. Chromium's screencast gives 720 x 1280 frames when the browser is started
+  with `--force-device-scale-factor=2`.)
+- A fresh visitor: no saved progress, no cookies, nothing in storage. The game therefore starts at
+  Score 0, Learned 0% and Time 0:00, in the default "2 to 9" mode.
+- Record only after the page has fully loaded and drawn. The video must never show a blank or
+  half-drawn page: cut everything before that.
+- TAP MARKER: a viewer cannot see a finger, so every tap is shown by a marker the recording script
+  adds on top of the page (it is not part of the game): a round dot, 44px across, see-through blue
+  (rgba(37, 99, 235, 0.35)) with a 2px solid #2563eb border, centred on the tap point. It fades in
+  over 150ms BEFORE the tap, and after the tap it grows to 1.4 times its size while fading out over
+  300ms. It must not catch the tap itself (`pointer-events: none`) and sits above everything.
+- The script must not change the page in any other way: no edited styles, no changed game state, no
+  calls to the game's own functions. Every answer is a real tap on a real button.
+
+
+3. STORYBOARD
+-------------
+Play the first 4 questions of a new game, each answered right at the first try.
+1. Hold the opening screen for 1 second: the first question, four answers, Score 0, Time 0:00.
+2. For each of the 4 questions, in turn:
+   - Wait about 1.2 seconds with the question on screen (time for a viewer to read it and think of
+     the answer).
+   - Read the question from the page (for example "7 x 8"), work out the product, and find the
+     answer button showing exactly that number.
+   - Show the tap marker on the middle of that button, then tap it.
+   - The game turns the button green, floats the points up and deals the next question. Wait for
+     the next question to be on screen before going on.
+3. After the 4th right answer, hold for 1.5 seconds on the 5th question, so the viewer sees the
+   result: Score 46 (10 + 11 + 12 + 13), Streak 4, Learned 11%, Mistakes 0. Then the video ends.
+
+
+4. CHECKS (CRITICAL)
+--------------------
+Before delivering demo.webm, the script MUST verify, and fail without writing the file otherwise:
+- The browser reported no console errors and no page errors.
+- No wrong answer was tapped: at the end the page shows Score 46, Streak 4 and Mistakes 0.
+- The video is 720 x 1280, under 15 seconds and under 1 MB.
+Then look at frames from the start, the middle and the end of the finished video and confirm the
+page is fully drawn, nothing is cut off, and each tap marker lands on the answer that turns green.
