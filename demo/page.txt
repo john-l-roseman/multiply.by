@@ -1,0 +1,45 @@
+Create a web page using a modern minimalist layout, filling a single phone-size screen.
+Build one standalone HTML file (index.html): plain HTML, CSS and JavaScript, no libraries, nothing
+loaded from any server except the video file below. All CSS in one <style> in the <head>, all code
+(if any) in one plain <script> at the end of the <body>.
+
+<title>Demo – Multiply.by: Learn the Multiplication Table (Times Tables)</title>
+In the <head>, directly after the title, include exactly: <meta name="description" content="A 15-second video of Multiply.by in action: a free, open-source game to learn the multiplication table.">
+In the <head>, include exactly: <meta name="viewport" content="width=device-width, initial-scale=1">
+In the <head>, include exactly: <link rel="icon" type="image/svg+xml" href="/icon.svg"> (the app's icon in the browser tab).
+
+The page has the site's frame, described in SITE LAYOUT below: the title band, the menu bar, this
+page's content (the video) and the footer.
+- MENU ITEMS on this page, from left to right: PLAY, DEMO (the current page: dark blue, with
+  `aria-current="page"`), ABOUT, then SOURCE in the far right corner. PLAY is the way back to the
+  game: the page also opens inside the installed app, where iPhone shows no back button.
+- SOURCE on this page: <a href="https://multiply.by/demo/build-instructions.txt">
+- Page background light gray (#f3f4f6).
+- The page column is a flex column exactly as tall as the screen (`height: 100vh`, and
+  `height: 100dvh` after it): title band, menu bar, the content area, then the footer at the
+  bottom. The page never scrolls, on any screen size.
+
+THE VIDEO (the page's content)
+- The content area takes all the height left between the menu bar and the footer
+  (`flex: 1; min-height: 0`), as a flex column centered both ways, with 12px of padding.
+- In it, exactly this player (the video is a phone screen recording, 720 x 1280, portrait):
+  <video src="/demo/demo.webm#t=0.001" controls playsinline preload="auto"></video>
+  - NO autoplay and NOT muted: the video waits, showing its first frame and the player's play
+    button, and one tap plays it WITH its sound (the game's chimes). The `#t=0.001` makes iPhone
+    show the first frame instead of a blank box. playsinline so iPhone plays it in the page, not
+    full screen.
+  - NO loop: the video plays once and stops at its last frame; the player's play button replays it.
+  - Size: as large as fits in the content area, keeping its 9:16 shape, never cropped or stretched:
+    `flex: 1; min-height: 0; max-width: 100%; aspect-ratio: 9 / 16; height: auto;
+    object-fit: contain;` (whichever of the width and the height runs out first sets the size).
+    Never wider than 480px.
+  - Black background, 12px rounded corners, soft shadow (0 1px 3px rgba(0,0,0,0.1)).
+- Under the video, 8px below it, one centered line of small text (13px, muted gray #6b7280):
+  "Recorded by an AI agent from <a href="/demo/demo.txt">its instructions</a>." Link: no
+  underline, bold, dark blue #1e40af. This line never wraps on a 360px phone.
+- With no JavaScript the page works the same: the player is plain HTML.
+
+#include layout.txt
+
+------
+Copyright (c) 2026 Functional AI Inc. Published under MIT License.

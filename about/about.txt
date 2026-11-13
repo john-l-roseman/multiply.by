@@ -10,7 +10,7 @@ In the <head>, include exactly: <link rel="icon" type="image/svg+xml" href="/ico
 
 The page has the site's frame, described in SITE LAYOUT below: the title band, the menu bar, this
 page's content in a card, and the footer.
-- MENU ITEMS on this page, from left to right: PLAY, FAQ, ABOUT (the current page: dark blue, with
+- MENU ITEMS on this page, from left to right: PLAY, DEMO, ABOUT (the current page: dark blue, with
   `aria-current="page"`), then SOURCE in the far right corner. PLAY is the way back to the game:
   the page also opens inside the installed app, where iPhone shows no back button.
 - SOURCE on this page: <a href="https://multiply.by/about/build-instructions.txt">
@@ -37,6 +37,19 @@ Style:
 - List items have no plain bullets; each starts with a small check mark (✓) in blue (#2563eb).
 - Body text near-black (#111827), 1rem, line-height 1.5.
 
+Adaptive layout (the page fits phones, tablets and laptops):
+- Phones and tablets (narrower than 1024px): as above, one column: the three sections stacked, with
+  horizontal dividers between them.
+- Laptops and wider screens (`@media (min-width: 1024px)`): the three sections (Functionality,
+  Minimalism, Transparency) sit side by side on ONE line, as three equal columns
+  (`display: grid; grid-template-columns: repeat(3, 1fr)`), with 1px #e5e7eb vertical dividers
+  between them instead of the horizontal ones and about 24px of space on each side of a divider.
+  The header and tagline stay above, spanning all three columns. Wrap the three sections in one
+  element (e.g. <div class="sections">) so the grid applies to them alone.
+  To give the columns room, on this page only the PAGE COLUMN is wider on these screens:
+  `width: min(960px, 94vw)` (overriding the layout's 720px column, for the title band, menu bar
+  and footer too), and the card fills the column's width (no 480px max-width).
+
 <subheader>Functionality</subheader>
   o Designed for maximum learning speed.
   o Works on your phone or computer.
@@ -46,14 +59,51 @@ Style:
 <subheader>Minimalism</subheader>
   o No sign-up, zero cost.
   o No ads or trackers in the game.
-  o No visual clutter.
+  o Minimal visual clutter.
   o The game weighs less than 60 KB.
 
 <subheader>Transparency</subheader>
   o Open source: free to copy, change and share.
-  o The entire game is one readable file.
   o <a href="/build-instructions.txt">See exactly how the game was built.</a>
   o Build it yourself, using your favorite AI model.
+
+MORE ABOUT THE SITE (below the three sections, inside the same card)
+- A 1px #e5e7eb divider separates it from the three sections; on every screen size it is one
+  column of prose BELOW them (never beside them), using the card's full width (no max-width on
+  the text), left-aligned with the header.
+- Headings: <h2>, bold, 1.25rem, near-black (#111827), about 1.5rem of space above and 0.5rem
+  below; each with an id derived from its text (lowercase, spaces to hyphens, punctuation removed,
+  e.g. id="how-the-site-was-built"). Paragraphs: body text, 0.75rem apart.
+
+<h2>How the site was built</h2>
+Every page has a SOURCE button in the upper right corner. It opens the page's
+<code>build-instructions.txt</code>: the plain-text prompt given to an AI model, which
+writes the single file <code>index.html</code> that your browser shows. Nobody edits that file
+by hand: to change a page, change its build instructions and build it again.
+
+<h2>Make your own version</h2>
+The game's build instructions are meant to be changed. Rewrite the parts you want (the
+encouragement, the labels, the look) and give the file to an AI model to build your own game.
+The <a href="https://multiply.by/chinese/">Chinese version</a> was made this way, with spoken
+Chinese encouragement and Chinese labels.
+
+<h2>Portability</h2>
+The build instructions are written to work with models from Google, Anthropic or OpenAI, and
+with open-weights models like Kimi. On cheaper models some glitches can be expected.
+
+<h2>Scalability</h2>
+The site is static, with no accounts and no server code, so it can cheaply handle large loads.
+The game is a single file of less than 60 KB: it loads quickly even on a slow connection
+and costs almost nothing to serve. Once installed, it runs offline, and the number of players can
+grow without slowing the site down.
+
+<h2>Learned Everywhere</h2>
+What children are expected to memorize depends mostly on where they grow up. In different 
+countries, religions and cultures, a child may recite prayers, learn poems by national writers, 
+say a pledge of allegiance every morning, or sing the national anthem.
+
+But there is one memorization task that is the same everywhere: the multiplication table. 
+Children learn it at least up to 9; in Britain they go up to 12, and in India often up to 20.
 
 #include layout.txt
 

@@ -137,12 +137,13 @@ MENU BAR (directly under the title band)
   right corner ('margin-left: auto'). There is no logo.
 - Menu items shared by the pages (each page says which of them it shows, and may add its own):
   - PLAY: a link with the exact text "PLAY": <a href="https://multiply.by/">. It opens the game.
-  - FAQ: a link with the exact text "FAQ": <a href="https://multiply.by/faq">.
+  - DEMO: a link with the exact text "DEMO": <a href="https://multiply.by/demo/">. It opens the
+    demo page, which plays a short video of the game.
   - ABOUT: a link with the exact text "ABOUT": <a href="https://multiply.by/about">.
   - SOURCE: a link with the exact text "SOURCE" to the page's own build instructions (the address
     is given by the page) (NO `download` attribute: the file opens in the browser).
-- THE CURRENT PAGE: the menu item for the page being shown (ABOUT on the About page, FAQ on the
-  FAQ page) has `aria-current="page"` and dark blue text #1e40af; it still works as a link.
+- THE CURRENT PAGE: the menu item for the page being shown (DEMO on the Demo page, ABOUT on the
+  About page) has `aria-current="page"` and dark blue text #1e40af; it still works as a link.
 - Menu items (everything except SOURCE): no button look, no border, background, box or shadow;
   plain text (or a plain icon) on the white bar. They share one CSS class (for example
   `menu-item`): 'display: flex; align-items: center; height: 100%; padding: 0 5px; margin: 0;

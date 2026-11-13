@@ -2,9 +2,12 @@ NOTE FOR HUMAN READERS (the person reading
 this file, not the AI building the video):
 This file describes a short demo video of
 https://multiply.by. To build it, give this
-file to an AI coding agent that can drive a
-browser (for example Claude Code) and ask it
-to produce demo.webm.
+file to an AI coding agent that can run
+commands on a computer (for example Claude
+Code) and ask it to produce demo.webm. The
+agent needs a fast enough machine with a
+browser, Python and ffmpeg: section 2 says
+what, and how to set one up in the cloud.
 
 
 Act as an expert in browser automation and video production.
@@ -15,15 +18,45 @@ The video is a screen recording of the real page: do not redraw, mock or imitate
 
 1. OUTPUT
 ---------
-- File name: demo.webm (WebM container, VP9 video, no audio track).
+- File name: demo.webm (WebM container, VP9 video, Opus audio: mono, 48 kbit/s).
 - Picture: 720 x 1280 pixels (portrait, a phone screen), 30 frames per second.
-- Length: under 15 seconds. Size: under 1 MB.
-- It must play in current Chrome, Firefox, Safari and Edge, and loop cleanly: the first and the last
-  second are still (nothing moving except the game's clock).
+- Length: under 60 seconds. Size: under 2 MB.
+- It must play in current Chrome, Firefox, Safari and Edge. The first and the last second are still
+  (nothing moving except, at the start, the game's clock).
 
 
 2. RECORDING SETUP
 ------------------
+- MACHINE: record on a machine with at least 4 CPUs that are its own (not a small shared-core cloud
+  server that is throttled under load) and at least 8 GB of memory. On a slower machine the browser
+  falls behind: the screen capture drops frames (the 200ms green flash of an answer goes missing),
+  the game's pace wanders, and the recorded sound drifts against the picture. If the agent's own
+  machine is smaller, record on a temporary cloud VM (below) and copy demo.webm back.
+- SOFTWARE: Linux with Python 3 and, in a virtual environment, the packages playwright, numpy and
+  pillow; Playwright's Chromium (`playwright install --with-deps chromium`); ffmpeg built with the
+  libvpx-vp9 and libopus encoders; a DejaVu font. On Ubuntu 24.04:
+    apt-get install -y ffmpeg python3-venv fonts-dejavu-core libatomic1
+    python3 -m venv /opt/rec && /opt/rec/bin/pip install playwright numpy pillow
+    PLAYWRIGHT_BROWSERS_PATH=/opt/rec/browsers /opt/rec/bin/playwright install --with-deps chromium
+  (libatomic1 is needed by Playwright's own Node.js and is missing from the minimal cloud image.)
+- A TEMPORARY CLOUD VM, for example on Google Cloud (any provider with a similar machine works):
+  - Create it once: an e2-standard-4 (4 CPUs, 16 GB) with Ubuntu 24.04 and a 10 GB disk (the
+    software above takes about 4.3 GB), with the setup commands above as its startup script, so it
+    installs everything on first boot:
+      gcloud compute instances create demo-recorder --zone us-east1-b \
+        --machine-type e2-standard-4 --boot-disk-size 10GB \
+        --image-family ubuntu-2404-lts-amd64 --image-project ubuntu-os-cloud \
+        --metadata-from-file startup-script=vm-setup.sh
+    The setup takes a few minutes; it is done when /opt/rec/ready exists (have the script create
+    it last, and skip everything when it already exists). If `apt-get update` hangs on the
+    mirror, kill it and run the startup script again (`sudo google_metadata_script_runner
+    startup`).
+  - Each recording: start the VM (`gcloud compute instances start demo-recorder --zone
+    us-east1-b`), copy the recording script to it, run it there with
+    PLAYWRIGHT_BROWSERS_PATH=/opt/rec/browsers, copy demo.webm back, and ALWAYS stop the VM
+    afterwards, also when the recording failed (`gcloud compute instances stop ...`). A stopped VM
+    costs only its disk (about $0.40 a month for 10 GB); a running one about $0.13 an hour. A whole
+    recording, start to stop, takes a few minutes.
 - Browser: Chromium, driven by a script (Playwright or similar), showing https://multiply.by/ with
   no browser frame: only the page.
 - Viewport: 360 x 640 CSS pixels at device pixel ratio 2, as a touch phone (so the page shows its
@@ -42,30 +75,55 @@ The video is a screen recording of the real page: do not redraw, mock or imitate
   over 150ms BEFORE the tap, and after the tap it grows to 1.4 times its size while fading out over
   300ms. It must not catch the tap itself (`pointer-events: none`) and sits above everything.
 - The script must not change the page in any other way: no edited styles, no changed game state, no
-  calls to the game's own functions. Every answer is a real tap on a real button.
+  calls to the game's own functions. Every answer is a real tap on a real button. The only other
+  additions listen and change nothing: the sound tap below, and a green watch that notes the moment
+  each answer button gets its green style (in case the screen capture drops the frames of that short
+  flash on a slow machine). The game must play and show exactly what it would without them.
+- SOUND: the soundtrack is the game's own sound, recorded inside the browser (no microphone, no
+  sound card, nothing added or made up). The game plays short Web Audio tones: one rising chime per
+  right answer, and a short tune when the game is won. Before the page loads, the script adds a
+  listener that copies everything the page sends to its speakers (every connection to the
+  AudioContext's destination) into a recorder of the raw samples, and notes when each tone was
+  started. Sound stays on (the default), and the game keeps playing to its speakers as usual.
+- SYNC: place the recorded sound against the picture using the wall-clock times of the screencast
+  frames and of the moments the tones were started, so each chime starts when its button turns
+  green. Before and after the recorded sound, the soundtrack is silence for the whole video.
 
 
 3. STORYBOARD
 -------------
-Play the first 4 questions of a new game, each answered right at the first try.
+Play one whole new game in the default "2 to 9" mode, from the first question to the "You Won!"
+screen: all 36 facts, each answered right at the first try, at a brisk pace.
 1. Hold the opening screen for 1 second: the first question, four answers, Score 0, Time 0:00.
-2. For each of the 4 questions, in turn:
-   - Wait about 1.2 seconds with the question on screen (time for a viewer to read it and think of
-     the answer).
+2. For each of the 36 questions, in turn:
+   - Wait about 0.5 seconds with the question on screen (a quick glance, as a practised player
+     would answer).
    - Read the question from the page (for example "7 x 8"), work out the product, and find the
      answer button showing exactly that number.
    - Show the tap marker on the middle of that button, then tap it.
-   - The game turns the button green, floats the points up and deals the next question. Wait for
-     the next question to be on screen before going on.
-3. After the 4th right answer, hold for 1.5 seconds on the 5th question, so the viewer sees the
-   result: Score 46 (10 + 11 + 12 + 13), Streak 4, Learned 11%, Mistakes 0. Then the video ends.
+   - The game turns the button green, floats the points up and deals the next question (200ms
+     after the tap). Wait for the next question to be on screen before going on. After the 36th
+     right answer the game shows "You Won!" instead of a next question.
+   Along the way the streak celebrations play at 12, 24 and 36 right answers in a row.
+3. Hold the "You Won!" screen for 3 seconds after it has fully appeared (the last second still), so
+   the viewer reads the result: final Score 990 (10 + 11 + ... + 45), Mistakes 0, and the time.
+   Then the video ends.
 
 
 4. CHECKS (CRITICAL)
 --------------------
 Before delivering demo.webm, the script MUST verify, and fail without writing the file otherwise:
 - The browser reported no console errors and no page errors.
-- No wrong answer was tapped: at the end the page shows Score 46, Streak 4 and Mistakes 0.
-- The video is 720 x 1280, under 15 seconds and under 1 MB.
+- No wrong answer was tapped: at the end the page shows the "You Won!" screen with Score 990 and
+  Mistakes 0 (Learned 100%).
+- The video is 720 x 1280, under 60 seconds and under 2 MB.
+- The audio track is Opus and as long as the video; decoded from the finished file, it has exactly
+  36 chimes, each starting within 0.1 s of the moment its button turns green in the video (the game
+  plays the sound and turns the button green together; on the first tap both come a little after
+  the touch, while the browser starts its sound system), then the win tune when "You Won!"
+  appears, and the first and the last second are silent.
 Then look at frames from the start, the middle and the end of the finished video and confirm the
 page is fully drawn, nothing is cut off, and each tap marker lands on the answer that turns green.
+Then listen to (or look at the waveform of) the soundtrack and confirm the chimes are clean, not
+clipped or distorted, and rise in pitch from one right answer to the next (starting low again
+after each 12, as the game's streak chime does).

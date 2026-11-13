@@ -630,9 +630,9 @@ they are described in SITE LAYOUT, directly after this section 8. On this page:
 - The app container is the PAGE COLUMN: the title band and the menu bar are its first parts, the
   footer its last.
 
-- MENU ITEMS on this page, from left to right: MUTE (the speaker icon), FAQ, ABOUT, RULES (INFO) and
+- MENU ITEMS on this page, from left to right: MUTE (the speaker icon), DEMO, ABOUT, RULES (INFO) and
   RESET, then SOURCE in the far right corner. There is no PLAY item (this page is the game). MUTE,
-  RULES and RESET are only on this page; they use the same menu-item class as FAQ and ABOUT. The
+  RULES and RESET are only on this page; they use the same menu-item class as DEMO and ABOUT. The
   score is NOT in this bar; it is in the INDICATORS next to the question.
 
 - SOURCE on this page: <a href="https://multiply.by/build-instructions.txt">
@@ -999,7 +999,7 @@ generated dataset, the shuffled deck, `wrongAnswers` and `CONFIG`.
 - Reset: one tap on RESET starts the current set from scratch at once, with no confirmation (score
   0, Learned 0%, Mistakes 0, Time 0:00), keeping the best score.
 
-- Header buttons and links work on phones: the speaker button, FAQ, ABOUT, RULES, SOURCE, the How to
+- Header buttons and links work on phones: the speaker button, DEMO, ABOUT, RULES, SOURCE, the How to
   Play panel, RESET, "Play Again", the Tables choice and the next-level links on the "You Won!"
   screen respond to a normal tap.
 
