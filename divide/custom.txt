@@ -1,0 +1,100 @@
+-------------
+CUSTOMIZATION
+-------------
+This is the DIVISION game, served at https://multiply.by/divide/. It is the same game as the rest
+of this file (the same modes, score, streak, timer, menu, rules, animations, sounds, "You Won!"
+screen and saved progress), except that every question is a division: "56 ÷ 8", answer 7. Each
+multiplication fact of the dataset is one FACT FAMILY: 7 x 8 = 56 gives 56 ÷ 7 = 8 and
+56 ÷ 8 = 7.
+
+DATASET
+- Keep exactly the same 120 facts in exactly the same order and with the same ids 1 to 120 (saved
+  progress refers to the ids), but give each fact these fields:
+  id | text (the multiplication, e.g. "7 x 8": the fact's name) | a (the smaller factor, 7) |
+  b (the larger factor, 8) | product (56)
+  a, b and product are numbers. The dataset has no "answer" field.
+- `function factors(f) { return [f.a, f.b]; }` (replaces the version that splits the text), so
+  applyMode chooses the same facts as before: 36 for 2 to 9, 48 for up to 12, 116 for up to 20.
+- The deck, learnedIds, answerLog, weakFacts and everything else that stores or finds a fact keep
+  using the fact objects of FACTS and their ids, as before.
+
+DEALING A QUESTION (CRITICAL)
+- Each time `nextQuestion()` deals a fact, it picks the divisor at random, a or b (each with
+  probability 1/2; when a equals b, as in 6 x 6, there is only one), and puts on screen a COPY of
+  the fact with the division as its text and the quotient as its answer:
+  `const d = Math.random() < 0.5 ? fact.a : fact.b;`
+  `state.question = { ...fact, text: fact.product + ' ÷ ' + d, answer: String(fact.product / d), divisor: d };`
+  The ÷ is the division sign (U+00F7), with one space on each side. The copy keeps the fact's id,
+  so learning, missed questions, ANSWER TIMES and PRACTICE HARD ONES all work on the fact family:
+  a fact is learned when either of its divisions is answered right. A missed fact comes back at
+  the end of the deck and, when it is dealt again, picks its divisor again at random.
+- Always build the text and the answer from a, b and product, never by reading another question's
+  text (a fact moved back into the deck may be the on-screen copy).
+- The question card shows `state.question.text` (e.g. "56 ÷ 8"); the right answer is
+  `state.question.answer` (e.g. "7"). Everything else that the rest of this file says about
+  `fact.text` and `fact.answer` of the question on screen means these two copy fields.
+
+WRONG ANSWERS (CRITICAL: replaces the whole WRONG ANSWERS rule of the multiplication game)
+- `wrongAnswers(q)` (q is the question on screen) returns exactly three answer strings, all
+  different from each other and from `q.answer`. ans = Number(q.answer), p = q.product,
+  d = q.divisor.
+- RANGE: every wrong answer is between 2 and the mode's largest factor (9 for 2 to 9, 12 for up to
+  12, 20 for up to 20), so no choice can be ruled out because no fact of the set has that answer
+  (no 1, and no 10 or more in 2 to 9).
+- SAME ODD/EVEN: when p is odd, the answer is odd, so every wrong answer MUST be odd; when p is even
+  and d is odd, the answer is even, so every wrong answer MUST be even; when p and d are both even,
+  wrong answers may be odd or even. Otherwise the player could find the answer by its parity.
+- Candidates: BELOW = the allowed numbers smaller than ans, nearest first (ans - 1, ans - 2, ...,
+  keeping only those that pass the two rules above); ABOVE = the allowed numbers bigger than ans,
+  nearest first.
+- Pick k, the number of wrong answers below the right one, at random from 0, 1, 2 and 3, keeping
+  only values where BELOW has at least k entries and ABOVE has at least 3 - k. Return the first k
+  of BELOW and the first 3 - k of ABOVE, as strings. (So the right answer is the smallest,
+  second, third or largest of the four numbers, at random, as far as the range allows.)
+- Examples: 56 ÷ 8 (ans 7, p even, d even): BELOW 6, 5, 4, ... ABOVE 8, 9; k = 1 gives 6, 8, 9.
+  63 ÷ 7 (ans 9, p odd) in 2 to 9: BELOW 7, 5, 3, ABOVE none: only k = 3, giving 7, 5, 3.
+  48 ÷ 3 (ans 16, p even, d odd) in up to 20: BELOW 14, 12, 10, ABOVE 18, 20; k = 2 gives 14, 12,
+  18. The range always leaves enough candidates: in 2 to 9 there are four odd and four even
+  numbers.
+
+SPEECH
+- `speakCard` (never called, kept defined): `const text = fact.product + ' divided by ' +
+  fact.divisor + ' is ' + fact.answer;` ("56 divided by 8 is 7"). Never pass the raw "÷" to the
+  voice.
+
+WORDS AND LINKS (replace the multiplication wording everywhere it appears)
+BRAND: this game's name is Divide.by (the domain https://divide.by/ leads to this game, keeping
+the ?12 or ?20 of its address). Wherever the multiplication game says Multiply.by or multiply.by,
+this game says Divide.by or divide.by, as listed here:
+- Page title: <title>Divide.by – Learn Division Facts</title>. applyMode sets `document.title`
+  to 'Divide.by – Learn Division Facts to 12' for 12, 'Divide.by – Learn Division Facts to 20'
+  for 20, otherwise that title.
+- Description, exactly: <meta name="description" content="Speed through the division facts (tables
+  2 to 9, up to 12 or up to 20): one tap per answer, against the clock. Free and open source. No
+  ads, no sign-up.">
+- Title band heading, exactly:
+  <h1><a id="tagline" href="https://multiply.by/divide/"><strong>Divide.by:</strong> learn division facts</a></h1>
+  (it links to this game, https://multiply.by/divide/; the PLAY items on the other pages still lead
+  to the multiplication game).
+- `shareText()`: https://divide.by/ (2 to 9), https://divide.by/?12 (up to 12) or
+  https://divide.by/?20 (up to 20).
+- `siteShareText()`, first line: "Divide.by: learn division facts, fast." for 2 to 9, "Divide.by:
+  learn division facts up to 12, fast." for up to 12 and "Divide.by: learn division facts up to 20,
+  fast." for up to 20. The second line is as before and the last line is the link. Email SUBJECT:
+  "divide.by: learn division facts".
+- RESULTS CARD: "divide.by" (white bold 96px) in the blue band, and under it "Learn division facts"
+  (white 44px); at the bottom, "Play at divide.by" (#1e40af bold 48px). The file is named
+  'divide-by-results.png', and every share of the results passes the title 'divide.by results'.
+- The names of the three sets stay "2 to 9", "Up to 12", "Up to 20" (the Tables choice in How to
+  Play, the next-level line and the results card).
+
+CHECKS for this game (in addition to the checks of the rest of this file)
+- Every question reads "P ÷ D" with the division sign, and both divisions of a fact turn up over
+  several deals (for example 56 ÷ 7 and 56 ÷ 8); 6 x 6 always shows 36 ÷ 6.
+- Each set has 36, 48 or 116 facts; Learned reaches 100% and "You Won!" appears after every fact
+  family is answered right once (36 right answers in 2 to 9, final score 990 with no mistakes).
+- Wrong answers: never 1, never above the mode's largest factor, all odd when the dividend is odd,
+  all even when the dividend is even and the divisor odd, and the right answer is in every
+  position (smallest to largest) over many questions where the range allows.
+- Saved progress is separate from the multiplication game's (GAME is "divide"); the sound setting
+  is shared.

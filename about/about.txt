@@ -54,7 +54,7 @@ Adaptive layout (the page fits phones, tablets and laptops):
   o Designed for maximum learning speed.
   o Works on your phone or computer.
   o Install for offline use.
-  o Three sets: <a href="https://multiply.by">2 to 9</a>, <a href="https://multiply.by/?12">up to 12</a>, or <a href="https://multiply.by/?20">up to 20</a>.
+  o Learn <a href="https://multiply.by/divide/">division</a>, too.
 
 <subheader>Minimalism</subheader>
   o No sign-up, zero cost.
@@ -103,7 +103,8 @@ countries, religions and cultures, a child may recite prayers, learn poems by na
 say a pledge of allegiance every morning, or sing the national anthem.
 
 But there is one memorization task that is the same everywhere: the multiplication table. 
-Children learn it at least up to 9; in Britain they go up to 12, and in India often up to 20.
+Children learn it at least up to 9; in Britain they go <a href="https://multiply.by/?12">up to 12</a>, and in India often
+<a href="https://multiply.by/?20">up to 20</a>.
 
 #include layout.txt
 

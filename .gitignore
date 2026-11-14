@@ -24,6 +24,9 @@
 !/chinese/
 /chinese/*
 !/chinese/custom.txt
+!/divide/
+/divide/*
+!/divide/custom.txt
 !/match/
 /match/*
 !/match/build-instructions.txt

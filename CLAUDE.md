@@ -33,6 +33,9 @@ rebuild. GitHub: john-l-roseman/multiply.by (public).
 - Custom games (e.g. `chinese/`): `../mk-custom` from the game's folder; it combines game.txt +
   layout.txt + the folder's `custom.txt`, sets GAME to the folder name and SOURCE to the folder.
   Served at /<folder>/ (no redirects).
+  - `divide/`: the division game (Divide.by), same game with "56 ÷ 8" questions. https://divide.by
+    and www redirect (302, keeping ?12/?20) to https://multiply.by/divide/
+    (/etc/nginx/sites-enabled/divide.by).
 - `match/` is an older matching game with its own spec (not using layout.txt).
 - Builds take a few minutes and go live as soon as they pass; run them in the background.
 
