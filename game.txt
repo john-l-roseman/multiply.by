@@ -307,7 +307,8 @@ IMPORTANT: Do not add any notes at the top or bottom of the HTML file.
     set `state.question = null` and `state.isWon = true`, call `update()`, then `playSound('win')`.
     The "You Won!" overlay then shows the practice: the heading "Practice done!" instead of "You
     Won!", the lines "Your time: T" and "Mistakes: M" of the practice, and only the buttons Play
-    Again and "Practice hard ones" (no score, no best score, no Share, no next-level line).
+    Again and "Practice hard ones" (no score, no best score, no Share, no next-level line,
+    no division line).
     Play Again works as always (a new full game); "Practice hard ones" practises the same set
     again, in a new order.
 
@@ -766,6 +767,16 @@ mistakes, time) and keeps the best score (BEST_KEY) and the sound setting (MUTE_
   Clicking a link calls `preventDefault()` and then `switchMode(12)` or `switchMode(20)`, with no
   page load. The links have NO target attribute and are styled like the footer links (no
   underline, bold, dark blue #1e40af).
+  Below it, in every mode, one DIVISION line recommending the division game for the same set:
+    <div class="division-line">Next: learn division at <a href="https://multiply.by/divide/">divide.by</a></div>
+  It looks exactly like the next-level line: 1rem text, color #374151, centered, and its link
+  styled like the next-level links (`text-decoration: none; font-weight: bold; color: #1e40af;`),
+  never the browser's default blue underlined link. Spacing: 0.5rem below the next-level line;
+  when there is no next-level line (up to 20), 1.5rem below the buttons, the same gap the
+  next-level line has.
+  with href https://multiply.by/divide/ for 2 to 9, https://multiply.by/divide/?12 for up to 12
+  and https://multiply.by/divide/?20 for up to 20 (set by `update()`, so it follows switchMode).
+  It is a plain link: no preventDefault, no target, it opens the division game in the same tab.
 
 SHARE MY RESULTS (the "Share my results" button on the "You Won!" screen):
 - RESULTS CARD (a picture): `drawResultsCard()` draws the results on a 1080 x 1080 <canvas> (made
@@ -1024,6 +1035,8 @@ generated dataset, the shuffled deck, `wrongAnswers` and `CONFIG`.
   and best score across reloads, and Play Again stays in its mode; the sound setting is shared. On
   page load the address alone decides the mode. The next-level line on the "You Won!" screen
   offers up to 12 and up to 20 after 2 to 9, up to 20 after up to 12, and nothing after up to 20.
+  Under it, in every mode, "Next: learn division at divide.by" opens the division game in the
+  same set (/divide/, /divide/?12 or /divide/?20).
 - Sound effects: sound is ON by default: on a first visit the speaker shows the sound waves, and
   from the first tap on (phones allow sound only after a touch) a right answer, a wrong answer and
   winning each play their own short sound, on phones as well as on desktop. The right-answer chime

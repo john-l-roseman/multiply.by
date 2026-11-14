@@ -78,8 +78,10 @@ MORE ABOUT THE SITE (below the three sections, inside the same card)
 <h2>How the site was built</h2>
 Every page has a SOURCE button in the upper right corner. It opens the page's
 <code>build-instructions.txt</code>: the plain-text prompt given to an AI model, which
-writes the single file <code>index.html</code> that your browser shows. Nobody edits that file
-by hand: to change a page, change its build instructions and build it again.
+writes the single file <code>index.html</code> that your browser shows. (Despite its name, the
+game's <code>index.html</code> is mostly JavaScript and CSS: only about a tenth of it is HTML.)
+Nobody edits that file by hand: to change a page, change its build instructions and build it
+again.
 
 <h2>Make your own version</h2>
 The game's build instructions are meant to be changed. Rewrite the parts you want (the

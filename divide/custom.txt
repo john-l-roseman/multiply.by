@@ -85,6 +85,7 @@ this game says Divide.by or divide.by, as listed here:
 - RESULTS CARD: "divide.by" (white bold 96px) in the blue band, and under it "Learn division facts"
   (white 44px); at the bottom, "Play at divide.by" (#1e40af bold 48px). The file is named
   'divide-by-results.png', and every share of the results passes the title 'divide.by results'.
+- "You Won!" screen: NO division line (this is the division game); the next-level line stays.
 - The names of the three sets stay "2 to 9", "Up to 12", "Up to 20" (the Tables choice in How to
   Play, the next-level line and the results card).
 
