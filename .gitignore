@@ -4,6 +4,7 @@
 !/Makefile
 !/extract-files.py
 !/CLAUDE.md
+!/multiply.md
 !/game.txt
 !/layout.txt
 !/assemble-spec
@@ -27,6 +28,9 @@
 !/divide/
 /divide/*
 !/divide/custom.txt
+!/monster/
+/monster/*
+!/monster/custom.txt
 !/match/
 /match/*
 !/match/build-instructions.txt

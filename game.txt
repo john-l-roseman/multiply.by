@@ -98,9 +98,9 @@ IMPORTANT: Do not add any notes at the top or bottom of the HTML file.
     `state.question` and `state.choices`. Call it ONLY when a new question is dealt.
 
   - `update()` brings everything else on screen in line with `state`, and MUST be called after EVERY
-    change to `state`: the five indicator values (see INDICATORS), the speaker button (icon,
-    aria-label, title), the classes and `disabled` property of the answer buttons (see FEEDBACK),
-    the "You Won!" texts (final score, time, best score, mistakes), the How to Play panel (shown or
+    change to `state`: the five indicator values (see INDICATORS), the PROGRESS BAR, the speaker
+    button (icon, aria-label, title), the classes and `disabled` property of the answer buttons
+    (see FEEDBACK), the "You Won!" texts (final score, time, best score, mistakes), the How to Play panel (shown or
     hidden from `state.showInfo`) and the "You Won!" overlay (from `state.isWon`).
 
   - `update()` changes classes, properties and text only. It MUST NOT rebuild the answer buttons.
@@ -357,11 +357,37 @@ IMPORTANT: Do not add any notes at the top or bottom of the HTML file.
   `padding: 1rem`, `gap: 1rem`, `overflow: hidden`. From top to bottom:
 
   - Top row: a <div id="top-row">, `flex: 0 0 36%`, `min-height: 0`, a flex row with
-    `gap: 0.75rem`, holding the question card on the left and the indicators column on the right.
+    `gap: 0.75rem`, holding, from left to right, the question card, the PROGRESS BAR and the
+    indicators column.
 
   - Question card: a <div id="question">, `flex: 1`, `min-width: 0`, showing the fact's `text` (e.g.
     "6 x 8"), font size `clamp(1.8rem, 9vmin, 4.5rem)`, bold. It is not a button and does nothing
     when tapped.
+
+  - PROGRESS BAR (a thermometer of the Learned percentage): a narrow vertical bar between the
+    question card and the indicators, as tall as the question card, that fills from the bottom up
+    a little with every right answer:
+      <div id="progress" role="progressbar" aria-label="Learned" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="progress-fill"></div></div>
+    - #progress: `flex: 0 0 10px; align-self: stretch; position: relative; overflow: hidden;
+      border-radius: 5px; background: #e5e7eb;`.
+    - #progress-fill: `position: absolute; left: 0; right: 0; bottom: 0; height: 100%;
+      background: #111827; transform-origin: bottom; transform: scaleY(F);
+      transition: transform 400ms ease-out;`, where F is the learned fraction, 0 to 1: the same
+      number as the Learned indicator (learned facts of FACTS, or of the practice set during a
+      practice), but NOT rounded. `update()` sets the fill's transform and the bar's
+      `aria-valuenow` (the rounded percentage) every time, so the bar rises with each right
+      answer (by 1/36 of its height in 2 to 9), stays put on a wrong answer, is full at "You Won!"
+      and drops back to empty with Play Again, RESET, a new practice or a change of mode.
+    - HIDDEN BEFORE THE GAME STARTS: while no answer has been given in this game (no fact learned
+      and no mistakes; during a practice, nothing of the practice answered), the bar has
+      `visibility: hidden` (it still takes its place, so the question card never changes width).
+      It appears with the first answer, right or wrong, and stays until the game is cleared
+      (Play Again, RESET, a new practice, or a change of mode to a set with nothing answered yet).
+      A game restored from saved progress with answers in it shows the bar at once.
+    - It is decoration next to the numbers: no text, no label, it never catches a tap
+      (`pointer-events: none`), and it is the same on every screen size (in landscape too).
+    - Animate only `transform` (never height). REDUCED MOTION: no transition (add `#progress-fill`
+      to the reduced-motion rule as `transition: none !important`).
 
   - INDICATORS: a <div id="indicators"> to the right of the question card, `flex: 0 0 6.5rem`, a
     flex column with `justify-content: space-between`, holding five <div class="indicator"> blocks,
@@ -953,6 +979,10 @@ generated dataset, the shuffled deck, `wrongAnswers` and `CONFIG`.
   question, each a small label above a large number, all inside the screen with nothing cut off, on
   a 360x640 phone, in landscape (as a 3 + 2 block) and on desktop. There is no stats line under the
   header.
+- Progress bar: a narrow black bar between the question and the indicators, as tall as the question
+  card, hidden until the first answer of a game, rising a step with each right answer (not on a
+  wrong one), full on "You Won!", hidden again after Play Again; its fill always matches the
+  Learned %.
 
 - One question per screen: the question card at the top and exactly four answer buttons in a 2 x 2
   grid below it, all visible without scrolling on a 360x640 phone, in landscape and on desktop.

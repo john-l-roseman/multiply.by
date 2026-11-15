@@ -8,10 +8,12 @@
 # saying it overrides the rest. GAME is set to the folder name so
 # each game keeps its own saved progress, and SOURCE links to this game's own spec
 # (its address is worked out from the folder's place under the site folder).
-# index.html is then built from it with Gemini.
+# index.html is then built from it with Gemini, or with Claude when CLAUDE_MODEL is set
+# (key read from $HOME/.anthropic_key; MK_EFFORT sets the effort, default high).
 # If index.html is newer than custom.txt, game.txt and layout.txt, nothing is rebuilt.
 #
 # Usage, from the game's folder:  ../mk-custom
+#                         or:  CLAUDE_MODEL=claude-fable-5-2 ../mk-custom
 
 ROOT=/var/www/multiply.by
 SPEC=$ROOT/game.txt
@@ -59,7 +61,13 @@ awk -v input="$INPUT" '
 mv build-instructions.txt.tmp build-instructions.txt
 
 date
-python3.10 /var/www/openlang.ai/SCRIPTS/run-vertex.py build-instructions.txt index.html.tmp || exit 1
+if [ -n "$CLAUDE_MODEL" ]; then
+	ANTHROPIC_API_KEY="$(cat "$HOME/.anthropic_key")" python3.10 "$ROOT/about/run-claude.py" \
+		--model "$CLAUDE_MODEL" --effort "${MK_EFFORT:-high}" \
+		build-instructions.txt index.html.tmp || exit 1
+else
+	python3.10 /var/www/openlang.ai/SCRIPTS/run-vertex.py build-instructions.txt index.html.tmp || exit 1
+fi
 date
 
 python3 $ROOT/check-scripts.py index.html.tmp || exit 1

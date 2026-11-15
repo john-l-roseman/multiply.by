@@ -36,6 +36,11 @@ rebuild. GitHub: john-l-roseman/multiply.by (public).
   - `divide/`: the division game (Divide.by), same game with "56 ÷ 8" questions. https://divide.by
     and www redirect (302, keeping ?12/?20) to https://multiply.by/divide/
     (/etc/nginx/sites-enabled/divide.by).
+  - `monster/`: Multiply Monster, a gamified version for 2nd and 3rd graders (Munch, path,
+    stickers, stars; `?easy` = 2, 5 and 10). Built with Claude Fable, not Gemini:
+    `CLAUDE_MODEL=claude-fable-5-2 ../mk-custom` (`MK_EFFORT` sets effort, default high; $3 to
+    $5 a build). Over 60 KB, which is fine: the limit is for the main game only.
+- `multiply.md`: a guide for writing a custom.txt (served publicly; no build tooling in it).
 - `match/` is an older matching game with its own spec (not using layout.txt).
 - Builds take a few minutes and go live as soon as they pass; run them in the background.
 

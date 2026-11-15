@@ -1,0 +1,212 @@
+-------------
+CUSTOMIZATION
+-------------
+This is MULTIPLY MONSTER, a version of the game for children of 7 to 9 (2nd and 3rd grade), served
+at https://multiply.by/monster/. The player feeds a friendly monster called Munch: every right
+answer flies into Munch's mouth. It is the same game as the rest of this file (the deck, learning,
+missed questions coming back, saved progress, sounds, PRACTICE HARD ONES, the site frame) with the
+changes below: a monster, a path to walk instead of a progress bar, a sticker book, gentle
+mistakes with a dot picture, stars instead of a clock, two easier sets, brighter colors and bigger
+celebrations. Everything is drawn with inline SVG, CSS and emoji: still ONE file, nothing loaded
+from any server. This game has no size limit, but keep it lean.
+
+CELEBRATIONS NEVER SLOW THE GAME (CRITICAL): every animation below runs alongside the game. The next
+question still comes 200ms after a right answer, as before; nothing waits for an animation to
+finish. Every element an animation adds has `pointer-events: none` and is removed when it is done.
+Animate only `transform` and `opacity`. With REDUCED_MOTION, none of the animations below play
+(the monster just changes face, the path just fills).
+
+NAMES, TITLE AND LINKS
+- Page title: <title>Multiply Monster – Multiply.by</title> for 2 to 9; applyMode sets
+  `document.title` to 'Multiply Monster – 2, 5 and 10' for the easy set.
+- Description, exactly: <meta name="description" content="Multiply Monster: feed Munch the monster
+  by answering times tables. Stickers, stars and a path to walk, for 2nd and 3rd graders. Free, no
+  ads, no sign-up.">
+- Title band heading, exactly:
+  <h1><a id="tagline" href="https://multiply.by/monster/"><strong>Multiply.by:</strong> feed the Multiply Monster</a></h1>
+- `shareText()`: https://multiply.by/monster/ (2 to 9) or https://multiply.by/monster/?easy (the
+  easy set). `siteShareText()`, first line: "Multiply Monster: learn the times tables by feeding
+  a monster."; the other two lines as before. Email SUBJECT: "Multiply Monster".
+- MENU ITEMS, from left to right: MUTE (the speaker icon), STICKERS, RULES, RESET, then SOURCE in
+  the far right corner. No DEMO and no ABOUT on this page. STICKERS is a <button> with that exact
+  text, the same menu-item class as RULES.
+
+SETS (replaces the three modes)
+- Add these 9 facts to the dataset, after the 120, with ids 121 to 129 (the smaller factor first):
+  2 x 10, 3 x 10, 4 x 10, 5 x 10, 6 x 10, 7 x 10, 8 x 10, 9 x 10, 10 x 10
+- Two sets instead of three, with MODE 9 or 5:
+  - 2 to 9 (MODE 9, the default, https://multiply.by/monster/): every fact whose two factors are
+    both 9 or less (36 facts), exactly as before.
+  - "2, 5 and 10" (MODE 5, address argument `?easy`): every fact whose factors are both 10 or less
+    and include a 2, a 5 or a 10 (24 facts: 2 x 2 to 2 x 10, 3 x 5 to 5 x 10, 3 x 10 to 10 x 10).
+  `applyMode(params.has('easy') ? 5 : 9)` on page load. GAME_NAME is CONFIG.GAME for 9 and
+  CONFIG.GAME + '5' for 5, so each set keeps its own progress. switchMode's
+  `history.replaceState` uses `'?easy'` for 5 and the bare path for 9.
+- The names of the sets, wherever they are shown: "2, 5 and 10" and "2 to 9". In How to Play the
+  Tables choice has two buttons, data-mode="5" ("2, 5, 10") and data-mode="9" ("2–9").
+- Wrong answers for the facts with a 10 follow the SAME LAST DIGIT rule (a factor is 10 or more):
+  all end in 0.
+
+SCREEN LAYOUT (replaces the top row and the indicators)
+- The game area has a soft sky background: `background: linear-gradient(#e0f2fe, #fef9c3);`.
+  The game area, the panels and the "You Won!" overlay use a rounded font:
+  `font-family: ui-rounded, "Arial Rounded MT Bold", "Nunito", "Varela Round", system-ui, sans-serif;`
+  (the site frame keeps its own font).
+- From top to bottom the game area holds: the TOP ROW, the PATH, then the answers grid.
+- TOP ROW (`flex: 0 0 34%`): the question card on the left (`flex: 1`) and the MONSTER BOX on the
+  right (`flex: 0 0 40%`), with a 0.75rem gap. There is NO progress bar (the PATH replaces it).
+- MONSTER BOX: a flex column, centered. On top, Munch (the SVG below), as large as fits
+  (`flex: 1; min-height: 0; width: 100%;`, the SVG keeps its shape); under it the points.
+- POINTS: the Score indicator is the ONLY indicator shown, under Munch: a small label "Points"
+  (0.75rem, uppercase, #6b7280) and the number (`clamp(1.2rem, 6vmin, 1.8rem)`, bold, #111827),
+  centered. Keep the other four indicator blocks (#ind-streak, #ind-learned, #ind-mistakes,
+  #ind-time) in the page with `display: none`, so `update()` works unchanged.
+- FLOATING POINTS ("+13") start just RIGHT of the Points number, not over it: the Points block is
+  `position: relative` and each float is `position: absolute; left: 100%; margin-left: 0.25rem`,
+  vertically centered on the number, `white-space: nowrap`, `pointer-events: none`. It rises only
+  1rem while fading out (800ms), so it never covers the "Points" label, the number or Munch, even
+  when several are on screen at once.
+- Short screens (`max-height: 500px`): the top row is 40% high, the path 32px.
+- Answer buttons: rounded (`border-radius: 1rem`), bold, with a "pressable" look: a 4px solid
+  bottom border in a darker shade. Each place has its own color, the same for every question:
+  place 0 #fde68a (border #f59e0b), place 1 #bbf7d0 (#22c55e), place 2 #bfdbfe (#3b82f6),
+  place 3 #fbcfe8 (#ec4899). Text #111827. The right-answer green and wrong-answer red of FEEDBACK
+  replace these colors while they show. The question card: white, `border-radius: 1rem`, the same
+  4px bottom border in #d1d5db.
+
+MUNCH (the monster, one inline <svg id="munch" viewBox="0 0 120 120">)
+- A round, friendly monster: a purple body (#8b5cf6, a wide rounded blob filling most of the
+  box), a lighter belly (#c4b5fd), two small orange horns (#f59e0b), two short feet, and two big
+  white eyes with dark pupils (#111827) that look a little to the left, toward the question. A
+  wide smiling mouth (dark #4c1d95). Nothing scary: no teeth except two small square white ones.
+- Parts are separate SVG groups with ids, so faces can change by classes on #munch:
+  - IDLE: smiling. Every 4 to 6 seconds (random), it BLINKS: the eyelids (purple ellipses over the
+    eyes, normally `transform: scaleY(0)`) close and open in 150ms.
+  - MUNCH (a right answer): the mouth becomes a big open oval (#4c1d95, with a pink tongue
+    #f472b6) for 250ms, then closes back to the smile, and Munch does a little bounce
+    (`translateY(-8px)` and back, 300ms).
+  - PUZZLED (a wrong answer): the eyebrows (two short dark lines, normally hidden) tilt in, the
+    mouth turns to a small round "o", Munch tilts its head (`rotate(-8deg)` and back, 600ms), and a
+    small white thought bubble with a "?" appears above it for 1.5s. Puzzled, never sad or angry.
+  - Growth: Munch grows a little with every finished stage of the PATH:
+    `transform: scale(1 + 0.06 * stagesDone)` (at most 1.18), `transform-origin: bottom center`,
+    with a 400ms transition.
+- FEEDING (each right answer, in `handleAnswer`, alongside POP and FLOATING POINTS): a copy of the
+  tapped answer's number (a <span> with `position: fixed`, the button's font size, bold, #111827,
+  `z-index: 60`) starts at the center of the tapped button and flies to Munch's mouth in 350ms
+  (`transform: translate(dx, dy) scale(0.3)`, `opacity` 1 then 0 in the last 100ms, ease-in); as
+  it arrives, Munch plays MUNCH. A WORD pops above Munch: one of "Yum!", "Yes!", "Super!", "Wow!",
+  "Great!" at random (bold 1.1rem, #7c3aed, white rounded bubble), growing from 0.6 to 1 and
+  fading out over 800ms.
+- CONFETTI (each right answer): 14 small pieces (8 x 5px rectangles, colors in turn #f59e0b,
+  #22c55e, #3b82f6, #ec4899, #8b5cf6) burst out from Munch's mouth in all directions, 50 to 110px,
+  spinning, fading out over 700ms. Remove them after 800ms.
+- SOUND: after the right-answer chime, a soft "nom": add to SOUNDS
+  `nom: ['triangle', [[523, 0, 0.06], [392, 0.08, 0.1]], 0.25]` and play it 300ms after the chime
+  (when the number reaches the mouth). Sound now plays at four moments: the chime, the nom, the
+  wrong sound and the win tune.
+
+THE PATH (replaces the PROGRESS BAR; always visible, also before the first answer)
+- A row between the top row and the answers (`flex: 0 0 40px`), showing one STAGE of the walk:
+  up to 12 round STONES in a gently waving line (alternate stones 4px up and down), then the
+  stage's LANDMARK at the right end, as a large emoji (1.6rem): stage 1 🏰, stage 2 🌋, stage 3 🌙
+  (2 to 9 has 3 stages of 12 facts; "2, 5 and 10" has 2 stages of 12).
+- Learned facts walk the path: with L facts learned, the stage shown is `Math.min(Math.floor(L /
+  12), stages - 1)` and the first L - 12 * stage stones of it are DONE: filled #8b5cf6 (Munch's
+  purple), the others white with a 2px #c4b5fd border. A small 🐾 sits on the next stone to fill.
+  Stones are `flex: 1`, at most 22px across, with small gaps, so 12 stones and the landmark fit on
+  a 360px phone.
+- When a stone fills it pops (scale 1 to 1.4 to 1, 300ms). When the 12th stone of a stage fills:
+  the landmark jumps (scale 1 to 1.6 to 1, 500ms), a CONFETTI RAIN falls over the whole game area
+  (40 pieces from the top edge at random x, falling 300 to 500px while spinning, over 1200ms), Munch
+  grows (see Growth), and after 1 second the path shows the next stage, empty. (These are the
+  STAGE celebration; the streak celebration of 12, 24, 36 in a row keeps its burst of dots, but its
+  streak glow is dropped, the streak being hidden.)
+- During a practice the path counts the practice set the same way (one stage when it has 12 or
+  fewer facts). `update()` keeps the path in line with `state` at all times.
+
+STICKER BOOK
+- Every fact has a sticker: an emoji from this list of 36, by the fact's place in FACTS of the
+  current set (the first fact gets the first emoji, and so on):
+  🦊 🐼 🐸 🐙 🦄 🐢 🐝 🦋 🐳 🐬 🦁 🐯 🐨 🐵 🐧 🦉 🐞 🦖 🐲 🐰 🍩 🍕 🍓 🍉 🍦 🧁 🍪 🍭 🚀 🌈 🐠 🌙 ⚽ 🎈 🎁 🧸
+- The COLLECTION is the list of fact ids ever learned in this set, saved in
+  `'openlang_' + CONFIG.TARGET_LANGUAGE + '_' + GAME_NAME + '_stickers'` (a JSON array, read and
+  written with safeStorage). It is NOT part of the progress: Play Again and RESET never clear it
+  (a child never loses stickers).
+- NEW STICKER: when a right answer learns a fact that is not yet in the collection, add it, save,
+  and show a toast "New sticker! 🦊" (with that fact's emoji) just above the path: white rounded
+  bubble, bold 1rem #7c3aed, sliding up 10px and fading in, staying 1.2s, then fading out.
+- STICKERS (the menu item) opens the sticker book panel, built like the How to Play panel (same
+  overlay, backdrop, close button, Escape, and while it is open the answers are ignored, as with
+  `state.showInfo`; use `state.showStickers`):
+  - Heading "My Stickers" and the count "N of T" (T the number of facts in the set).
+  - A grid of T cells (6 columns): a collected fact shows its emoji large (1.8rem) and below it the
+    fact ("3 x 4", 0.7rem, #374151); a missing fact shows a light gray circle with "?" and the fact
+    below it, so the child can see which ones are left. It fits on a 360x640 phone without
+    scrolling (2 to 9: 6 rows of 6).
+  - Opening it never starts the timer, like RULES.
+
+GENTLE MISTAKES (replaces steps 2 and 5 to 6 of WRONG ANSWER)
+- A wrong answer costs NO points: the score stays as it is (it never goes below 0). The streak
+  still drops to 0 and the mistake is still counted (`state.mistakes`, used for the stars).
+- Munch looks PUZZLED. The tapped button turns red and the right one green, as before, and the
+  QUESTION CARD shows a DOT PICTURE of the fact for 2500ms instead of 2000ms (then
+  `nextQuestion()`):
+  - On top, the fact with its answer, e.g. "3 x 4 = 12" (bold, about half the usual size).
+  - Under it a grid of a rows of b dots (a, b the two factors, the smaller one as rows): round dots
+    #8b5cf6, sized to fit the card (each dot about 70% of its grid cell; for 10 x 10 they are
+    small, and that is fine), appearing row by row (each row fading in 60ms after the one above).
+  - `renderQuestion()` puts the normal question back when the next fact is dealt.
+- How to Play says so (see below).
+
+STARS INSTEAD OF A CLOCK
+- The clock still runs (for the best score and PRACTICE HARD ONES), but the time is never shown:
+  no Time indicator, no "Your time" line.
+- On "You Won!", a STAR RATING from the mistakes M of the game and the number of facts T:
+  3 stars when M <= T / 12, 2 stars when M <= T / 4, otherwise 1 star. Show three stars in a row
+  (2.5rem), the earned ones ⭐ and the others as a gray ☆ (#d1d5db), popping in one after the
+  other (scale 0 to 1.2 to 1, 250ms each, 200ms apart).
+- The "You Won!" overlay is fully OPAQUE: its own background is the game area's sky gradient with no
+  transparency (no rgba, no opacity below 1), so nothing of the game behind it (Munch, the path,
+  the answers) shows through.
+- The "You Won!" overlay, from top to bottom: "You Won!" (as before), a big Munch (the same SVG,
+  about 140px tall) wearing a crown (👑, or a small gold SVG crown, on its head) and dancing (a
+  wiggle: `rotate(-6deg)` to `rotate(6deg)` and back, 800ms, repeating; with REDUCED_MOTION it
+  stands still), the stars, "Points: X" (1.25rem, #374151), "New best score!" or "Best score: B"
+  as before, then the buttons Play Again and "Practice hard ones" (as before) and the next-level
+  line.
+- A FIREWORKS burst behind the overlay's heading when the game is won: three bursts of 16 dots
+  each, at different places in the top half, 300ms apart, each dot flying out 60 to 100px and
+  fading over 900ms.
+- No "Share my results" button and no results card in this game (drop SHARE MY RESULTS entirely;
+  the share icon in the title band stays). No mistakes line on the "You Won!" screen.
+- NEXT-LEVEL line: in the easy set, <div>Ready for more? Try <a href="?">2 to 9</a></div>
+  (switchMode(9)); in 2 to 9, none. There is NO division line in this game.
+- "Practice done!" (after a practice) shows Munch with the crown and the stars too, with the
+  buttons Play Again and "Practice hard ones" only.
+
+HOW TO PLAY (replaces the four points; the Tables choice and the SOURCE point stay)
+  1. "<strong>Feed Munch:</strong> tap the right answer and Munch eats it."
+  2. "<strong>Points:</strong> 10 for a right answer, plus 1 for each right answer in a row. A
+     wrong answer costs nothing: Munch shows you the answer with dots."
+  3. "<strong>Stickers:</strong> every fact you learn gives you a sticker. Tap STICKERS to see
+     them all."
+  4. "<strong>Win:</strong> walk the whole path. Fewer mistakes, more stars!"
+  5. "<strong>Sound:</strong> the speaker button turns sound on and off."
+
+CHECKS for this game (in addition to the checks of the rest of this file, where they still apply)
+- Munch is drawn, friendly, and fits in its box next to the question on a 360x640 phone, in
+  landscape and on desktop; nothing is cut off and the page never scrolls.
+- A right answer: the number flies into Munch's mouth, Munch munches and bounces, a word pops,
+  confetti bursts, a stone of the path fills, and the next question still comes after 200ms.
+- A wrong answer: no points lost, Munch looks puzzled, the dot picture shows a rows of b dots and
+  the right answer for 2.5s, then the next question.
+- The path shows 12 stones and the landmark; after 12 learned facts the landmark jumps, confetti
+  rains, Munch grows and the next stage starts. Learned facts and stones always agree, also after
+  a reload.
+- Stickers: a newly learned fact shows "New sticker!"; the book shows collected and missing facts
+  and keeps them after Play Again, RESET and a reload.
+- "You Won!" shows the crowned, dancing Munch and the right number of stars; no time anywhere.
+- "2, 5 and 10" (?easy) has 24 facts including the 10s; 2 to 9 has 36; each keeps its own
+  progress and stickers.
+- With reduced motion, nothing flies, bounces or rains, and the game still works.
