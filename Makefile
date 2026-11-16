@@ -3,13 +3,19 @@ PWA   = PWA-build.txt
 FILES = manifest.webmanifest sw.js pwa.js icon.svg og-image.svg
 ICONS = icon-192.png icon-512.png
 
-all: index.html $(FILES) $(ICONS) og-image.png
+all: gamify.txt index.html $(FILES) $(ICONS) og-image.png
 
 # The game's complete build instructions (the file SOURCE links to): game.txt with the
 # site's shared layout.txt put in at its "#include layout.txt" line.
 $(SPEC): game.txt layout.txt assemble-spec
 	./assemble-spec game.txt > $(SPEC).tmp
 	mv $(SPEC).tmp $(SPEC)
+
+# One file for building a GAMIFIED game in any chatbot: gamify.md (as plain text) followed by
+# the base build instructions. No AI model involved.
+gamify.txt: gamify.md $(SPEC) gamify-txt.py
+	python3 gamify-txt.py gamify.md $(SPEC) > gamify.txt.tmp
+	mv gamify.txt.tmp gamify.txt
 
 # The plain game page, built from build-instructions.txt (no PWA).
 build/index.html: $(SPEC)

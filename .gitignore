@@ -4,6 +4,7 @@
 !/Makefile
 !/extract-files.py
 !/CLAUDE.md
+!/gamify.md
 !/multiply.md
 !/game.txt
 !/layout.txt
@@ -19,9 +20,11 @@
 !/demo/page.txt
 !/demo/Makefile
 !/check-scripts.py
+!/gamify-txt.py
 !/reformat-spec.py
 !/MATCH-TO-FOUR.txt
 !/mk-custom
+!/mk-gamify
 !/chinese/
 /chinese/*
 !/chinese/custom.txt
