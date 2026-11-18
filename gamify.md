@@ -1,7 +1,7 @@
 # Gamifying the multiply.by game
 
 This file helps an AI model turn the multiply.by times-tables game into a GAMIFIED version from a
-short request, e.g. "a space-travel version" or "a monster-based version for 2nd graders": a
+short prompt, e.g. "a space-travel version" or "a monster-based version for 2nd graders": a
 mascot or a world, a reward for every right answer, progress the player can see, celebrations,
 and a new look. It is for big reworkings of the screen and the play.
 
@@ -11,7 +11,7 @@ instructions that a person can make by hand (multiply.by/divide/ and multiply.by
 that way).
 
 The game is fully described by its base build instructions,
-https://multiply.by/build-instructions.txt (about 91 KB, starting with "NOTE FOR HUMAN
+https://multiply.by/prompt.txt (about 91 KB, starting with "NOTE FOR HUMAN
 READERS"). In gamify.txt (https://multiply.by/gamify.txt, this guide and the base build
 instructions in one file) they follow this guide. Otherwise use an attached copy if there is
 one, or fetch it. Work only from a complete copy: if what you get is cut off or summarized, say
@@ -25,8 +25,8 @@ section G3 below sums up how it rearranges the screen.
 
 ## G1. The steps
 
-1. DESIGN: turn the request into a CUSTOMIZATION section (see G2). Write it out in full before any
-   code: it is the design, and a game built from a vague design comes out plain. Where the request
+1. DESIGN: turn the prompt into a CUSTOMIZATION section (see G2). Write it out in full before any
+   code: it is the design, and a game built from a vague design comes out plain. Where the prompt
    leaves something open, make a sensible choice and write it into the section.
 2. BUILD (the usual result): one standalone `index.html`, built from the base build instructions
    with the CUSTOMIZATION section applied. Where they conflict, the section wins; everything the
@@ -35,17 +35,21 @@ section G3 below sums up how it rearranges the screen.
    - Set `CONFIG.GAME` to the new game's short name (letters, digits, `-` and `_`), e.g.
      `monster`. The game saves the player's progress under this name. Without a name of its own,
      it would share, and overwrite, the original game's progress.
-   - The SOURCE link points to where this game's build instructions are published, if the
-     request gives an address; otherwise it stays as it is.
+   - SOURCE opens THIS game's own prompt: the `prompt.txt` file published next to the game's
+     `index.html`. Use exactly the relative link `<a href="prompt.txt">`, which works wherever
+     the game is published. CRITICAL: SOURCE never points to gamify.txt, gamify.md or the base
+     game's `https://multiply.by/prompt.txt`, even though those are the files you were given.
+     (If the base file already points SOURCE to an address ending in `/prompt.txt` inside a
+     game's folder, such as `https://multiply.by/train/prompt.txt`, keep that address.)
 3. BUILD INSTRUCTIONS INSTEAD (only when the person asks for the build instructions, or the
-   spec, rather than the game): one complete new `build-instructions.txt`, as a file named so.
+   spec, rather than the game): one complete new `prompt.txt`, as a file named so.
    Copy the base file EXACTLY, word for word, with only these changes:
    - After the Note for Human Readers (at the first blank line of the file), insert the line
      "Where this section conflicts with the rest of this file, this section wins.", then the
      CUSTOMIZATION section and one blank line.
    - Change the one line that starts with `- GAME: ` to the new game's short name.
-   - Change the one SOURCE link, `https://multiply.by/build-instructions.txt`, to the address
-     the request gives, or else `https://multiply.by/<name>/build-instructions.txt`.
+   - Change the one SOURCE link, `https://multiply.by/prompt.txt`, to the relative link
+     `prompt.txt` (the game's own prompt, published next to its `index.html`).
    Don't rewrite, shorten, reorder or "fix" anything else, even the parts the section replaces: a
    dropped paragraph is a broken game. If you can run code, make the file with code instead of
    retyping the base text.
@@ -67,14 +71,15 @@ Then:
 - One section per change, each with an UPPERCASE heading. Say whether it ADDS to a rule or
   REPLACES it, naming the rule as the base file names it. For example, "WRONG ANSWERS (CRITICAL:
   replaces the whole WRONG ANSWERS rule ...)" or "SETS (replaces the three modes)".
-- Always cover the NAMES: `<title>`, meta description, the title band's tagline, the share texts
+- Always cover the NAMES: `<title>`, meta description, the title band's tagline (its text only:
+  the tagline always links to the main game, https://multiply.by/), the share texts
   (`shareText()`, `siteShareText()`), and the menu items.
 - End with a `CHECKS` section of extra acceptance checks. These are added to section 11
   (ACCEPTANCE CHECKS) of the base file.
 
-### From a short request to a full design
+### From a short prompt to a full design
 
-A one-line request leaves almost everything open. Work out a complete, concrete design before
+A one-line prompt leaves almost everything open. Work out a complete, concrete design before
 writing, and write all of it down: the model that builds the game sees only the file.
 - Who plays? The age decides the sets (young children: 2 to 9, or an easier set such as 2, 5 and
   10), the reading level of every word on screen, button sizes and how loud the celebrations are.
@@ -87,11 +92,11 @@ writing, and write all of it down: the model that builds the game sees only the 
   a picture that teaches (rows of dots for 3 x 6).
 - What replaces things that don't fit? For example, stars from the number of mistakes instead of
   a clock for children who shouldn't be timed.
-- What is dropped? Say it: "No Share my results button", "No DEMO or ABOUT in the menu", "No
-  division line".
+- What is dropped? Say it: "No Share my results button", "No division line". The menu is never
+  changed (see "Menu" in G4: the same items as the base game).
 - The look: a palette (hex colors), a font stack, the background, the mascot. Draw every picture
   as inline SVG, CSS or emoji, giving its shapes and colors and the face for each state, unless
-  the request asks for photo-realistic pictures (see "Photo-realistic pictures" below).
+  the prompt asks for photo-realistic pictures (see "Photo-realistic pictures" below).
 - The sound: see "Sounds that match the stages" below.
 
 ### Sounds that match the stages
@@ -118,7 +123,7 @@ What may change is how those rising sequences fit the game's STAGES:
 ### Photo-realistic pictures
 
 The result must be one index.html that anyone gets by giving these files to a chat model (for
-example in Google AI Studio), with no other tools. So when the request asks for photo-realistic
+example in Google AI Studio), with no other tools. So when the prompt asks for photo-realistic
 (or "as real as possible") pictures, draw them in DETAILED inline SVG, as close to a photograph as
 SVG allows:
 - Real proportions and details of the real thing (for a train: wheel arrangement, boiler, cab,
@@ -241,11 +246,15 @@ Use the base file's own names, so the building model ties your changes to its co
   - PRACTICE HARD ONES runs a short practice of the weakest facts (`weakFacts()`, ANSWER TIMES)
     and ends with "Practice done!".
 - Menu:
-  - The base game shows MUTE, DEMO, ABOUT, RULES (a popup), RESET and SOURCE. A custom game lists
-    its own items from left to right. SOURCE is always last, in the far right corner.
+  - The base game shows MUTE, GALLERY, ABOUT, RULES (a popup), RESET and SOURCE. CRITICAL: a
+    gamified game keeps EXACTLY this menu, the same items in the same order: it adds no item and
+    drops none. A new panel (a sticker book, a garage, a map) opens from a button inside the game
+    area, not from the menu bar.
 - Site frame (the SITE LAYOUT part of the file):
-  - The TITLE BAND is `<h1><a id="tagline" href=...><strong>Multiply.by:</strong> ...</a></h1>`,
-    sized to fit by `fitTagline()`, with the share icon and share menu.
+  - The TITLE BAND is `<h1><a id="tagline" href="https://multiply.by/"><strong>Multiply.by:</strong>
+    ...</a></h1>`, sized to fit by `fitTagline()`, with the share icon and share menu. A gamified
+    game changes the tagline's text, never its link: it always opens the main game,
+    https://multiply.by/, not the gamified game itself.
   - Then the MENU BAR and the FOOTER.
 
 ## G5. Lessons learned
@@ -265,7 +274,7 @@ Use the base file's own names, so the building model ties your changes to its co
   drop the timer, say what replaces "Your time" (monster: stars from the number of mistakes).
 - Name every element id that other rules or checks refer to. Otherwise ids may differ between
   builds (e.g. `win-overlay` / `won-overlay`).
-- The 60 KB limit is for the base game only: a gamified game has no size limit.
+- The 100 KB limit is for the base game only: a gamified game has no size limit.
 - Bigger, more visual reworkings come out better from the strongest models.
 
 ## G6. Checks to write into the CHECKS section

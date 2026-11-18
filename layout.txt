@@ -19,7 +19,8 @@ TITLE BAND (branding, the very top of the page, above the menu bar)
   SITE below):
     <h1><a id="tagline" href="https://multiply.by/"><strong>Multiply.by:</strong> learn the multiplication table</a></h1>
   - THE HEADING IS A LINK TO THE HOME PAGE: tapping or clicking it opens https://multiply.by/ (the
-    game), in the same tab. It looks exactly like plain text: the same blue #2563eb, no underline
+    main game), in the same tab. CRITICAL: this holds on EVERY page and in every custom or gamified
+    game (e.g. /divide/, /monster/, /train/): a game changes the heading's text, never its href. It looks exactly like plain text: the same blue #2563eb, no underline
     (`text-decoration: none`), `color: inherit`, `cursor: pointer`; on hover (desktop) it turns dark
     blue #1e40af.
   - The band is `display: flex; align-items: center; gap: 6px; position: relative;`. The h1 is
@@ -137,13 +138,13 @@ MENU BAR (directly under the title band)
   right corner ('margin-left: auto'). There is no logo.
 - Menu items shared by the pages (each page says which of them it shows, and may add its own):
   - PLAY: a link with the exact text "PLAY": <a href="https://multiply.by/">. It opens the game.
-  - DEMO: a link with the exact text "DEMO": <a href="https://multiply.by/demo/">. It opens the
-    demo page, which plays a short video of the game.
+  - GALLERY: a link with the exact text "GALLERY": <a href="https://multiply.by/gallery/">. It
+    opens the gallery of gamified versions of the game.
   - ABOUT: a link with the exact text "ABOUT": <a href="https://multiply.by/about">.
   - SOURCE: a link with the exact text "SOURCE" to the page's own build instructions (the address
     is given by the page) (NO `download` attribute: the file opens in the browser).
-- THE CURRENT PAGE: the menu item for the page being shown (DEMO on the Demo page, ABOUT on the
-  About page) has `aria-current="page"` and dark blue text #1e40af; it still works as a link.
+- THE CURRENT PAGE: the menu item for the page being shown (GALLERY on the Gallery page, ABOUT on
+  the About page) has `aria-current="page"` and dark blue text #1e40af; it still works as a link.
 - Menu items (everything except SOURCE): no button look, no border, background, box or shadow;
   plain text (or a plain icon) on the white bar. They share one CSS class (for example
   `menu-item`): 'display: flex; align-items: center; height: 100%; padding: 0 5px; margin: 0;
@@ -155,7 +156,9 @@ MENU BAR (directly under the title band)
   background #f9fafb, rounded corners (0.25rem), text 12px bold #374151, no underline,
   'white-space: nowrap', `cursor: pointer`.
 - The whole bar fits on one line on a 360px-wide phone, with nothing cut off: SOURCE ends inside
-  the screen's right edge.
+  the screen's right edge. On screens narrower than 400px (`@media (max-width: 399px)`) the bar
+  has `gap: 0; padding: 0 4px;` and the menu items `padding: 0 3px;`, so the game's six items
+  (MUTE, GALLERY, ABOUT, RULES, RESET, SOURCE) fit even with a wide font.
 - WIDER SCREENS (tablets and computers, where the column is up to 720px wide): inside
   `@media (min-width: 768px) and (min-height: 600px)` the menu bar scales up to match: bar height
   3.25rem; menu items `padding: 0 10px`; text items 17px; SOURCE height 2.25rem, `padding: 0 12px`,

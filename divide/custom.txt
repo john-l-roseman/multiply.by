@@ -73,9 +73,8 @@ this game says Divide.by or divide.by, as listed here:
   2 to 9, up to 12 or up to 20): one tap per answer, against the clock. Free and open source. No
   ads, no sign-up.">
 - Title band heading, exactly:
-  <h1><a id="tagline" href="https://multiply.by/divide/"><strong>Divide.by:</strong> learn division facts</a></h1>
-  (it links to this game, https://multiply.by/divide/; the PLAY items on the other pages still lead
-  to the multiplication game).
+  <h1><a id="tagline" href="https://multiply.by/"><strong>Divide.by:</strong> learn division facts</a></h1>
+  (it links to the main game, https://multiply.by/, like on every page of the site).
 - `shareText()`: https://divide.by/ (2 to 9), https://divide.by/?12 (up to 12) or
   https://divide.by/?20 (up to 20).
 - `siteShareText()`, first line: "Divide.by: learn division facts, fast." for 2 to 9, "Divide.by:

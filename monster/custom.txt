@@ -23,13 +23,13 @@ NAMES, TITLE AND LINKS
   by answering times tables. Stickers, stars and a path to walk, for 2nd and 3rd graders. Free, no
   ads, no sign-up.">
 - Title band heading, exactly:
-  <h1><a id="tagline" href="https://multiply.by/monster/"><strong>Multiply.by:</strong> feed the Multiply Monster</a></h1>
+  <h1><a id="tagline" href="https://multiply.by/"><strong>Multiply.by:</strong> feed the Multiply Monster</a></h1>
+  (it links to the main game, https://multiply.by/, like on every page of the site).
 - `shareText()`: https://multiply.by/monster/ (2 to 9) or https://multiply.by/monster/?easy (the
   easy set). `siteShareText()`, first line: "Multiply Monster: learn the times tables by feeding
   a monster."; the other two lines as before. Email SUBJECT: "Multiply Monster".
-- MENU ITEMS, from left to right: MUTE (the speaker icon), STICKERS, RULES, RESET, then SOURCE in
-  the far right corner. No DEMO and no ABOUT on this page. STICKERS is a <button> with that exact
-  text, the same menu-item class as RULES.
+- MENU ITEMS: exactly the base game's (MUTE, GALLERY, ABOUT, RULES, RESET, then SOURCE in the far
+  right corner). The sticker book opens from the STICKERS button in the game area (STICKER BOOK).
 
 SETS (replaces the three modes)
 - Add these 9 facts to the dataset, after the 120, with ids 121 to 129 (the smaller factor first):
@@ -136,7 +136,12 @@ STICKER BOOK
 - NEW STICKER: when a right answer learns a fact that is not yet in the collection, add it, save,
   and show a toast "New sticker! 🦊" (with that fact's emoji) just above the path: white rounded
   bubble, bold 1rem #7c3aed, sliding up 10px and fading in, staying 1.2s, then fading out.
-- STICKERS (the menu item) opens the sticker book panel, built like the How to Play panel (same
+- STICKERS BUTTON: a <button id="stickers-btn" aria-label="My stickers"> in the game area, in the
+  top-right corner of the MONSTER BOX (which gets `position: relative`; the button
+  `position: absolute; top: 4px; right: 4px;`): a round white
+  button, 2.25rem, a 2px #7c3aed border, showing "📒" and, as a small purple badge, the number of
+  stickers collected. It is outside the answer grid, so tapping it never answers.
+- The STICKERS button opens the sticker book panel, built like the How to Play panel (same
   overlay, backdrop, close button, Escape, and while it is open the answers are ignored, as with
   `state.showInfo`; use `state.showStickers`):
   - Heading "My Stickers" and the count "N of T" (T the number of facts in the set).
@@ -189,7 +194,7 @@ HOW TO PLAY (replaces the four points; the Tables choice and the SOURCE point st
   1. "<strong>Feed Munch:</strong> tap the right answer and Munch eats it."
   2. "<strong>Points:</strong> 10 for a right answer, plus 1 for each right answer in a row. A
      wrong answer costs nothing: Munch shows you the answer with dots."
-  3. "<strong>Stickers:</strong> every fact you learn gives you a sticker. Tap STICKERS to see
+  3. "<strong>Stickers:</strong> every fact you learn gives you a sticker. Tap the 📒 book to see
      them all."
   4. "<strong>Win:</strong> walk the whole path. Fewer mistakes, more stars!"
   5. "<strong>Sound:</strong> the speaker button turns sound on and off."

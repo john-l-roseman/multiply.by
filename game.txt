@@ -105,27 +105,40 @@ IMPORTANT: Do not add any notes at the top or bottom of the HTML file.
 
   - `update()` changes classes, properties and text only. It MUST NOT rebuild the answer buttons.
 
-- THREE MODES (CRITICAL): one page plays one of three sets of tables: 2 to 9 (the default), up to
-  12 (when the page address has the argument `?12`, as in https://multiply.by/?12) or up to 20
-  (`?20`, as in https://multiply.by/?20). The choice is not remembered: on page load only the
-  address decides. Define, with the global constants:
-  `let MODE, GAME_NAME, FACTS, STORAGE_KEY, BEST_KEY;` (MODE is the number 9, 12 or 20)
-  `function factors(f) { return f.text.split(' x ').map(Number); }` (the smaller factor first)
+- FOUR MODES (CRITICAL): one page plays one of four sets of tables: 2 to 9 (the default), both
+  ways (`?both`, as in https://multiply.by/?both: 2 to 9 with every question in both orders, e.g.
+  3 x 4 and 4 x 3), up to 12 (when the page address has the argument `?12`, as in
+  https://multiply.by/?12) or up to 20 (`?20`, as in https://multiply.by/?20). The choice is not
+  remembered: on page load only the address decides. Define, with the global constants:
+  `let MODE, GAME_NAME, FACTS, STORAGE_KEY, BEST_KEY;` (MODE is the number 9, 12 or 20, or the
+  string 'both')
+  `function factors(f) { return f.text.split(' x ').map(Number).sort((a, b) => a - b); }` (the
+  smaller factor first, also for a reversed fact such as "4 x 3")
   `function applyMode(mode) { MODE = mode; GAME_NAME = mode === 9 ? CONFIG.GAME : CONFIG.GAME + mode;`
+  `  const twoToNine = RAW_DATA.filter(f => factors(f)[1] <= 9);`
   `  FACTS = mode === 12 ? RAW_DATA.filter(f => f.id <= 48)`
   `        : mode === 20 ? RAW_DATA.filter(f => factors(f)[0] <= 9)`
-  `        : RAW_DATA.filter(f => factors(f)[1] <= 9);`
+  `        : mode === 'both' ? twoToNine.concat(twoToNine`
+  `            .filter(f => factors(f)[0] !== factors(f)[1])`
+  `            .map(f => ({ id: f.id + 1000, text: f.text.split(' x ').reverse().join(' x '), answer: f.answer })))`
+  `        : twoToNine;`
   `  STORAGE_KEY = 'openlang_' + CONFIG.TARGET_LANGUAGE + '_' + GAME_NAME + '_progress';`
   `  BEST_KEY = 'openlang_' + CONFIG.TARGET_LANGUAGE + '_' + GAME_NAME + '_best_score'; }`
   `const params = new URLSearchParams(window.location.search);`
-  `applyMode(params.has('20') ? 20 : params.has('12') ? 12 : 9);`
-  FACTS holds 36 facts for 2 to 9 (both factors 9 or less), 48 for up to 12 (ids 1 to 48) and 116
-  for up to 20 (every fact whose smaller factor is 9 or less: tables 2 to 20, times 2 to 9).
+  `applyMode(params.has('20') ? 20 : params.has('12') ? 12 : params.has('both') ? 'both' : 9);`
+  FACTS holds 36 facts for 2 to 9 (both factors 9 or less), 64 for both ways (those 36, then the
+  28 of them with two different factors written the other way round, "4 x 3" for "3 x 4", with id
+  = the original id + 1000, so their saved progress never mixes with the 120 ids), 48 for up to
+  12 (ids 1 to 48) and 116 for up to 20 (every fact whose smaller factor is 9 or less: tables 2 to
+  20, times 2 to 9). The squares (2 x 2 ... 9 x 9) are asked only once in both ways.
   Everything in the game (the deck, Learned %, the win check, the "already finished" check at
-  start-up, the wrong answers) uses FACTS. RAW_DATA is read only in applyMode.
-  applyMode also sets `document.title`: 'Multiply.by – Learn Times Tables to 12' for 12,
-  'Multiply.by – Learn Times Tables to 20' for 20, otherwise the page title given in section 2.
-  The name of each set, wherever it is shown: "2 to 9", "Up to 12", "Up to 20".
+  start-up, the wrong answers) uses FACTS. RAW_DATA is read only in applyMode. A reversed fact
+  is a fact like any other: it is shown, answered, saved and practised by its own id, and
+  `wrongAnswers` treats "4 x 3" exactly as "3 x 4" (through `factors`).
+  applyMode also sets `document.title`: 'Multiply.by – Learn Times Tables Both Ways' for both,
+  'Multiply.by – Learn Times Tables to 12' for 12, 'Multiply.by – Learn Times Tables to 20' for
+  20, otherwise the page title given in section 2.
+  The name of each set, wherever it is shown: "2 to 9", "Both ways", "Up to 12", "Up to 20".
 
 - `switchMode(mode)` changes mode in place, WITHOUT loading a page, because a chatbot's sandboxed
   preview cannot navigate. If mode equals MODE, do nothing. Otherwise, in this order:
@@ -376,7 +389,7 @@ IMPORTANT: Do not add any notes at the top or bottom of the HTML file.
       number as the Learned indicator (learned facts of FACTS, or of the practice set during a
       practice), but NOT rounded. `update()` sets the fill's transform and the bar's
       `aria-valuenow` (the rounded percentage) every time, so the bar rises with each right
-      answer (by 1/36 of its height in 2 to 9), stays put on a wrong answer, is full at "You Won!"
+      answer (by 1/36 of its height in 2 to 9, 1/64 in both ways), stays put on a wrong answer, is full at "You Won!"
       and drops back to empty with Play Again, RESET, a new practice or a change of mode.
     - HIDDEN BEFORE THE GAME STARTS: while no answer has been given in this game (no fact learned
       and no mistakes; during a practice, nothing of the practice answered), the bar has
@@ -657,12 +670,13 @@ they are described in SITE LAYOUT, directly after this section 8. On this page:
 - The app container is the PAGE COLUMN: the title band and the menu bar are its first parts, the
   footer its last.
 
-- MENU ITEMS on this page, from left to right: MUTE (the speaker icon), DEMO, ABOUT, RULES (INFO) and
-  RESET, then SOURCE in the far right corner. There is no PLAY item (this page is the game). MUTE,
-  RULES and RESET are only on this page; they use the same menu-item class as DEMO and ABOUT. The
+- MENU ITEMS on this page, from left to right: MUTE (the speaker icon), GALLERY, ABOUT, RULES (INFO)
+  and RESET, then SOURCE in the far right corner. There is no PLAY item (this page is the game) and
+  no DEMO item. MUTE, RULES and RESET are only on this page; they use the same menu-item class as
+  GALLERY and ABOUT. The
   score is NOT in this bar; it is in the INDICATORS next to the question.
 
-- SOURCE on this page: <a href="https://multiply.by/build-instructions.txt">
+- SOURCE on this page: <a href="https://multiply.by/prompt.txt">
 
 - The title band's link (to https://multiply.by/) is outside #game-area: tapping it never starts
   the timer, and the progress is already saved.
@@ -671,7 +685,9 @@ they are described in SITE LAYOUT, directly after this section 8. On this page:
   - Shown in every mode, during play and behind the "You Won!" overlay. It is outside #game-area,
     so tapping it never starts the timer.
   - `shareText()` is the link for the current set (see SHARE MY RESULTS), so the shared message
-    names the set: https://multiply.by/, ?12 or ?20.
+    names the set: https://multiply.by/, ?both, ?12 or ?20. For ?both, the first line of
+    `siteShareText()` is "Multiply.by: learn the multiplication table both ways, fast." (the
+    other sets as in SHARE THE SITE).
   - Answers count on `pointerdown` and the answer buttons are briefly `disabled` after each answer,
     so the share menu's CLOSING ON A PRESS OUTSIDE matters here: a press on an answer while the
     menu is open ONLY closes the menu: it does not answer and does not start the timer.
@@ -729,19 +745,24 @@ INFO: A <button> with the exact text "RULES". Tapping it sets `state.showInfo = 
       Do not add icons, examples or any other explanation to these points.
 
     - After these four points, one more point, which is the MODE CHOICE, exactly:
-      <li class="mode-row"><strong>Tables:</strong> <span class="mode-choice" role="radiogroup" aria-label="Tables"><button type="button" role="radio" data-mode="9">2–9</button><button type="button" role="radio" data-mode="12">Up to 12</button><button type="button" role="radio" data-mode="20">Up to 20</button></span></li>
-      `update()` sets `aria-checked="true"` on the button whose data-mode equals MODE and "false" on
-      the other two. One `click` listener on .mode-choice (event delegation with
-      `e.target.closest('[data-mode]')`) calls `switchMode(parseInt(button.dataset.mode))`; the
+      <li class="mode-row"><strong>Tables:</strong> <span class="mode-choice" role="radiogroup" aria-label="Tables"><button type="button" role="radio" data-mode="9">2–9</button><button type="button" role="radio" data-mode="both">Both ways</button><button type="button" role="radio" data-mode="12">Up to 12</button><button type="button" role="radio" data-mode="20">Up to 20</button></span><span class="mode-note">Both ways: also 4 x 3, not just 3 x 4.</span></li>
+      `update()` sets `aria-checked="true"` on the button whose data-mode equals String(MODE) and
+      "false" on the other three. One `click` listener on .mode-choice (event delegation with
+      `e.target.closest('[data-mode]')`) calls
+      `switchMode(button.dataset.mode === 'both' ? 'both' : parseInt(button.dataset.mode))`; the
       click then also closes the panel as usual, so the player sees the new set at once. Each set
       resumes its own saved progress.
       Look: the li is `display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;`. The
       .mode-choice is a segmented control: `display: inline-flex;` with a 1px #2563eb border,
-      `border-radius: 0.5rem; overflow: hidden;`. Its buttons: `font: inherit; font-size: 0.85rem;
-      font-weight: bold; padding: 0.35rem 0.6rem; border: none; margin: 0; background: white;
+      `border-radius: 0.5rem; overflow: hidden;`. Its buttons: `font: inherit; font-size: 0.8rem;
+      font-weight: bold; padding: 0.35rem 0.4rem; border: none; margin: 0; background: white;
       color: #2563eb; cursor: pointer; white-space: nowrap;`, with a 1px #2563eb left border on the
-      2nd and 3rd. The checked button (`[aria-checked="true"]`): background #2563eb, white text.
-      It fits on a 360px-wide phone.
+      2nd, 3rd and 4th. The checked button (`[aria-checked="true"]`): background #2563eb, white
+      text. The control never wraps inside itself (all four buttons on one line); it may move to
+      its own line under "Tables:". It fits on a 360px-wide phone.
+      The .mode-note explains Both ways: `flex-basis: 100%; font-size: 0.85rem; color: #6b7280;`,
+      on its own line under the control (one line on a 360px phone), shown in every set. The whole panel, with the note,
+      still fits a 360 x 640 phone without scrolling.
 
     - Last point in the list, worded exactly: "Tap SOURCE to see how this game was
       built."
@@ -787,11 +808,12 @@ mistakes, time) and keeps the best score (BEST_KEY) and the sound setting (MUTE_
   spaces them. pwa.js may insert an "Install for offline play" button into this same container,
   right after Play Again; the gap then separates all the buttons evenly. Below that, with a 1.5rem
   gap, one NEXT-LEVEL line (1rem, #374151), depending on MODE:
-    - 9: <div>Ready for more? Try <a href="?12">up to 12</a> or <a href="?20">up to 20</a></div>
+    - 9: <div>Ready for more? Try <a href="?both">both ways</a>, <a href="?12">up to 12</a> or <a href="?20">up to 20</a></div>
+    - both: <div>Ready for more? Try <a href="?12">up to 12</a> or <a href="?20">up to 20</a></div>
     - 12: <div>Ready for more? Try <a href="?20">up to 20</a></div>
     - 20: no line.
-  Clicking a link calls `preventDefault()` and then `switchMode(12)` or `switchMode(20)`, with no
-  page load. The links have NO target attribute and are styled like the footer links (no
+  Clicking a link calls `preventDefault()` and then `switchMode('both')`, `switchMode(12)` or
+  `switchMode(20)`, with no page load. The links have NO target attribute and are styled like the footer links (no
   underline, bold, dark blue #1e40af).
   Below it, in every mode, one DIVISION line recommending the division game for the same set:
     <div class="division-line">Next: learn division at <a href="https://multiply.by/divide/">divide.by</a></div>
@@ -800,7 +822,7 @@ mistakes, time) and keeps the best score (BEST_KEY) and the sound setting (MUTE_
   never the browser's default blue underlined link. Spacing: 0.5rem below the next-level line;
   when there is no next-level line (up to 20), 1.5rem below the buttons, the same gap the
   next-level line has.
-  with href https://multiply.by/divide/ for 2 to 9, https://multiply.by/divide/?12 for up to 12
+  with href https://multiply.by/divide/ for 2 to 9 and both ways, https://multiply.by/divide/?12 for up to 12
   and https://multiply.by/divide/?20 for up to 20 (set by `update()`, so it follows switchMode).
   It is a plain link: no preventDefault, no target, it opens the division game in the same tab.
 
@@ -823,7 +845,7 @@ SHARE MY RESULTS (the "Share my results" button on the "You Won!" screen):
   images):
     - Background #f9fafb. A blue band (#2563eb) across the top, 220px high, with "multiply.by" in
       white bold 96px, and under it in the band "Learn multiplication table" in white 44px.
-    - Below the band: the set, "2 to 9", "Up to 12" or "Up to 20", in #374151 bold 56px.
+    - Below the band: the set, "2 to 9", "Both ways", "Up to 12" or "Up to 20", in #374151 bold 56px.
     - Three results in one row (centers at x = 200, 540 and 880): "TIME" T, "SCORE" X, "MISTAKES" M.
       Each label is `drawText(ctx, label, x, 470, 40, '#6b7280', true)` and each number
       `drawText(ctx, value, x, 590, 110, color, true, 320)` with color #111827 (Mistakes #dc2626
@@ -839,7 +861,7 @@ SHARE MY RESULTS (the "Share my results" button on the "You Won!" screen):
 - Every share also passes the title 'multiply.by results' (some apps use it, for example as an email
   subject; others ignore it).
 - The text sent with the picture is ONLY the link, returned by `shareText()`: https://multiply.by/
-  (2 to 9), https://multiply.by/?12 (up to 12) or https://multiply.by/?20 (up to 20). No sentence,
+  (2 to 9), https://multiply.by/?both (both ways), https://multiply.by/?12 (up to 12) or https://multiply.by/?20 (up to 20). No sentence,
   no results: the picture shows them.
 - WHERE IT SHOWS: only on touch devices that can share files. At start-up set
   `const CAN_SHARE = matchMedia('(pointer: coarse)').matches && !!navigator.canShare;`
@@ -995,7 +1017,7 @@ generated dataset, the shuffled deck, `wrongAnswers` and `CONFIG`.
   say, 126, 146 and 156).
 
 - Title band and share icon: as in CHECKS FOR THE SITE LAYOUT. On this page the share link is
-  the current set's (https://multiply.by/, ?12 or ?20), and neither the share icon nor the
+  the current set's (https://multiply.by/, ?both, ?12 or ?20), and neither the share icon nor the
   title link starts the timer.
 
 - Animations after a right answer: the tapped answer pops (grows a little and settles) while it is
@@ -1040,7 +1062,7 @@ generated dataset, the shuffled deck, `wrongAnswers` and `CONFIG`.
 - Reset: one tap on RESET starts the current set from scratch at once, with no confirmation (score
   0, Learned 0%, Mistakes 0, Time 0:00), keeping the best score.
 
-- Header buttons and links work on phones: the speaker button, DEMO, ABOUT, RULES, SOURCE, the How to
+- Header buttons and links work on phones: the speaker button, GALLERY, ABOUT, RULES, SOURCE, the How to
   Play panel, RESET, "Play Again", the Tables choice and the next-level links on the "You Won!"
   screen respond to a normal tap.
 
@@ -1058,15 +1080,20 @@ generated dataset, the shuffled deck, `wrongAnswers` and `CONFIG`.
 - Answer times: after each answer, the saved progress has one more `{ ms, right }` entry under that
   fact's id in answerLog, with ms the playing time the answer took.
 
-- Three modes: the page address without an argument plays 36 facts (no factor above 9), with `?12`
-  48 (ids 1 to 48) and with `?20` 116 (smaller factor 9 or less, larger up to 20, e.g. 8 x 17).
+- Four modes: the page address without an argument plays 36 facts (no factor above 9), with
+  `?both` 64 (those 36 plus the 28 with two different factors the other way round: both 3 x 4 and
+  4 x 3 come up, 7 x 7 only once), with `?12` 48 (ids 1 to 48) and with `?20` 116 (smaller factor
+  9 or less, larger up to 20, e.g. 8 x 17). A reversed fact ("4 x 3") has the same wrong answers
+  as its original.
   The Tables choice in How to Play shows the current set and tapping another changes to it at once
   with no page load, also in a chatbot's sandboxed preview. Each mode keeps its own saved progress
   and best score across reloads, and Play Again stays in its mode; the sound setting is shared. On
   page load the address alone decides the mode. The next-level line on the "You Won!" screen
-  offers up to 12 and up to 20 after 2 to 9, up to 20 after up to 12, and nothing after up to 20.
+  offers both ways, up to 12 and up to 20 after 2 to 9, up to 12 and up to 20 after both ways, up
+  to 20 after up to 12, and nothing after up to 20. How to Play shows the four Tables buttons on
+  one line and the Both ways note, and fits a 360 x 640 phone without scrolling.
   Under it, in every mode, "Next: learn division at divide.by" opens the division game in the
-  same set (/divide/, /divide/?12 or /divide/?20).
+  same set (/divide/ for 2 to 9 and both ways, /divide/?12 or /divide/?20).
 - Sound effects: sound is ON by default: on a first visit the speaker shows the sound waves, and
   from the first tap on (phones allow sound only after a touch) a right answer, a wrong answer and
   winning each play their own short sound, on phones as well as on desktop. The right-answer chime

@@ -1,9 +1,10 @@
 #!/bin/bash
 # Write a page's complete build instructions to stdout: the page's own spec (for example
 # game.txt or about/about.txt) with its one "#include layout.txt" line replaced by the site's
-# shared layout.txt (title band, share icon, menu bar, footer).
+# shared layout.txt (title band, share icon, menu bar, footer), and its "#include footer.txt"
+# line, if it has one, by footer.txt (the two-column site info block of About and Gallery).
 #
-# Usage: assemble-spec PAGE.txt > build-instructions.txt
+# Usage: assemble-spec PAGE.txt > prompt.txt
 
 ROOT=$(cd "$(dirname "$0")" && pwd)
 PAGE=$1
@@ -11,4 +12,8 @@ if [ ! -f "$PAGE" ]; then echo "assemble-spec: no file \"$PAGE\"" >&2; exit 1; f
 if [ "$(grep -c '^#include layout\.txt$' "$PAGE")" != 1 ]; then
 	echo "assemble-spec: $PAGE needs exactly one \"#include layout.txt\" line" >&2; exit 1
 fi
-sed -e '/^#include layout\.txt$/{r '"$ROOT/layout.txt" -e 'd}' "$PAGE"
+if [ "$(grep -c '^#include footer\.txt$' "$PAGE")" -gt 1 ]; then
+	echo "assemble-spec: $PAGE may have at most one \"#include footer.txt\" line" >&2; exit 1
+fi
+sed -e '/^#include layout\.txt$/{r '"$ROOT/layout.txt" -e 'd}' \
+	-e '/^#include footer\.txt$/{r '"$ROOT/footer.txt" -e 'd}' "$PAGE"

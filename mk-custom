@@ -2,7 +2,7 @@
 # Build a custom game in the current directory, a folder of the site (for example
 # /var/www/multiply.by/chinese, served at https://multiply.by/chinese/).
 #
-# build-instructions.txt is the main (four-answer) game's spec ($ROOT/game.txt, with the
+# prompt.txt is the main (four-answer) game's spec ($ROOT/game.txt, with the
 # site's shared layout.txt put in by assemble-spec) with custom.txt from this directory
 # inserted after the Note for Human Readers (at the first blank line), under a line
 # saying it overrides the rest. GAME is set to the folder name so
@@ -35,7 +35,7 @@ fi
 if [ "`grep -c '^- GAME: ' "$SPEC"`" != 1 ]; then
 	echo "$SPEC needs exactly one \"- GAME: \" line"; exit 1
 fi
-if [ "`grep -c 'https://multiply.by/build-instructions.txt' "$SPEC"`" != 1 ]; then
+if [ "`grep -c 'https://multiply.by/prompt.txt' "$SPEC"`" != 1 ]; then
 	echo "$SPEC needs exactly one SOURCE link"; exit 1
 fi
 
@@ -49,7 +49,7 @@ fi
 # Served files are written under a temporary name and renamed into place, so
 # a visitor never gets a half-written page.
 $ROOT/assemble-spec "$SPEC" | sed -e "s/^- GAME: .*/- GAME: $NAME/" \
-	-e "s#https://multiply.by/build-instructions.txt#https://multiply.by/$REL/build-instructions.txt#" |
+	-e "s#https://multiply.by/prompt.txt#https://multiply.by/$REL/prompt.txt#" |
 awk -v input="$INPUT" '
 	{ print }
 	!done && /^$/ {
@@ -57,16 +57,16 @@ awk -v input="$INPUT" '
 		while ((getline line < input) > 0) print line
 		done = 1
 	}
-' > build-instructions.txt.tmp || exit 1
-mv build-instructions.txt.tmp build-instructions.txt
+' > prompt.txt.tmp || exit 1
+mv prompt.txt.tmp prompt.txt
 
 date
 if [ -n "$CLAUDE_MODEL" ]; then
 	ANTHROPIC_API_KEY="$(cat "$HOME/.anthropic_key")" python3.10 "$ROOT/about/run-claude.py" \
 		--model "$CLAUDE_MODEL" --effort "${MK_EFFORT:-high}" \
-		build-instructions.txt index.html.tmp || exit 1
+		prompt.txt index.html.tmp || exit 1
 else
-	python3.10 /var/www/openlang.ai/SCRIPTS/run-vertex.py build-instructions.txt index.html.tmp || exit 1
+	python3.10 /var/www/openlang.ai/SCRIPTS/run-vertex.py prompt.txt index.html.tmp || exit 1
 fi
 date
 

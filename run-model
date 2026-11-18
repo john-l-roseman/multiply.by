@@ -1,0 +1,63 @@
+#!/usr/bin/env python3.10
+"""Build a page from its complete build instructions with the model named in ./model.
+
+Usage: run-model SPEC OUT     (e.g. run-model prompt.txt build/index.html)
+
+The "model" file in the current folder holds one word: a short name (carbon, fable, opus, gpt,
+kimi) or a full model id, as for mk-gamify. The model calls (Vertex AI for gemini-..., OpenRouter
+for an id with a "/", otherwise Claude), the continuation of a Gemini answer cut at 65,536 tokens
+and the cost report are mk-gamify's, imported from it. SPEC is sent as the prompt with one line
+asking for the page only; the answer's <!DOCTYPE html> ... </html> is written to OUT, and a note
+about the build (model, tokens, cost, time) to OUT's folder as build.txt. MK_EFFORT as in mk-gamify.
+"""
+import importlib.machinery
+import importlib.util
+import os
+import re
+import sys
+import time
+
+ROOT = os.path.dirname(os.path.abspath(__file__))
+loader = importlib.machinery.SourceFileLoader("mk_gamify", f"{ROOT}/mk-gamify")
+spec = importlib.util.spec_from_loader("mk_gamify", loader)
+mk = importlib.util.module_from_spec(spec)
+loader.exec_module(mk)
+
+if len(sys.argv) != 3:
+    sys.exit("usage: run-model SPEC OUT")
+src, out = sys.argv[1:]
+if not os.path.isfile("model"):
+    mk.die('no "model" file in this folder: write the model in it, e.g. carbon or fable')
+words = mk.read("model").split()
+if len(words) != 1:
+    mk.die('"model" must hold one model name, e.g. carbon or fable')
+mk.MODEL = mk.SHORT_NAMES.get(words[0].lower(), words[0])
+if "/" not in mk.MODEL and not mk.MODEL.startswith(("gemini", "claude")):
+    mk.die(f'unknown model "{words[0]}" in "model"')
+
+text = (mk.read(src).strip() + "\n\n\nBuild the page these instructions describe. Answer with "
+        "the complete standalone index.html only, from <!DOCTYPE html> to </html>: no "
+        "commentary, no markdown code fences, no placeholders, nothing left out.\n")
+start = time.time()
+call = (mk.call_openrouter if "/" in mk.MODEL else
+        mk.call_gemini if mk.MODEL.startswith("gemini") else mk.call_claude)
+answer = call(text)
+
+html = re.sub(r"```[a-zA-Z]*", "", answer.strip())
+m = re.search(r"<!DOCTYPE\s+html>|<html", html, re.I)
+end = html.lower().rfind("</html>")
+if not m or end < m.start():
+    mk.fail(answer, "the answer has no <!DOCTYPE html> ... </html>; nothing written")
+html = html[m.start():end + len("</html>")]
+
+os.makedirs(os.path.dirname(out) or ".", exist_ok=True)
+mk.write_atomic(out, html + "\n")
+mk.write_atomic(os.path.join(os.path.dirname(out) or ".", "build.txt"), "\n".join([
+    f"Model: {mk.MODEL} (effort {mk.EFFORT})",
+    f"Built: {time.strftime('%Y-%m-%d %H:%M %Z')}",
+    *mk.REPORT,
+    f"Time: {(time.time() - start) / 60:.1f} minutes",
+    f"{os.path.basename(out)}: {os.path.getsize(out):,} bytes",
+]) + "\n")
+print(f"Built {out} ({os.path.getsize(out):,} bytes) with {mk.MODEL} in "
+      f"{(time.time() - start) / 60:.1f} minutes", file=sys.stderr)

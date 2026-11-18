@@ -1,0 +1,192 @@
+Create a web page using a modern minimalist layout.
+Build one standalone HTML file (index.html): plain HTML, CSS and JavaScript, no libraries, nothing
+loaded from any server except the screenshots, the prompt.txt and build.txt files and the game pages below (read for their names). All CSS in one <style> in the <head>, all
+code (if any) in one plain <script> at the end of the <body>.
+
+<title>Gallery – Multiply.by: Gamified Times Tables Games</title>
+In the <head>, directly after the title, include exactly: <meta name="description" content="Multiply.by and gamified versions of it, each built by an AI model: the base game from its build instructions, the others from a short prompt: trains, a monster to feed, dinosaurs, a space journey, Chinese mythology, a robot workshop, the history of flight.">
+In the <head>, include exactly: <meta name="viewport" content="width=device-width, initial-scale=1">
+In the <head>, include exactly: <link rel="icon" type="image/svg+xml" href="/icon.svg"> (the app's icon in the browser tab).
+
+The page has the site's frame, described in SITE LAYOUT below: the title band, the menu bar, this
+page's content (the gallery), the site info (SITE INFO below) and the footer.
+- MENU ITEMS on this page, from left to right: PLAY, GALLERY (the current page: dark blue, with
+  `aria-current="page"`), ABOUT, then SOURCE in the far right corner. PLAY is the way back to the game: the page also opens inside the installed app, where
+  iPhone shows no back button.
+- SOURCE on this page: <a href="https://multiply.by/gallery/prompt.txt">
+- Page background light gray (#f3f4f6).
+- The page column is a flex column at least as tall as the screen (`min-height: 100vh`, and
+  `min-height: 100dvh` after it): title band, menu bar, the gallery, then the site info and the
+  footer pushed to the bottom of the screen (`margin-top: auto` on the site info). The page scrolls normally.
+- On this page only, the PAGE COLUMN is wider on laptops and wider screens
+  (`@media (min-width: 1024px)`): `width: min(1120px, 94vw)` (overriding the layout's 720px
+  column, for the title band, menu bar, site info and footer too).
+
+<header>Gallery</header>
+<tagline>The base game and gamified versions of it. Build your own, starting from a simple prompt.</tagline>
+The header and tagline sit above the grid, left-aligned with it, 16px below the menu bar. Header:
+bold, about 1.75rem, near-black (#111827). The tagline is directly under it (it may wrap on phones):
+normal weight, slightly smaller than body text, muted gray (#6b7280).
+
+THE GRID
+- The games, in the order of GAMES below, each in its own CARD, in a CSS grid with 16px gaps and
+  12px of space at the sides:
+  - Phones (narrower than 640px): one column.
+  - Tablets (640px to 1023px): two columns (`grid-template-columns: repeat(2, 1fr)`).
+  - Laptops and wider (`@media (min-width: 1024px)`): three columns.
+- CARD: white, a 1px #e5e7eb border, 12px rounded corners, a soft shadow (0 1px 3px
+  rgba(0,0,0,0.1)), padding 16px, a flex column with 12px gaps. Cards in one row are equally tall
+  (the grid stretches them); the prompt box (below) grows to fill the extra height.
+- Inside each card, from top to bottom:
+  1. NAME: the game's name as an <h2> (bold, 1.25rem, #111827, no margin), a link to the game
+     (no underline, color inherited; dark blue #1e40af on hover).
+     The name is READ FROM THE GAME'S LIVE PAGE EACH TIME THE GALLERY OPENS (CRITICAL: so a rebuilt
+     game that names itself differently shows its new name at once, with no rebuild of the
+     gallery), alongside the other fetches: `fetch(GAME_ADDRESS, { cache: 'no-cache' })`, the
+     answer parsed with `new DOMParser().parseFromString(html, 'text/html')`, and its <title>'s
+     text taken (the title as written in the page's HTML: no script of the game ever runs).
+     - THE NAME FROM THE TITLE: split the title at every " – ", " — ", " | " and ": "; drop the
+       parts that are only "Multiply.by"; take the first part left, remove the word "Multiply.by"
+       from it and trim. Examples: "Multiply.by – Railway Rush Times Tables" gives "Railway Rush
+       Times Tables"; "Multiply Monster – Multiply.by" gives "Multiply Monster"; "Multiply.by
+       Dinosaurs: learn the multiplication table" gives "Dinosaurs"; "Cosmic Multiplication
+       Odyssey | Multiply.by" gives "Cosmic Multiplication Odyssey".
+     - Until the page arrives, and if it fails (no answer, a status other than 200, or no name
+       left), the card uses the FALLBACK NAME in GAMES below.
+     - The name is used everywhere the card says NAME: the <h2>, the screenshot's alt text
+       ("Screenshot of NAME") and "Play NAME →". Set as text (`textContent`), never as HTML.
+     - THE BASE GAME is not read: its name is always "Multiply.by".
+  2. SCREENSHOT: the game's screenshot, a link to the game too:
+     <a href="GAME ADDRESS"><img src="SCREENSHOT" alt="Screenshot of NAME" width="412" height="732" loading="lazy"></a>
+     The image is a phone screen (412 x 732, portrait). It fills the card's width (`width: 100%;
+     height: auto; display: block;`, no max-width), with a 1px #e5e7eb border and 12px rounded
+     corners, so it reads as a phone screen.
+  3. FACTS: one line, 0.875rem, #374151: "Model: " then the model name in bold, then " · ", then
+     "Build time: " and the time in bold. On a narrow card the line may wrap after the " · ".
+     Both are READ FROM THE GAME'S build.txt EACH TIME THE PAGE OPENS (CRITICAL: never written
+     into the page, so a rebuild of the game shows at once): `fetch(BUILD_TXT_ADDRESS,
+     { cache: 'no-cache' })`, alongside the prompt.txt fetch. build.txt is plain text, one
+     "Label: value" per line, e.g.:
+       Model: gemini-4-carbon (effort high)
+       Built: 2026-11-16 13:42 +03
+       Tokens: 110,862 in, 85,562 out (of which 36,896 thinking) in 2 round(s); cost $1.08
+       Time: 23.1 minutes
+       index.html: 106,102 bytes
+     - MODEL: the "Model:" line's value up to the first space (the model id), lowercased, with any
+       maker's prefix up to a "/" removed (openai/gpt-6.1-terra and gpt-6.1-terra are the same
+       id). Shown by its name: gemini-4-carbon "Gemini 4 Carbon", claude-fable-5-2 "Claude Fable
+       5.2", claude-opus-5-5 "Claude Opus 5.5", gpt-6.1-terra "GPT-6.1 Terra", gpt-6.1-terra-pro
+       "GPT-6.1 Terra Pro", gpt-6.2-astra "GPT-6.2 Astra", gpt-6.2-astra-pro "GPT-6.2 Astra Pro",
+       gpt-6.2-sol "GPT-6.2 Sol", gpt-6.2-sol-pro "GPT-6.2 Sol Pro", kimi-k3.1-pro "Kimi K3.1
+       Pro"; any other id is shown as it is written (with its prefix).
+     - BUILD TIME: the number of the "Time:" line (minutes, with a decimal), rounded to whole
+       minutes: "23 minutes" ("1 minute" for 1). No "Time:" line: "not recorded".
+     - While build.txt loads, both values show "…"; if it fails (no answer, or a status other
+       than 200), both show "not recorded".
+  4. PROMPT: a small label "Prompt" (0.75rem, uppercase, letter-spaced, #6b7280),
+     linked to the game's prompt.txt (same color, no underline; dark blue on hover). Under it, a
+     <div class="prompt"> with the game's prompt.txt, READ FROM THE SITE EACH TIME THE PAGE OPENS (CRITICAL: the
+     text is never written into the page; the person edits prompt.txt and the gallery shows the
+     new text at once, with no rebuild):
+     - At start-up, for each card, `fetch(GAME_TXT_ADDRESS, { cache: 'no-cache' })` (all cards
+       at once, each on its own). While it loads, the box shows "Loading…" in #6b7280.
+     - When it arrives, the box shows the text as ONE flowing paragraph: a line break in the
+       file is NOT a line break on the page. Every line break (and every blank line) becomes a
+       single space, and runs of spaces become one, so the text wraps only to fit the card:
+       `text.trim().split(/\s+/).join(' ')`. The words themselves are shown exactly as they are,
+       nothing else changed. Build it from
+       text nodes (`textContent`, `createTextNode`), never `innerHTML`: prompt.txt is plain text.
+       Web addresses in it are plain text like the rest: NOT links, not colored or underlined.
+     - If it fails (no answer, or a status other than 200), the box shows "The prompt could not be
+       loaded:" and a link "open prompt.txt" to the address, in #6b7280.
+     - The box: `white-space: normal; overflow-wrap: anywhere;` (it wraps inside the card,
+       never widens it), monospace at 0.8125rem, line-height 1.45, #111827 on #f9fafb, a 1px
+       #e5e7eb border, 8px rounded corners, padding 10px 40px 10px 12px (room on the right for
+       the copy button), `margin: 0; flex: 1; position: relative;`.
+     - COPY BUTTON: a small icon button in the box's top right corner (`position: absolute; top:
+       4px; right: 4px;`): a <button type="button" aria-label="Copy prompt" title="Copy prompt">
+       holding an inline SVG copy icon (two overlapping rounded squares, 16px, stroke
+       currentColor, no fill), #6b7280, transparent background, no border, 32 x 32px, 6px rounded
+       corners; #e5e7eb background and #111827 icon on hover and focus. It copies the prompt
+       EXACTLY AS IN THE FILE (the fetched text with its line breaks, only trimmed at both ends;
+       not the one-paragraph version shown), with `navigator.clipboard.writeText`; where that is
+       missing or fails, it copies through a hidden <textarea> and `document.execCommand('copy')`.
+       After copying, the icon turns into a check mark (green #15803d) and the title and
+       aria-label say "Copied" for 1.5 seconds, then turn back. While the prompt loads the
+       button is disabled (40% opacity); if loading fails it is hidden.
+     THE BASE GAME has no short prompt: its label is "Prompt", linked to its complete prompt
+     (the prompt.txt address below), and its box (the same box, same look) holds exactly this text, as one paragraph like the
+     others: "Base game, no custom gamification. To see the actual prompt, select the SOURCE
+     button on the game." The base game's box has no copy button (and no room kept for one:
+     its right padding is 12px).
+  5. PLAY: a link "Play NAME →" to the game (bold, dark blue #1e40af, no underline), at the
+     bottom of the card.
+
+GAMES (the data for the cards, in this order; the name after each "- " is the FALLBACK NAME, see
+NAME; the screenshots are files in this folder; the
+prompts are read from the prompt.txt addresses, see PROMPT; the model and build time from the
+build.txt addresses, see FACTS)
+- Multiply.by (THE BASE GAME: the first card)
+  - Game address: https://multiply.by/
+  - Screenshot: /gallery/base.png
+  - build.txt address: https://multiply.by/build/build.txt
+  - prompt.txt address: https://multiply.by/prompt.txt
+  - Its prompt.txt is not shown in the box (see THE BASE GAME above).
+- Multiply Express
+  - Game address: https://multiply.by/train/
+  - Screenshot: /gallery/train.png
+  - build.txt address: https://multiply.by/train/build.txt
+  - prompt.txt address: https://multiply.by/train/prompt.txt
+- Multiply Monster
+  - Game address: https://multiply.by/monster/
+  - Screenshot: /gallery/monster.png
+  - build.txt address: https://multiply.by/monster/build.txt
+  - prompt.txt address: https://multiply.by/monster/prompt.txt
+- Dino Multiply
+  - Game address: https://multiply.by/dino/
+  - Screenshot: /gallery/dino.png
+  - build.txt address: https://multiply.by/dino/build.txt
+  - prompt.txt address: https://multiply.by/dino/prompt.txt
+- Space Journey
+  - Game address: https://multiply.by/space/
+  - Screenshot: /gallery/space.png
+  - build.txt address: https://multiply.by/space/build.txt
+  - prompt.txt address: https://multiply.by/space/prompt.txt
+- Chinese Multiply
+  - Game address: https://multiply.by/chinese/
+  - Screenshot: /gallery/chinese.png
+  - build.txt address: https://multiply.by/chinese/build.txt
+  - prompt.txt address: https://multiply.by/chinese/prompt.txt
+- Robot Workshop
+  - Game address: https://multiply.by/robot/
+  - Screenshot: /gallery/robot.png
+  - build.txt address: https://multiply.by/robot/build.txt
+  - prompt.txt address: https://multiply.by/robot/prompt.txt
+- Multiply Flight
+  - Game address: https://multiply.by/plane/
+  - Screenshot: /gallery/plane.png
+  - build.txt address: https://multiply.by/plane/build.txt
+  - prompt.txt address: https://multiply.by/plane/prompt.txt
+
+CHECKS
+- Eight cards in the order above: one column at 360px, two at 768px, three at 1280px (the
+  seventh and eighth start a third row), with no sideways scroll at any width and nothing cut off.
+- Each card shows its name, screenshot, the model and build time line, and its prompt.txt text as
+  read from the site, as one flowing paragraph: no line breaks from the file, the words joined
+  by single spaces (the base game: "Base game, no custom gamification. To see the actual prompt,
+  select the SOURCE button on the game."); the name, the screenshot and "Play …" all open the game.
+- Card names as read from the live pages: Railway Rush Times Tables, Multiply Monster,
+  Dinosaurs, Cosmic Multiplication Odyssey, Xiao Jiu Jiu Craft; the base game: Multiply.by.
+- No links inside the prompt boxes. Each game's copy button puts its prompt.txt text, with the
+  file's line breaks, on the clipboard and shows the check mark; the base game has no copy button.
+- The page passes with the screenshots missing too: each image keeps its 412:732 space (its width
+  and height attributes) and shows its alt text.
+- After a prompt.txt or build.txt is changed on the site, reloading the gallery shows the new
+  text, model and build time, with no rebuild.
+
+#include footer.txt
+
+#include layout.txt
+
+------
+Copyright (c) 2026 Functional AI Inc. Published under the MIT License.

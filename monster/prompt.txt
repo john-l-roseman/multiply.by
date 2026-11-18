@@ -1,0 +1,7 @@
+The player feeds a friendly monster: every right answer flies into its mouth.
+At each level achieved, the monster evolves into something smarter.
+Add a sticker book, gentle mistakes with a dot picture.
+
+Details at https://multiply.by/gamify.txt
+Your deliverable is a complete, playable, standalone index.html file 
+that I can download and open in my browser.

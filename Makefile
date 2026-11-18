@@ -1,26 +1,27 @@
-SPEC  = build-instructions.txt
+SPEC  = prompt.txt
 PWA   = PWA-build.txt
 FILES = manifest.webmanifest sw.js pwa.js icon.svg og-image.svg
 ICONS = icon-192.png icon-512.png
 
 all: gamify.txt index.html $(FILES) $(ICONS) og-image.png
 
-# The game's complete build instructions (the file SOURCE links to): game.txt with the
+# The game's complete prompt (prompt.txt, the file SOURCE links to): game.txt with the
 # site's shared layout.txt put in at its "#include layout.txt" line.
 $(SPEC): game.txt layout.txt assemble-spec
 	./assemble-spec game.txt > $(SPEC).tmp
 	mv $(SPEC).tmp $(SPEC)
 
 # One file for building a GAMIFIED game in any chatbot: gamify.md (as plain text) followed by
-# the base build instructions. No AI model involved.
+# the base game's complete prompt. No AI model involved.
 gamify.txt: gamify.md $(SPEC) gamify-txt.py
 	python3 gamify-txt.py gamify.md $(SPEC) > gamify.txt.tmp
 	mv gamify.txt.tmp gamify.txt
 
-# The plain game page, built from build-instructions.txt (no PWA).
-build/index.html: $(SPEC)
+# The plain game page, built from prompt.txt (no PWA) by the model named in the
+# file "model" (carbon, fable, ...; see run-model).
+build/index.html: $(SPEC) model run-model
 	mkdir -p build
-	python3.10 /var/www/openlang.ai/SCRIPTS/run-vertex.py $(SPEC) build/index.html
+	./run-model $(SPEC) build/index.html
 
 # PWA files, copied verbatim from PWA-build.txt.
 $(FILES) &: $(PWA) extract-files.py
@@ -36,8 +37,8 @@ build/pwa-head.html: $(PWA) extract-files.py
 index.html: build/index.html build/pwa-head.html check-scripts.py
 	test "$$(grep -c "</head>" build/index.html)" = 1
 	sed "/<\/head>/e cat build/pwa-head.html" build/index.html > index.html.tmp
-	@size=$$(wc -c < index.html.tmp); if [ $$size -ge 60000 ]; then \
-	  echo "WARNING: index.html is $$size bytes; the About page says less than 60 KB"; fi
+	@size=$$(wc -c < index.html.tmp); if [ $$size -ge 100000 ]; then \
+	  echo "WARNING: index.html is $$size bytes; the About page says less than 100 KB"; fi
 	python3 check-scripts.py index.html.tmp
 	mv index.html.tmp index.html
 

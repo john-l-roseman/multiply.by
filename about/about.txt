@@ -9,15 +9,15 @@ In the <head>, include exactly: <meta name="viewport" content="width=device-widt
 In the <head>, include exactly: <link rel="icon" type="image/svg+xml" href="/icon.svg"> (the app's icon in the browser tab).
 
 The page has the site's frame, described in SITE LAYOUT below: the title band, the menu bar, this
-page's content in a card, and the footer.
-- MENU ITEMS on this page, from left to right: PLAY, DEMO, ABOUT (the current page: dark blue, with
+page's content in a card, the site info (SITE INFO below) and the footer.
+- MENU ITEMS on this page, from left to right: PLAY, GALLERY, ABOUT (the current page: dark blue, with
   `aria-current="page"`), then SOURCE in the far right corner. PLAY is the way back to the game:
   the page also opens inside the installed app, where iPhone shows no back button.
-- SOURCE on this page: <a href="https://multiply.by/about/build-instructions.txt">
+- SOURCE on this page: <a href="https://multiply.by/about/prompt.txt">
 - The page column is a flex column at least as tall as the screen (`min-height: 100vh`, and
-  `min-height: 100dvh` after it): title band, menu bar, the card, then the footer pushed to the
-  bottom of the screen (`margin-top: auto`). On a tall screen the gray background shows between the
-  card and the footer; on a short screen the page scrolls normally.
+  `min-height: 100dvh` after it): title band, menu bar, the card, then the site info and the
+  footer pushed to the bottom of the screen (`margin-top: auto` on the site info). On a tall screen
+  the gray background shows between the card and the site info; on a short screen the page scrolls normally.
 
 <header>About Multiply.by</header>
 <tagline>A quick, focused way to learn the multiplication table.</tagline>
@@ -47,8 +47,8 @@ Adaptive layout (the page fits phones, tablets and laptops):
   The header and tagline stay above, spanning all three columns. Wrap the three sections in one
   element (e.g. <div class="sections">) so the grid applies to them alone.
   To give the columns room, on this page only the PAGE COLUMN is wider on these screens:
-  `width: min(960px, 94vw)` (overriding the layout's 720px column, for the title band, menu bar
-  and footer too), and the card fills the column's width (no 480px max-width).
+  `width: min(960px, 94vw)` (overriding the layout's 720px column, for the title band, menu bar,
+  site info and footer too), and the card fills the column's width (no 480px max-width).
 
 <subheader>Functionality</subheader>
   o Designed for maximum learning speed.
@@ -56,15 +56,15 @@ Adaptive layout (the page fits phones, tablets and laptops):
   o Install for offline use.
   o Learn <a href="https://multiply.by/divide/">division</a>, too.
 
-<subheader>Minimalism</subheader>
-  o No sign-up, zero cost.
+<subheader>Zero Friction + Adaptability</subheader>
+  o No sign-up, no cost.
   o No ads or trackers in the game.
-  o Minimal visual clutter.
-  o The game weighs less than 60 KB.
+  o Minimal clutter in the base game.
+  o Make your own version.
 
 <subheader>Transparency</subheader>
   o Open source: free to copy, change and share.
-  o <a href="/build-instructions.txt">See exactly how the game was built.</a>
+  o <a href="/prompt.txt">See exactly how the game was built.</a>
   o Build it yourself, using your favorite AI model.
 
 MORE ABOUT THE SITE (below the three sections, inside the same card)
@@ -77,7 +77,7 @@ MORE ABOUT THE SITE (below the three sections, inside the same card)
 
 <h2>How the site was built</h2>
 Every page has a SOURCE button in the upper right corner. It opens the page's
-<code>build-instructions.txt</code>: the plain-text prompt given to an AI model, which
+<code>prompt.txt</code>: the plain-text prompt given to an AI model, which
 writes the single file <code>index.html</code> that your browser shows. (Despite its name, the
 game's <code>index.html</code> is mostly JavaScript and CSS: only about a tenth of it is HTML.)
 The build instructions were developed over hundreds of hours of human design, testing and debugging. 
@@ -94,7 +94,7 @@ with open-weights models like Kimi. On cheaper models some glitches can be expec
 
 <h2>Scalability</h2>
 The site is static, with no accounts and no server code, so it can cheaply handle large loads.
-The game is a single file of less than 60 KB: it loads quickly even on a slow connection
+The game is a single file of less than 100 KB: it loads quickly even on a slow connection
 and costs almost nothing to serve. Once installed, it runs offline, and the number of players can
 grow without slowing the site down.
 
@@ -106,6 +106,8 @@ say a pledge of allegiance every morning, or sing the national anthem.
 But there is one memorization task that is the same everywhere: the multiplication table. 
 Children learn it at least up to 9; in Britain they go <a href="https://multiply.by/?12">up to 12</a>, and in India often
 <a href="https://multiply.by/?20">up to 20</a>.
+
+#include footer.txt
 
 #include layout.txt
 

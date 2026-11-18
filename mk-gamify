@@ -1,21 +1,29 @@
 #!/usr/bin/env python3.10
 """Build a GAMIFIED game in the current directory, a folder of the site (for example
-/var/www/multiply.by/train, served at https://multiply.by/train/), from a short request.
+/var/www/multiply.by/train, served at https://multiply.by/train/), from a short prompt.
 
-game.txt in this folder is the request, a few lines such as "a gamified version with a train
-motif" (not the site's game.txt, the base spec). It is sent
-to Claude (Fable 5.2 by default) as the prompt, with these files attached so the model needs
-nothing from the web:
-  - gamify.md, the guide for gamified versions (also served at https://multiply.by/gamify.md);
-  - the base build instructions (the site's game.txt with layout.txt put in by assemble-spec),
-    with GAME set to the folder name and SOURCE to this folder's game.txt (the request);
-  - monster/custom.txt, the CUSTOMIZATION section of Multiply Monster, the worked example.
-The model writes a CUSTOMIZATION section (the design) and then the game. The script saves:
-  - customization.txt: the design;
-  - index.html: the game, after check-scripts.py has passed it. Its SOURCE button opens game.txt.
+prompt.txt in this folder is the prompt, a few lines such as "a gamified version with a train
+motif", written as a person would type it into a chat (claude.ai, ChatGPT, Gemini), with a link
+to https://multiply.by/gamify.txt. The build does EXACTLY what such a chat does, so a build that
+passes here shows that the prompt and gamify.txt work as published:
+  - the model gets prompt.txt word for word, followed by the full text of each multiply.by file
+    the prompt links to (as if the chat had fetched it in full): nothing else. No instructions
+    from this script, no preset SOURCE or GAME, no worked example, no answer format.
+  - from the answer, the page (<!DOCTYPE html> ... </html>) becomes index.html; whatever the
+    model wrote before it (its CUSTOMIZATION design, if it followed gamify.md) is saved as
+    customization.txt.
+  - the page is checked, never changed: its scripts must parse (check-scripts.py) and its SOURCE
+    must open this game's prompt.txt; a page that fails is not published. A GAME name shared with
+    another game on the site (shared saved progress) is reported.
+The only thing added to the conversation is mechanical: Gemini 4 Carbon stops each answer at
+65,536 tokens and is asked to continue.
+It also keeps a copy of each build in a subfolder named after the model (e.g. train/carbon/,
+served at https://multiply.by/train/carbon/), so a build with another model doesn't replace it:
+index.html, customization.txt and build.txt (model, date, tokens, cost, time, size). The folder's
+own index.html is always the latest build, with its build.txt beside it.
 Served files are written under a temporary name and renamed into place. If index.html is newer
-than this game.txt, model, gamify.md, the site's game.txt, layout.txt and monster/custom.txt,
-nothing is rebuilt (MK_FORCE=1, or touch game.txt, to force a build).
+than this prompt.txt, model and the files the prompt links to (gamify.txt is remade by make
+first), nothing is rebuilt (MK_FORCE=1, or touch prompt.txt, to force a build).
 
 Usage, from the game's folder:  ../mk-gamify
 The model is named in the file "model" in the game's folder: one line, a short name (carbon,
@@ -40,11 +48,8 @@ import time
 from anthropic import Anthropic
 
 ROOT = "/var/www/multiply.by"
-SPEC = f"{ROOT}/game.txt"
-LAYOUT = f"{ROOT}/layout.txt"
-GUIDE = f"{ROOT}/gamify.md"
-EXAMPLE = f"{ROOT}/monster/custom.txt"
-INPUT = "game.txt"  # in the game's folder: the request
+SITE = "https://multiply.by/"  # a link in the prompt under this address is "fetched" from ROOT
+INPUT = "prompt.txt"  # in the game's folder: the prompt
 MODEL_FILE = "model"  # in the game's folder: which model builds the game
 SHORT_NAMES = {"carbon": "gemini-4-carbon", "fable": "claude-fable-5-2", "opus": "claude-opus-5-5",
                "gpt": "openai/gpt-6.1-terra", "kimi": "moonshotai/kimi-k3.1-pro"}  # OpenRouter
@@ -58,6 +63,12 @@ CARBON = (2.00, 10.00) if time.strftime("%Y-%m-%d") < "2026-12-01" else (4.00, 2
 GEMINI_MAX_OUT = 65536  # thinking + answer per round; Gemini 4 Carbon gives no more
 GEMINI_ROUNDS = 4
 RESUME = "<<<RESUME>>>"  # the line a continued Gemini answer starts its new text after
+REPORT = []  # lines about the build (tokens, cost), also written to <model>/build.txt
+
+
+def note(msg):
+    print(msg, file=sys.stderr)
+    REPORT.append(msg)
 
 
 def die(msg):
@@ -101,60 +112,28 @@ def write_atomic(path, text):
     os.replace(path + ".tmp", path)
 
 
-def base_instructions(name, rel):
-    """The site's game.txt + layout.txt, with GAME set to the folder name and SOURCE to the
-    folder's game.txt (the request)."""
-    spec = read(SPEC)
-    if not spec.startswith("NOTE FOR HUMAN R"):
-        die(f"{SPEC} does not start with the Note for Human Readers")
-    if len(re.findall(r"^- GAME: ", spec, re.M)) != 1:
-        die(f'{SPEC} needs exactly one "- GAME: " line')
-    if spec.count("https://multiply.by/build-instructions.txt") != 1:
-        die(f"{SPEC} needs exactly one SOURCE link")
-    text = subprocess.run([f"{ROOT}/assemble-spec", SPEC], capture_output=True, text=True,
-                          check=True).stdout
-    text = re.sub(r"^- GAME: .*$", f"- GAME: {name}", text, count=1, flags=re.M)
-    return text.replace("https://multiply.by/build-instructions.txt",
-                        f"https://multiply.by/{rel}/{INPUT}")
+def linked_files(request):
+    """The multiply.by files the prompt links to, as (address, local path), in order. gamify.txt
+    is generated: make remakes it first if gamify.md or the base game changed."""
+    found = []
+    for url in re.findall(r"https://multiply\.by/[^\s<>\"')]*", request):
+        url = url.rstrip(".,;:")
+        path = os.path.join(ROOT, url[len(SITE):] or "index.html")
+        if os.path.basename(path) == "gamify.txt":
+            subprocess.run(["make", "-s", "-C", ROOT, "gamify.txt"], check=True)
+        if not os.path.isfile(path):
+            die(f"the prompt links to {url}, but {path} does not exist")
+        if (url, path) not in found:
+            found.append((url, path))
+    return found
 
 
-def prompt(request, name, rel, base):
-    return f"""You are building a gamified version of the multiply.by times-tables game.
-
-THE REQUEST (from the site's owner):
-<request>
-{request.strip()}
-</request>
-
-The new game's short name (CONFIG.GAME) is "{name}". It will be served at
-https://multiply.by/{rel}/, and its SOURCE button opens the request above, published at
-https://multiply.by/{rel}/{INPUT} (already set in the base file). The request may mention web
-addresses of the files below: everything you need is attached here, so do not fetch anything.
-
-Follow the guide in <gamify_md> exactly: G1 step 1 (DESIGN) and step 2 (BUILD). The base build
-instructions are in <base_build_instructions> (GAME and SOURCE are already set for this game),
-and the CUSTOMIZATION section of the worked example, Multiply Monster, is in
-<monster_customization>.
-
-Answer with exactly two parts and nothing else (no commentary, no markdown code fences):
-1. <customization> ... </customization>: the complete CUSTOMIZATION section, starting with its
-   banner, as the guide's G2 describes. It is published next to the game as its design,
-   so it must stand on its own and describe the game you build.
-2. <index_html> ... </index_html>: the complete standalone index.html, from <!DOCTYPE html> to
-   </html>, built from the base build instructions with that section applied.
-
-<gamify_md>
-{read(GUIDE)}
-</gamify_md>
-
-<monster_customization>
-{read(EXAMPLE)}
-</monster_customization>
-
-<base_build_instructions>
-{base}
-</base_build_instructions>
-"""
+def message(request, files):
+    """What a chat gets: the prompt as typed, then each linked file as if fetched in full."""
+    text = request.strip() + "\n"
+    for url, path in files:
+        text += f"\n\n----- {url} (fetched, complete) -----\n\n{read(path)}"
+    return text
 
 
 def call_gemini(text):
@@ -218,8 +197,8 @@ def call_gemini(text):
 def report_gemini(tin, tout, tthink, rounds):
     pin, pout = CARBON if MODEL.startswith("gemini-4-carbon") else (0, 0)
     cost = f"${tin / 1e6 * pin + tout / 1e6 * pout:.2f}" if pin else "unknown (no price set)"
-    print(f"Tokens: {tin:,} in, {tout:,} out (of which {tthink:,} thinking) in {rounds} "
-          f"round(s); cost {cost}", file=sys.stderr)
+    note(f"Tokens: {tin:,} in, {tout:,} out (of which {tthink:,} thinking) in {rounds} "
+         f"round(s); cost {cost}")
 
 
 def call_openrouter(text):
@@ -251,9 +230,9 @@ def call_openrouter(text):
         u = usage.model_dump() if hasattr(usage, "model_dump") else dict(usage)
         think = (u.get("completion_tokens_details") or {}).get("reasoning_tokens") or 0
         cost = u.get("cost")
-        print(f"Tokens: {u.get('prompt_tokens', 0):,} in, {u.get('completion_tokens', 0):,} out "
-              f"(of which {think:,} thinking); cost "
-              f"{f'${cost:.2f}' if cost is not None else 'not reported'}", file=sys.stderr)
+        note(f"Tokens: {u.get('prompt_tokens', 0):,} in, {u.get('completion_tokens', 0):,} out "
+             f"(of which {think:,} thinking); cost "
+             f"{f'${cost:.2f}' if cost is not None else 'not reported'}")
     if finish != "stop":
         fail(answer, f"the answer stopped early ({finish}); nothing built")
     return answer
@@ -283,19 +262,66 @@ def call_claude(text):
     if msg.stop_reason == "max_tokens":
         die(f"the answer was cut off at {MAX_TOKENS} tokens; nothing written")
     if msg.model != MODEL:
-        print(f"Note: answered by {msg.model} (fallback)", file=sys.stderr)
+        note(f"Note: answered by {msg.model} (fallback)")
     pin, pout = PRICES.get(msg.model, PRICES["claude-fable-5-2"])
     u = msg.usage
-    print(f"Tokens: {u.input_tokens:,} in, {u.output_tokens:,} out; cost "
-          f"${u.input_tokens / 1e6 * pin + u.output_tokens / 1e6 * pout:.2f}", file=sys.stderr)
+    note(f"Tokens: {u.input_tokens:,} in, {u.output_tokens:,} out; cost "
+         f"${u.input_tokens / 1e6 * pin + u.output_tokens / 1e6 * pout:.2f}")
     return "".join(b.text for b in msg.content if b.type == "text")
 
 
-def part(answer, tag):
-    found = re.findall(rf"<{tag}>\s*(.*?)\s*</{tag}>", answer, re.S)
-    if not found:
-        fail(answer, f"the answer has no <{tag}> part; nothing built")
-    return found[-1]
+def split_answer(answer):
+    """The page in the answer (the last <!DOCTYPE html> ... </html>, in or out of a code fence)
+    and what the model wrote before it (its design), without fences."""
+    m = None
+    for m in re.finditer(r"<!DOCTYPE html.*?</html>", answer, re.S | re.I):
+        pass
+    if not m:
+        fail(answer, "the answer has no page (<!DOCTYPE html> ... </html>); nothing built")
+    before = re.sub(r"^```\w*\s*$", "", answer[:m.start()], flags=re.M).strip()
+    return m.group(0), before
+
+
+def source_link(html):
+    """Where the page's SOURCE item points ("" if there is none)."""
+    for m in re.finditer(r"<a\b[^>]*>\s*SOURCE\s*</a>", html, re.I):
+        h = re.search(r"""href\s*=\s*["']([^"']*)["']""", m.group(0))
+        return h.group(1) if h else ""
+    return ""
+
+
+def game_name(html):
+    m = re.search(r"""\bGAME\s*:\s*["']([^"']+)["']""", html)
+    return m.group(1) if m else None
+
+
+def model_folder():
+    """The subfolder for this model's copy: its short name (carbon, fable, ...) when it has one,
+    else the model id with anything but letters, digits, '.', '-' and '_' turned into '-'."""
+    for short, full in SHORT_NAMES.items():
+        if MODEL == full:
+            return short
+    return re.sub(r"[^A-Za-z0-9_.-]+", "-", MODEL).strip("-.")
+
+
+def keep_copy(start):
+    """Copy the build into the model's subfolder, with a build.txt about it. The same build.txt
+    is also written next to the game's own index.html (the latest build), where the gallery
+    reads the model and build time."""
+    sub = model_folder()
+    os.makedirs(sub, exist_ok=True)
+    for f in ("index.html", "customization.txt"):
+        write_atomic(f"{sub}/{f}", read(f))
+    about = "\n".join([
+        f"Model: {MODEL} (effort {EFFORT})",
+        f"Built: {time.strftime('%Y-%m-%d %H:%M %Z')}",
+        *REPORT,
+        f"Time: {(time.time() - start) / 60:.1f} minutes",
+        f"index.html: {os.path.getsize('index.html'):,} bytes",
+    ]) + "\n"
+    write_atomic(f"{sub}/build.txt", about)
+    write_atomic("build.txt", about)
+    print(f"Copy kept in {os.getcwd()}/{sub}/")
 
 
 def main():
@@ -320,34 +346,54 @@ def main():
             "full gemini-... or claude-... model id, or an OpenRouter id (with a /)")
     print(f"GAMIFY: {name}")
 
-    sources = [INPUT, MODEL_FILE, GUIDE, SPEC, LAYOUT, EXAMPLE]
+    request = read(INPUT)
+    files = linked_files(request)
+    if not files:
+        print(f"Note: {INPUT} links to no multiply.by file, so the model gets the prompt alone.")
+    sources = [INPUT, MODEL_FILE] + [p for _, p in files]
     if not os.environ.get("MK_FORCE") and os.path.exists("index.html") and all(
             os.path.getmtime("index.html") > os.path.getmtime(s) for s in sources):
-        print("index.html is newer than game.txt, model, gamify.md, the site's game.txt, "
-              "layout.txt and monster/custom.txt; not rebuilding.")
+        print(f"index.html is newer than {', '.join(os.path.relpath(s) for s in sources)}; "
+              "not rebuilding.")
         return
 
-    base = base_instructions(name, rel)
     start = time.time()
     import atexit
     atexit.register(lambda: print(f"Took {(time.time() - start) / 60:.1f} minutes", file=sys.stderr))
     call = (call_openrouter if "/" in MODEL else
             call_gemini if MODEL.startswith("gemini") else call_claude)
-    answer = call(prompt(read(INPUT), name, rel, base))
+    answer = call(message(request, files))
+    html, section = split_answer(answer)
 
-    section = part(answer, "customization")
-    html = part(answer, "index_html")
-    html = re.sub(r"^```(?:html)?\s*|\s*```$", "", html.strip())
-    if not html.lower().startswith(("<!doctype", "<html")):
-        fail(answer, "the index_html part does not start with <!DOCTYPE html>; nothing built")
+    # Checks only: the page is published as the model wrote it, or not at all.
+    src = source_link(html)
+    ok = {INPUT, "./" + INPUT, f"/{rel}/{INPUT}", f"{SITE}{rel}/{INPUT}"}
+    if src not in ok:
+        with open("index.html.tmp", "w", encoding="utf-8") as f:
+            f.write(html + "\n")
+        die(f'SOURCE points to "{src}", not to this game\'s {INPUT}; nothing published (the '
+            "page is in index.html.tmp)")
+    game = game_name(html)
+    others = {}
+    for d in os.listdir(ROOT):
+        page = os.path.join(ROOT, d, "index.html")
+        if d != name and os.path.isfile(page):
+            others[game_name(read(page))] = d
+    others[game_name(read(os.path.join(ROOT, "build", "index.html")))] = "the base game"
+    if game is None:
+        note("Warning: no CONFIG.GAME found in the page")
+    elif game in others:
+        note(f'Warning: GAME "{game}" is also used by {others[game]} (they share saved progress)')
 
     with open("index.html.tmp", "w", encoding="utf-8") as f:
         f.write(html + "\n")
     if subprocess.run(["python3", f"{ROOT}/check-scripts.py", "index.html.tmp"]).returncode:
         die("script check failed; the page is left in index.html.tmp")
-    write_atomic("customization.txt", section + "\n")
+    write_atomic("customization.txt", (section or "(The model wrote no design before the page.)")
+                 + "\n")
     os.replace("index.html.tmp", "index.html")
     print(f"Built {cwd}/index.html ({os.path.getsize('index.html')} bytes)")
+    keep_copy(start)
 
 
 if __name__ == "__main__":

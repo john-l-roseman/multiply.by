@@ -2,20 +2,23 @@
 
 A times-tables game site, served live by nginx straight from this folder (https://multiply.by).
 Every page is ONE self-contained HTML file built by an AI model from a plain-text spec. Never edit a
-generated file (index.html, build-instructions.txt, pwa.js, sw.js, ...) by hand: change the spec and
+generated file (index.html, prompt.txt, pwa.js, sw.js, ...) by hand: change the spec and
 rebuild. GitHub: john-l-roseman/multiply.by (public).
 
 ## How a page is built
 - `layout.txt` is the frame shared by every page: title band (a link to https://multiply.by/),
-  share icon and desktop share menu, menu bar look, PLAY/DEMO/ABOUT/SOURCE items, footer.
+  share icon and desktop share menu, menu bar look, PLAY/GALLERY/ABOUT/SOURCE items, footer.
+- `footer.txt`: the three-column site info block (About Multiply.by, Feedback, Functional AI
+  Inc.) above the copyright line, on About and Gallery only, put in by an optional
+  `#include footer.txt` line.
 - Each page has its own spec with one `#include layout.txt` line; `assemble-spec PAGE.txt`
-  expands it into that page's `build-instructions.txt` (generated, git-ignored, served: it is
-  what the SOURCE button opens, and it must stay one self-contained file a person can upload to
+  expands it into that page's `prompt.txt` (generated, git-ignored, served: it is what every
+  page's SOURCE button opens, and it must stay one self-contained file a person can upload to
   any chatbot).
-  - `game.txt`: the game (main page). Menu: MUTE, DEMO, ABOUT, RULES (popup), RESET, SOURCE.
-  - `about/about.txt`: About. Menu: PLAY, DEMO, ABOUT (current), SOURCE.
+  - `game.txt`: the game (main page). Menu: MUTE, GALLERY, ABOUT, RULES (popup), RESET, SOURCE.
+  - `about/about.txt`: About. Menu: PLAY, GALLERY, ABOUT (current), SOURCE.
   - `demo/page.txt`: Demo page (/demo/), plays `demo/demo.webm` in a <video> player. Menu: PLAY,
-    DEMO (current), ABOUT, SOURCE. Build with `make` in `demo/` (Claude, like About). The video
+    GALLERY, ABOUT, SOURCE (no DEMO item). Build with `make` in `demo/` (Claude, like About). The video
     itself is made from `demo/demo.txt` by an agent (`demo/record.py`), not by make. Record on the
     stopped GCE VM `demo-recorder` (us-east1-b, e2-standard-4, 10 GB disk, Playwright venv in
     /opt/rec), never on this e2-small (too slow: dropped frames, drifting sound):
@@ -25,39 +28,47 @@ rebuild. GitHub: john-l-roseman/multiply.by (public).
     demo.webm back, then STOP the VM.
   - `FAQ/faq.txt`: the FAQ, still in progress by the user, not built yet. The URL is /faq
     (currently 404); the folder needs renaming to `faq` and a Makefile like about's.
-- Main game: `make` in this folder. Spec -> Gemini (`/var/www/openlang.ai/SCRIPTS/run-vertex.py`)
+- Main game: `make` in this folder. Spec -> the model named in `model` (e.g. carbon; `run-model`,
+  which reuses mk-gamify's model calls; build/build.txt notes tokens, cost, time)
   -> `build/index.html` -> PWA tags from `PWA-build.txt` inserted -> `check-scripts.py`
   (node --check) -> `index.html`. Also extracts the PWA files and renders icons and og-image.png.
 - About and Demo: `make` in `about/` or `demo/` (Claude via `about/run-claude.py`, key read from
   `$HOME/.anthropic_key`).
-- Custom games (e.g. `chinese/`): `../mk-custom` from the game's folder; it combines game.txt +
+- Custom games (e.g. `divide/`): `../mk-custom` from the game's folder; it combines game.txt +
   layout.txt + the folder's `custom.txt`, sets GAME to the folder name and SOURCE to the folder.
   Served at /<folder>/ (no redirects).
   - `divide/`: the division game (Divide.by), same game with "56 ÷ 8" questions. https://divide.by
     and www redirect (302, keeping ?12/?20) to https://multiply.by/divide/
     (/etc/nginx/sites-enabled/divide.by).
   - `monster/`: Multiply Monster, a gamified version for 2nd and 3rd graders (Munch, path,
-    stickers, stars; `?easy` = 2, 5 and 10). Built with Claude Fable, not Gemini:
-    `CLAUDE_MODEL=claude-fable-5-2 ../mk-custom` (`MK_EFFORT` sets effort, default high; $3 to
-    $5 a build). Over 60 KB, which is fine: the limit is for the main game only.
-- Gamified games from a short request (e.g. `train/`): `../mk-gamify` from the game's folder. The
-  folder's game.txt is a few lines of request (not a CUSTOMIZATION section); the game's SOURCE opens
+    stickers, stars; `?easy` = 2, 5 and 10). Now built with `../mk-gamify` (see below) from
+    `monster/prompt.txt` (a short prompt), model `fable`. Its `custom.txt` is the hand-made design
+    of the first build (by mk-custom, kept in `monster/fable/`): it stays as the worked example
+    that gamify.md links to (with its build-instructions.txt), so don't delete or regenerate
+    either. mk-gamify no longer attaches it (a chat user doesn't get it, and builds copied it).
+- Gamified games from a short prompt (e.g. `train/`): `../mk-gamify` from the game's folder. The
+  folder's prompt.txt is a few lines of prompt (not a CUSTOMIZATION section); the game's SOURCE opens
   it. The folder's `model` file names the model (carbon, fable, opus, gpt, kimi or a full id; no
   default). Gemini runs on Vertex; an id with a `/` (gpt = openai/gpt-6.1-terra, kimi =
   moonshotai/kimi-k3.1-pro) goes through OpenRouter, key in ~/.openrouter-key. mk-gamify
-  (`MK_EFFORT`, `MK_FORCE=1`) sends the request with gamify.md, the base build instructions (GAME =
-  folder name) and monster/custom.txt attached. It saves the model's design as customization.txt and
-  the game as index.html (after check-scripts.py). A failed build keeps the raw answer in
+  (`MK_EFFORT`, `MK_FORCE=1`) does EXACTLY what a chat does, so an API pass proves the prompt and
+  gamify.txt work as published: it sends prompt.txt word for word plus the full text of each
+  multiply.by file it links to (as if fetched; gamify.txt is remade by make first), nothing else:
+  no added instructions, no preset SOURCE or GAME. The page in the answer becomes index.html (the
+  text before it, customization.txt), checked but never changed: scripts must parse and SOURCE
+  must open the folder's prompt.txt, or nothing is published; a GAME shared with another game is
+  reported. It also keeps a copy of each build (index.html,
+  customization.txt, build.txt with model, tokens, cost, time) in a subfolder per model
+  (`train/carbon/`, `train/fable/`, served for comparison). A failed build keeps the raw answer in
   /tmp/mk-gamify-<folder>-answer.txt. Gemini 4 Carbon stops each answer at 65,536 tokens; mk-gamify
   asks it to continue.
 - `gamify.md`: a guide for an AI model writing the custom.txt of a GAMIFIED version (mascot,
   rewards, progress pictures, new screen layout; Monster is the worked example). Served
   publicly; no build tooling in it. Simple customizations (branding, division, speech) are a
-  hand edit of the base build instructions, not its subject. `multiply.md` is a symlink to it
-  (its old name, kept so shared links work).
+  hand edit of the base build instructions, not its subject. Its old name, multiply.md, is gone.
 - `gamify.txt` (generated by `make gamify.txt`, served, git-ignored): ONE file for building a
   gamified game in any chatbot with no web access: a note for human readers, gamify.md as plain
-  text (`gamify-txt.py`) and the base build-instructions.txt, unchanged. Plain `make` rebuilds it
+  text (`gamify-txt.py`) and the base prompt.txt, unchanged. Plain `make` rebuilds it
   first whenever gamify.md or the base spec changes (no hand copying).
 - nginx (`/etc/nginx/sites-enabled/multiply.by`, not in git; reapply on a new server): the main
   server block has `charset utf-8;` and a `location ~ \.md$` block with
@@ -67,10 +78,10 @@ rebuild. GitHub: john-l-roseman/multiply.by (public).
 - Builds take a few minutes and go live as soon as they pass; run them in the background.
 
 ## Rules
-- The game page must stay under 60 KB (the About page says "less than 60 KB"; make warns).
+- The game page must stay under 100 KB (the About page says "less than 100 KB"; make warns).
 - Never print, echo or commit API keys. Don't change or commit anything in /var/www/openlang.ai
   (e.g. run-vertex.py model changes): it is not part of this repo.
-- `chinese/custom.txt` is the user's own work: commit it only when asked.
+- `chinese/prompt.txt` is the user's own work: commit it only when asked.
 - Specs: wrap prose at about 100 columns; only code fragments and exact HTML may run longer.
 - After a rebuild, test the live page with Playwright (python, chromium) at 360x640, 640x360
   (landscape), 768x1024 (tablet) and 1280x800: no console errors, nothing cut off, no page scroll
