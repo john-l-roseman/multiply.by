@@ -793,7 +793,12 @@ mistakes, time) and keeps the best score (BEST_KEY) and the sound setting (MUTE_
 
 "YOU WON!" OVERLAY:
 - Covers the app container (`position: absolute; inset: 0;`, z-index 40, background
-  rgba(255,255,255,0.95)), content centered in a column: "You Won!" (2.25rem, bold, #16a34a), "Final
+  rgba(255,255,255,0.95)) EXCEPT the title band and the menu bar: those two stay on top of it,
+  sharp and working (`position: relative; z-index: 41`), so a player who has won can still go to
+  BUILD IT, ABOUT and SOURCE, mute, or tap the title band for the other games. The overlay's
+  content is never hidden under them: it has a top padding as tall as the title band and menu bar
+  together (set from their heights when the overlay is shown and on resize), and it scrolls inside
+  itself if it does not fit. Content centered in a column: "You Won!" (2.25rem, bold, #16a34a), "Final
   Score: X" (1.25rem, #374151), "Your time: T" (1.25rem, #374151, T is `formatTime(state.playMs)`),
   then either "New best score!" (1rem, bold, #16a34a) when `state.newBest` is true, or "Best score:
   B" (1rem, #6b7280, B is the saved best score) otherwise, then "Mistakes: M" (1rem, #6b7280), then
@@ -991,6 +996,9 @@ generated dataset, the shuffled deck, `wrongAnswers` and `CONFIG`.
 
 11. ACCEPTANCE CHECKS (THE FINISHED PAGE MUST PASS ALL OF THESE)
 -----------------------------------------------------------------
+These checks describe what the finished page must do. Do not run them or test the page in a
+browser: deliver the file as soon as it is written. The site tests every page itself.
+
 - Complete, valid code: output the entire file, from <!DOCTYPE html> to </html>, with nothing
   omitted, shortened or replaced by a placeholder. Before finishing, read the script through and
   confirm that every `{`, `(` and `[` is closed, including inside each `if` block. If a length
@@ -1068,6 +1076,9 @@ generated dataset, the shuffled deck, `wrongAnswers` and `CONFIG`.
 - Header buttons and links work on phones: the speaker button, BUILD IT, ABOUT, RULES, SOURCE, the How to
   Play panel, RESET, "Play Again", the Tables choice and the next-level links on the "You Won!"
   screen respond to a normal tap.
+- On the "You Won!" screen the title band and the menu bar stay visible and sharp above the
+  overlay, and BUILD IT, ABOUT and the title band's link work there; nothing of the overlay's
+  content is hidden under them, at 360x640 and in landscape.
 
 - Blocked storage: with site data blocked (or `window.localStorage` throwing on access), the game
   loads and plays normally with no console errors; progress is just not kept after reload.

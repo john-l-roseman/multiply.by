@@ -28,7 +28,7 @@ rebuild. GitHub: john-l-roseman/multiply.by (public).
     played first, then Monster and Dinosaurs, the rest shuffled per visit, then More games).
     Same storage keys as /base/, so progress is shared.
   - `games/page.txt`: the chooser (/games/), big tiles with the short names (Monster, Train,
-    Dinosaurs, Robot, Planes, Space, Great Wall, Base Game). Both pages save the tapped game in
+    Dinosaurs, Robot, Planes, Space, Great Wall, Block Craft, Base Game). Both pages save the tapped game in
     localStorage `multiply_last_game`. Build with `make` in `games/` (Claude).
   - `game.txt`: the base game (/base/). Menu: MUTE, BUILD IT, ABOUT, RULES (popup), RESET, SOURCE
     (no GAMES: the title band leads to the front page and its strip).
@@ -54,7 +54,8 @@ rebuild. GitHub: john-l-roseman/multiply.by (public).
   `base/prompt.txt` -> the model named in `model` (e.g. kimi; `run-model`, which reuses mk-gamify's
   model calls; build/build.txt notes tokens, cost, time) -> `build/index.html` -> PWA tags from
   `PWA-build.txt` inserted -> `check-scripts.py` (node --check) -> `base/index.html`. Front page:
-  home.txt (+ game.txt) -> `prompt.txt` -> the same model as the base game (run-model) ->
+  home.txt (+ game.txt) -> `prompt.txt` -> the model in `home-model` (carbon; kimi's front pages froze
+  after some moves; run-model) ->
   `build/home/index.html` (its own folder, so its build.txt does not overwrite the base game's
   `build/build.txt`, which Build It reads) -> PWA tags -> `index.html`. Also extracts the PWA files and renders icons and og-image.png. The installed app
   opens the front page; sw.js keeps every page opened online, so played games work offline.
@@ -112,5 +113,8 @@ rebuild. GitHub: john-l-roseman/multiply.by (public).
 - After a rebuild, test the live page with Playwright (python, chromium) at 360x640, 640x360
   (landscape), 768x1024 (tablet) and 1280x800: no console errors, nothing cut off, no page scroll
   on the game, share menu, menu bar, animations, wrong-answer distractors (position and parity).
+  Then play every rebuilt game page through to "You Won!" with `./play-test.py URL ...` (a quarter
+  of the answers wrong; fails on any console error or a question that stops advancing): a fresh
+  build can break on its second question, which a layout check misses (a kimi front page did).
   Headless Chromium uses DejaVu Sans, about 15% wider than phone fonts.
 - Commit or push only when the user asks.

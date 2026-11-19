@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Make the front page's strip picture for a game: open it on a 412 x 732 phone screen, answer three
+"""Make the front page's strip picture for a game: open it on a 412 x 732 phone screen, answer sixteen
 questions right (as shots.py), then take a picture of the game's MAIN PICTURE only (the locomotive,
-the monster, ...; for the robot, a finished robot), fit it to 5:4 and save it at 200 x 160.
+the monster, ...), fit it to 5:4 and save it at 200 x 160.
 The Makefile makes a thumbnail only when thumbnails/GAME-thumbnail.png is missing, so a hand-made
 one put there is kept; delete a file to make it again.
 Usage: thumbs.py GAME OUT.png"""
@@ -13,29 +13,16 @@ from playwright.sync_api import sync_playwright
 # fits 5:4 ("cover": cropped around its centre; "contain": whole, the sides filled with the colour
 # of its top-left corner); and how many right answers come first.
 MAIN = {
-    "train": ("#train-photo", "cover", 3),
-    "monster": ("#munch", "contain", 3),
-    "dino": ("#top-row svg", "cover", 3),
-    "robot": ("#thumb", "contain", 0),  # see ROBOT below
-    "plane": ("#aircraft-image", "cover", 3),
-    "space": ("#scene-image", "cover", 3),
-    "chinese": ("#builder", "cover", 3),
+    "train": ("#train-photo", "cover", 16),
+    "monster": ("#monster", "contain", 16),
+    "dino": ("#top-row svg", "cover", 16),
+    "robot": ("#robot-stage", "contain", 16),
+    "plane": ("#aircraft-photo", "contain", 16),
+    "space": ("#planet-image", "cover", 16),
+    "chinese": ("#wall-svg", "cover", 16),
+    "blocks": ("#world-svg", "cover", 16),
 }
 W, H = 200, 160
-# The robot is built one part per learned fact, so a finished robot only appears late in a game.
-# The game draws finished robots with its own buildMiniRobotSvg(stage, parts, powered, dancing)
-# (for its hangar): draw the last stage's robot, the giant mech, complete, cropped tight.
-ROBOT = """() => {
-  const d = document.createElement('div'); d.id = 'thumb';
-  d.style.cssText = 'position:fixed;left:0;top:0;width:250px;height:200px;z-index:99999;' +
-    'background:#eff6ff;display:flex;align-items:center;justify-content:center';
-  d.innerHTML = buildMiniRobotSvg(3, new Set([...Array(12).keys()]), true, false);
-  document.body.appendChild(d);
-  const svg = d.querySelector('svg'), b = svg.getBBox(), pad = 6;
-  svg.setAttribute('viewBox', [b.x - pad, b.y - pad, b.width + 2 * pad, b.height + 2 * pad].join(' '));
-  svg.style.width = '240px'; svg.style.height = '192px';
-}"""
-
 game, out = sys.argv[1], sys.argv[2]
 with sync_playwright() as p:
     browser = p.chromium.launch()
@@ -46,20 +33,25 @@ with sync_playwright() as p:
     pg.wait_for_timeout(500)
     selector, fit, answers = MAIN[game]
     for move in range(answers):
-        q = pg.locator("#question").inner_text().strip()
+        q = pg.locator("#question, #question-text").first.inner_text().strip()
         m = re.search(r"(\d+)\s*[x×]\s*(\d+)", q)
         if not m:
-            sys.exit(f"{game}: no question found in {q!r}")
+            sys.exit(f"{game}: move {move + 1}: no question found in {q!r}")
         answer = str(int(m[1]) * int(m[2]))
         buttons = pg.locator("#answers button")
-        texts = [t.strip() for t in buttons.all_inner_texts()]
+        texts = [t.strip().split("\n")[-1].strip() for t in buttons.all_inner_texts()]
         buttons.nth(texts.index(answer)).click()
-        pg.wait_for_function("q => document.getElementById('question').innerText.trim() !== q",
-                             arg=q, timeout=5000)
+        try:  # the same question can come twice in a row: then just answer it again
+            pg.wait_for_function("q => (document.getElementById('question') || document.getElementById('question-text')).innerText.trim() !== q",
+                                 arg=q, timeout=5000)
+        except Exception:
+            pass
         pg.wait_for_timeout(700)
     pg.wait_for_timeout(1500)
-    if game == "robot":
-        pg.evaluate(ROBOT)
+    # A build made from the current gamify.md marks its main picture with id="main-picture";
+    # MAIN above is only for older builds.
+    if pg.locator("#main-picture").count():
+        selector = "#main-picture"
     # Hide whatever floats over the picture (labels, badges, points), but not the picture itself,
     # what is inside it, or what it sits in.
     pg.evaluate("""sel => {

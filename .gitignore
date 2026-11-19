@@ -32,6 +32,7 @@
 !/games/page.txt
 !/games/Makefile
 !/check-scripts.py
+!/play-test.py
 !/gamify-txt.py
 !/reformat-spec.py
 !/MATCH-TO-FOUR.txt
@@ -39,6 +40,7 @@
 !/mk-gamify
 !/run-model
 !/model
+!/home-model
 !/chinese/
 /chinese/*
 !/chinese/prompt.txt
@@ -46,11 +48,16 @@
 !/divide/
 /divide/*
 !/divide/custom.txt
+!/divide/model
 !/monster/
 /monster/*
 !/monster/custom.txt
 !/monster/prompt.txt
 !/monster/model
+!/blocks/
+/blocks/*
+!/blocks/prompt.txt
+!/blocks/model
 !/match/
 /match/*
 !/match/build-instructions.txt

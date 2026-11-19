@@ -27,16 +27,17 @@ build/index.html: $(SPEC) model run-model
 
 # THE FRONT PAGE (https://multiply.by/): the base game with a strip of the other games under it.
 # home.txt includes game.txt (its /base/ addresses made the root's) and adds the strip. Its
-# complete prompt is prompt.txt, at the site's root, built by the same model as the base game.
+# complete prompt is prompt.txt, at the site's root, built by the model named in home-model
+# (carbon: kimi's front pages froze after some moves; the base game stays on kimi, in model).
 # (The games chooser is /games/, built in games/.)
 prompt.txt: home.txt game.txt layout.txt assemble-spec
 	./assemble-spec home.txt > prompt.txt.tmp
 	mv prompt.txt.tmp prompt.txt
 
 # build/home/ so that its build.txt does not overwrite the base game's build/build.txt.
-build/home/index.html: prompt.txt model run-model
+build/home/index.html: prompt.txt home-model run-model
 	mkdir -p build/home
-	./run-model prompt.txt build/home/index.html
+	./run-model prompt.txt build/home/index.html home-model
 
 # PWA files, copied verbatim from PWA-build.txt.
 $(FILES) &: $(PWA) extract-files.py

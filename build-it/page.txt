@@ -4,7 +4,7 @@ loaded from any server except the screenshots and the prompt.txt and build.txt f
 in one <style> in the <head>, all code (if any) in one plain <script> at the end of the <body>.
 
 <title>Build It – Multiply.by: How Each Game Was Built</title>
-In the <head>, directly after the title, include exactly: <meta name="description" content="Multiply.by and gamified versions of it, each built by an AI model: the base game from its build instructions, the others from a short prompt: trains, a monster to feed, dinosaurs, a space journey, Chinese mythology, a robot workshop, the history of flight.">
+In the <head>, directly after the title, include exactly: <meta name="description" content="Multiply.by and gamified versions of it, each built by an AI model: the base game from its build instructions, the others from a short prompt: trains, a monster to feed, dinosaurs, a space journey, building the Great Wall, a robot workshop, the history of flight.">
 In the <head>, include exactly: <meta name="viewport" content="width=device-width, initial-scale=1">
 In the <head>, include exactly: <link rel="icon" type="image/svg+xml" href="/icon.svg"> (the app's icon in the browser tab).
 
@@ -62,12 +62,13 @@ THE GRID
        Time: 23.1 minutes
        index.html: 106,102 bytes
      - MODEL: the "Model:" line's value up to the first space (the model id), lowercased, with any
-       maker's prefix up to a "/" removed (openai/gpt-6.1-terra and gpt-6.1-terra are the same
-       id). Shown by its name: gemini-4-carbon "Gemini 4 Carbon", claude-fable-5-2 "Claude Fable
-       5.2", claude-opus-5-5 "Claude Opus 5.5", gpt-6.1-terra "GPT-6.1 Terra", gpt-6.1-terra-pro
-       "GPT-6.1 Terra Pro", gpt-6.2-astra "GPT-6.2 Astra", gpt-6.2-astra-pro "GPT-6.2 Astra Pro",
-       gpt-6.2-sol "GPT-6.2 Sol", gpt-6.2-sol-pro "GPT-6.2 Sol Pro", kimi-k3.1-pro "Kimi K3.1
-       Pro"; any other id is shown as it is written (with its prefix).
+       maker's prefix up to a "/" removed (openai/gpt-6.1-terra and gpt-6.1-terra are the same id).
+       Shown by its name: gemini-4-carbon "Gemini 4 Carbon", gemini-4-neon "Gemini 4 Neon",
+       gemini-4-hydrogen "Gemini 4 Hydrogen", gemini-4-argon "Gemini 4 Argon", claude-fable-5-2
+       "Claude Fable 5.2", claude-opus-5-5 "Claude Opus 5.5", gpt-6.1-terra "GPT-6.1 Terra",
+       gpt-6.1-terra-pro "GPT-6.1 Terra Pro", gpt-6.2-astra "GPT-6.2 Astra", gpt-6.2-astra-pro
+       "GPT-6.2 Astra Pro", gpt-6.2-sol "GPT-6.2 Sol", gpt-6.2-sol-pro "GPT-6.2 Sol Pro",
+       kimi-k3.1-pro "Kimi K3.1 Pro"; any other id is shown as it is written (with its prefix).
      - BUILD TIME: the number of the "Time:" line (minutes, with a decimal), rounded to whole
        minutes: "23 minutes" ("1 minute" for 1). No "Time:" line: "not recorded".
      - While build.txt loads, both values show "…"; if it fails (no answer, or a status other
@@ -121,6 +122,11 @@ build.txt addresses, see FACTS)
   - build.txt address: https://multiply.by/build/build.txt
   - prompt.txt address: https://multiply.by/base/prompt.txt
   - Its prompt.txt is not shown in the box (see THE BASE GAME above).
+- Dinosaurs
+  - Game address: https://multiply.by/dino/
+  - Screenshot: /build-it/dino.png
+  - build.txt address: https://multiply.by/dino/build.txt
+  - prompt.txt address: https://multiply.by/dino/prompt.txt
 - Train
   - Game address: https://multiply.by/train/
   - Screenshot: /build-it/train.png
@@ -131,16 +137,16 @@ build.txt addresses, see FACTS)
   - Screenshot: /build-it/monster.png
   - build.txt address: https://multiply.by/monster/build.txt
   - prompt.txt address: https://multiply.by/monster/prompt.txt
-- Dinosaurs
-  - Game address: https://multiply.by/dino/
-  - Screenshot: /build-it/dino.png
-  - build.txt address: https://multiply.by/dino/build.txt
-  - prompt.txt address: https://multiply.by/dino/prompt.txt
 - Space
   - Game address: https://multiply.by/space/
   - Screenshot: /build-it/space.png
   - build.txt address: https://multiply.by/space/build.txt
   - prompt.txt address: https://multiply.by/space/prompt.txt
+- Planes
+  - Game address: https://multiply.by/plane/
+  - Screenshot: /build-it/plane.png
+  - build.txt address: https://multiply.by/plane/build.txt
+  - prompt.txt address: https://multiply.by/plane/prompt.txt
 - Great Wall
   - Game address: https://multiply.by/chinese/
   - Screenshot: /build-it/chinese.png
@@ -151,21 +157,21 @@ build.txt addresses, see FACTS)
   - Screenshot: /build-it/robot.png
   - build.txt address: https://multiply.by/robot/build.txt
   - prompt.txt address: https://multiply.by/robot/prompt.txt
-- Planes
-  - Game address: https://multiply.by/plane/
-  - Screenshot: /build-it/plane.png
-  - build.txt address: https://multiply.by/plane/build.txt
-  - prompt.txt address: https://multiply.by/plane/prompt.txt
+- Block Craft
+  - Game address: https://multiply.by/blocks/
+  - Screenshot: /build-it/blocks.png
+  - build.txt address: https://multiply.by/blocks/build.txt
+  - prompt.txt address: https://multiply.by/blocks/prompt.txt
 
 CHECKS
-- Eight cards in the order above: one column at 360px, two at 768px, three at 1280px (the
-  seventh and eighth start a third row), with no sideways scroll at any width and nothing cut off.
+- Nine cards in the order above: one column at 360px, two at 768px, three at 1280px (three full
+  rows), with no sideways scroll at any width and nothing cut off.
 - Each card shows its name, screenshot, the model and build time line, and its prompt.txt text as
   read from the site, as one flowing paragraph: no line breaks from the file, the words joined
   by single spaces (the base game: "Base game, no custom gamification. To see the actual prompt,
   select the SOURCE button on the game."); the name, the screenshot and "Play …" all open the game.
-- Card names, exactly: Base Game, Train, Monster, Dinosaurs, Space, Great Wall, Robot, Planes. No
-  name changes after the page opens.
+- Card names, exactly: Base Game, Dinosaurs, Train, Monster, Space, Planes, Great Wall, Robot,
+  Block Craft. No name changes after the page opens.
 - No links inside the prompt boxes. Each game's copy button puts its prompt.txt text, with the
   file's line breaks, on the clipboard and shows the check mark; the base game has no copy button.
 - The page passes with the screenshots missing too: each image keeps its 412:330 space (its width

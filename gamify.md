@@ -170,6 +170,11 @@ heights, gaps), because the building model otherwise keeps the base layout. What
   question about 60%: question card `flex: 1`, MONSTER BOX `flex: 0 0 40%`.) The mascot box is a
   centered column with the mascot, as large as fits (`flex: 1; min-height: 0; width: 100%`), and
   the Points under it.
+- NAME THE MAIN PICTURE: the one element that shows the game's main picture (the mascot, the
+  vehicle, the scene: an <img>, <svg> or <div>) has `id="main-picture"`, in every build. The site
+  makes its small pictures of each game (the front page's strip, the Build It page) from that
+  element, so the id must not change from one build to the next. It holds only the picture: no
+  labels, points or buttons over it inside the element.
 - KEEP THE TOP ROW SHORT, so the answers stay big: Monster's top row is `flex: 0 0 34%` of the game
   area (40% on short screens, `max-height: 500px`). The question text still fits: its size comes
   from the card, not from the screen.
@@ -189,6 +194,16 @@ heights, gaps), because the building model otherwise keeps the base layout. What
   a rounded font for the game area; the site frame (title band, menu, footer) keeps its own look.
 - Check the layout at every size in G6: the mascot must shrink, not push the answers off a
   360x640 phone or a phone held sideways (640x360).
+- SHOW THE JOURNEY ON THE "YOU WON!" SCREEN: under "You Won!" and above the score, a row of
+  small pictures, one per STAGE of the game, in order, so the player sees everything they went
+  through (Train: a thumbnail of each train, steam to maglev; Monster: each form of the monster;
+  Space: each planet). Use the game's own stage pictures, made smaller, not new ones (no extra
+  size). Each picture about 56px tall (44px on short screens, `max-height: 500px`), the stage's
+  short name under it in small text, joined left to right by a thin line or small arrows; the
+  last stage marked as reached (a check mark or a gold ring). The row never wraps and never
+  makes the overlay wider than the screen: the pictures shrink to fit (`flex: 1 1 0;
+  min-width: 0`) on a 360px phone. After "Practice hard ones" ("Practice done!") the row is the
+  same.
 
 ## G4. What the base game provides (names to refer to)
 
@@ -279,10 +294,19 @@ Use the base file's own names, so the building model ties your changes to its co
 
 ## G6. Checks to write into the CHECKS section
 
+Write these into the CHECKS section as requirements for the finished page, and tell the building
+model there, exactly: "These checks describe what the finished page must do. Do not run them or
+test the page in a browser: deliver the file as soon as it is written. The site tests every page
+itself." A chat model with a browser otherwise plays the whole game through before answering, and
+can stall there.
+
 - At phone (360x640), phone sideways (640x360), tablet (768x1024) and laptop (1280x800) sizes: no
   console errors, nothing cut off, no page scroll.
 - A whole game can be played: right and wrong answers, the wrong-answer choices (their positions
   and parity), every new animation, the "You Won!" screen, and each mode or set.
+- The game's main picture is the element with `id="main-picture"`, visible during play.
+- The "You Won!" screen shows one small picture per stage, in order, all on one line at 360px,
+  nothing cut off, with the title band and menu still usable above it.
 - Each new feature has a check of its own, stated as something a tester can see, e.g. "after 12
   facts are learned, the first stage of the path is full and confetti falls".
 - The only sounds are the rising chimes, the wrong-answer "uh-oh" and the win tune: no background

@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Screenshot a game for the Build it page and the front page: open it on a 412 x 732 phone screen,
-answer three questions right, let the animations settle, and keep only the game's own scene: from
-just below the menu bar to just above the answer buttons (the title band, menu, answers and footer
-look the same in every game). The scene is fitted onto one fixed shape, 412 x 330 (saved at twice
-that, 824 x 660, for sharp phone screens): a shorter scene sits at the top and the rest is filled
-with the game's background colour; a taller one is scaled down to fit, centred.
+answer sixteen questions right (MOVES), let the animations settle, and keep only the game's own
+scene: from just below the menu bar to just above the answer buttons (the title band, menu, answers
+and footer look the same in every game). The scene is fitted onto one fixed shape, 412 x 330 (saved
+at twice that, 824 x 660, for sharp phone screens): a shorter scene sits at the top and the rest is
+filled with the game's background colour; a taller one is scaled down to fit, centred.
 Usage: shots.py GAME OUT.png   (GAME is the folder, e.g. train: https://multiply.by/train/,
 or base for the base game at https://multiply.by/base/)"""
 import io, re, sys
@@ -14,8 +14,10 @@ from playwright.sync_api import sync_playwright
 game, out = sys.argv[1], sys.argv[2]
 url = "https://multiply.by/base/" if game == "base" else f"https://multiply.by/{game}/"
 
+MOVES = 16  # right answers before the picture: far enough to show the game's progress
+
 def question(pg):
-    return pg.locator("#question").inner_text().strip()
+    return pg.locator("#question, #question-text").first.inner_text().strip()
 
 with sync_playwright() as p:
     browser = p.chromium.launch()
@@ -25,19 +27,22 @@ with sync_playwright() as p:
     pg = ctx.new_page()
     pg.goto(url, wait_until="networkidle")
     pg.wait_for_timeout(500)
-    for move in range(3):
+    for move in range(MOVES):
         q = question(pg)
         m = re.search(r"(\d+)\s*[x×]\s*(\d+)", q)
         if not m:
-            sys.exit(f"{game}: no question found in {q!r}")
+            sys.exit(f"{game}: move {move + 1}: no question found in {q!r}")
         answer = str(int(m[1]) * int(m[2]))
         buttons = pg.locator("#answers button")
-        texts = [t.strip() for t in buttons.all_inner_texts()]
+        texts = [t.strip().split("\n")[-1].strip() for t in buttons.all_inner_texts()]
         if answer not in texts:
             sys.exit(f"{game}: answer {answer} not among {texts}")
         buttons.nth(texts.index(answer)).click()
-        pg.wait_for_function("q => document.getElementById('question').innerText.trim() !== q",
-                             arg=q, timeout=5000)
+        try:  # the same question can come twice in a row: then just answer it again
+            pg.wait_for_function("q => (document.getElementById('question') || document.getElementById('question-text')).innerText.trim() !== q",
+                                 arg=q, timeout=5000)
+        except Exception:
+            pass
         pg.wait_for_timeout(700)
     pg.wait_for_timeout(1500)
     top, bottom = pg.evaluate("""() => [document.getElementById('menu-bar').getBoundingClientRect().bottom,

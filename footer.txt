@@ -10,13 +10,15 @@ SITE INFO (a three-column block at the bottom of the page, directly above the co
 - Three columns side by side, in the order LEFT, CENTER, RIGHT below (`display: grid;
   grid-template-columns: 1fr 1fr 1fr; gap: 24px;`) on screens 768px and wider; narrower than 768px
   one column, in the same order, 20px between them.
-- All three column titles use exactly the same element, size and style, and are level with each
-  other: an <h2>, bold, 1rem, line-height 1.5, color #111827, margin 0 0 6px.
+- The LEFT and CENTER column titles use exactly the same element, size and style, and are level
+  with each other: an <h2>, bold, 1rem, line-height 1.5, color #111827, margin 0 0 6px. The RIGHT
+  column's title is also an <h2>, but larger (see RIGHT). The three columns start at the same top
+  edge.
 - No other lines, links or icons than those below.
 
 LEFT: title "About Multiply.by". Text, one paragraph, exactly:
-"A free times-tables game: no sign-up, no ads, and it works offline. Every page on this site is
-built by an AI model from a plain-text prompt that you can read and change."
+"A free times-tables game: no sign-up, no ads in the games, and it works offline. Every page on
+this site is built by an AI model from a plain-text prompt that you can read and build yourself."
 
 CENTER: title "Feedback". Text (two short lines, tight vertical spacing: no margin between them):
 "Found a bug? Have an idea for a new game or feature?"
@@ -24,21 +26,26 @@ CENTER: title "Feedback". Text (two short lines, tight vertical spacing: no marg
 The address is a mailto: link (<a href="mailto:contact@functional.by">), dark blue #1e40af, bold,
 no underline (underlined on hover).
 
-RIGHT: the company. Its title is the logo and the company name together, one link to the company's
-page: <h2><a href="https://functional.by" target="_blank" rel="noreferrer"><span class="logo"
-aria-hidden="true">φ</span> Functional AI Inc.</a></h2>
+RIGHT: the company. The WHOLE COLUMN is one link to the company's page: the title and the text
+under it are both inside one <a> (a block element filling the column), so a click or tap anywhere
+on the column opens it. Exactly:
+<a class="company" href="https://functional.by" target="_blank" rel="noreferrer"><h2><span class="logo" aria-hidden="true">φ</span> Functional AI Inc.</h2><p>Open-source learning games that you can build with simple prompts.</p></a>
+- The link: `display: block`, no underline, color inherited (it does not turn blue), cursor
+  pointer. On hover the title is underlined (not the text under it); a clear focus
+  outline for the keyboard.
+- The title: an <h2> like the others but larger: bold, 1.5rem, line-height 1.2, color #111827,
+  margin 0 0 6px.
 - The logo is the Greek letter phi (φ, U+03C6) as text, not an image: crimson #BE123C, normal
   weight (400), 1.25em, line-height 1, with the name directly after it (one space). It must not make
-  this title taller than the other two or push it out of line with them.
-- The link: color #111827 (the name), no underline; the name underlined on hover.
-Text, one paragraph, exactly:
-"Open source lets programmers build on each other's work. With AI, that's no longer just for
-programmers."
+  the title taller than its own text line.
+- The text: one paragraph, exactly "Open-source learning games that you can build with simple
+  prompts.", in the column's normal text style (as the other two columns' text), margin 0.
 
 CHECKS FOR SITE INFO
 - On every screen size, #site-info sits directly above the copyright line, both at the bottom of
   the screen on a short page, with no sideways scroll; three columns at 768px and wider, one
-  column at 360px; the three titles level with each other when side by side.
-- The company title shows a crimson φ before "Functional AI Inc." and opens https://functional.by
-  in a new tab.
+  column at 360px; when side by side, the three columns start at the same top edge, the LEFT and
+  CENTER titles level with each other, and the company name (1.5rem) larger than them.
+- The company title shows a crimson φ before "Functional AI Inc."; a click on the title or on the
+  text under it opens https://functional.by in a new tab.
 - The copyright line is still the very last line of the page.

@@ -31,8 +31,11 @@ fable, opus, gpt, kimi) or a full model id (e.g. gemini-4-carbon, claude-fable-5
 OpenRouter id such as openai/gpt-6.1-terra). There is no default.
 An id with a "/" is called through OpenRouter (key in $HOME/.openrouter-key); the cost shown is
 the one OpenRouter reports.
-Environment: MK_EFFORT (default high), MK_FORCE=1 to rebuild even when index.html is newer than
-its inputs.
+Environment: MK_MODEL=NAME builds with that model instead of the one in the "model" file;
+MK_TRY=1 is a trial: the build goes ONLY into the model's subfolder (e.g. blocks/gemini-4-neon/),
+the live index.html, build.txt and customization.txt are left as they are (to compare models
+without publishing). MK_EFFORT (default high), MK_FORCE=1 to rebuild even when index.html is
+newer than its inputs.
 A model whose id starts with "gemini" (e.g. gemini-4-carbon) is called on Google Vertex
 AI (project $GOOGLE_CLOUD_PROJECT, location global, MK_EFFORT as its thinking level), not
 through /var/www/openlang.ai/SCRIPTS/run-vertex.py, whose model and system prompt are fixed.
@@ -60,6 +63,11 @@ PRICES = {"claude-fable-5-2": (8.00, 40.00), "claude-opus-5-5": (4.00, 20.00)}  
 # Gemini 4 Carbon: reported $2/$10 introductory price until 2026-11-30, then $4/$20 (not from
 # Google's own pricing page: check it). Thinking tokens are billed as output.
 CARBON = (2.00, 10.00) if time.strftime("%Y-%m-%d") < "2026-12-01" else (4.00, 20.00)
+# Other Gemini 4 models, as reported by third-party sites in November 2026 (not from Google's own
+# pricing page: check it).
+GEMINI_PRICES = {"gemini-4-neon": (3.00, 15.00), "gemini-4-hydrogen": (1.50, 7.50),
+                 "gemini-4-argon": CARBON}
+TRY = bool(os.environ.get("MK_TRY"))
 GEMINI_MAX_OUT = 65536  # thinking + answer per round; Gemini 4 Carbon gives no more
 GEMINI_ROUNDS = 4
 RESUME = "<<<RESUME>>>"  # the line a continued Gemini answer starts its new text after
@@ -195,7 +203,8 @@ def call_gemini(text):
 
 
 def report_gemini(tin, tout, tthink, rounds):
-    pin, pout = CARBON if MODEL.startswith("gemini-4-carbon") else (0, 0)
+    pin, pout = (CARBON if MODEL.startswith("gemini-4-carbon")
+                 else GEMINI_PRICES.get(MODEL, (0, 0)))
     cost = f"${tin / 1e6 * pin + tout / 1e6 * pout:.2f}" if pin else "unknown (no price set)"
     note(f"Tokens: {tin:,} in, {tout:,} out (of which {tthink:,} thinking) in {rounds} "
          f"round(s); cost {cost}")
@@ -310,17 +319,19 @@ def keep_copy(start):
     reads the model and build time."""
     sub = model_folder()
     os.makedirs(sub, exist_ok=True)
-    for f in ("index.html", "customization.txt"):
-        write_atomic(f"{sub}/{f}", read(f))
+    if not TRY:
+        for f in ("index.html", "customization.txt"):
+            write_atomic(f"{sub}/{f}", read(f))
     about = "\n".join([
         f"Model: {MODEL} (effort {EFFORT})",
         f"Built: {time.strftime('%Y-%m-%d %H:%M %Z')}",
         *REPORT,
         f"Time: {(time.time() - start) / 60:.1f} minutes",
-        f"index.html: {os.path.getsize('index.html'):,} bytes",
+        f"index.html: {os.path.getsize(f'{sub}/index.html' if TRY else 'index.html'):,} bytes",
     ]) + "\n"
     write_atomic(f"{sub}/build.txt", about)
-    write_atomic("build.txt", about)
+    if not TRY:
+        write_atomic("build.txt", about)
     print(f"Copy kept in {os.getcwd()}/{sub}/")
 
 
@@ -337,7 +348,7 @@ def main():
     if not os.path.isfile(MODEL_FILE):
         die(f'no "{MODEL_FILE}" file in {cwd}: write the model in it, e.g. carbon or fable')
     global MODEL
-    words = read(MODEL_FILE).split()
+    words = (os.environ.get("MK_MODEL") or read(MODEL_FILE)).split()
     if len(words) != 1:
         die(f'"{MODEL_FILE}" must hold one model name, e.g. carbon or fable')
     MODEL = SHORT_NAMES.get(words[0].lower(), words[0])
@@ -351,7 +362,7 @@ def main():
     if not files:
         print(f"Note: {INPUT} links to no multiply.by file, so the model gets the prompt alone.")
     sources = [INPUT, MODEL_FILE] + [p for _, p in files]
-    if not os.environ.get("MK_FORCE") and os.path.exists("index.html") and all(
+    if not TRY and not os.environ.get("MK_FORCE") and os.path.exists("index.html") and all(
             os.path.getmtime("index.html") > os.path.getmtime(s) for s in sources):
         print(f"index.html is newer than {', '.join(os.path.relpath(s) for s in sources)}; "
               "not rebuilding.")
@@ -369,10 +380,12 @@ def main():
     src = source_link(html)
     ok = {INPUT, "./" + INPUT, f"/{rel}/{INPUT}", f"{SITE}{rel}/{INPUT}"}
     if src not in ok:
-        with open("index.html.tmp", "w", encoding="utf-8") as f:
+        bad = f"{model_folder()}/index.html.tmp" if TRY else "index.html.tmp"
+        os.makedirs(os.path.dirname(bad) or ".", exist_ok=True)
+        with open(bad, "w", encoding="utf-8") as f:
             f.write(html + "\n")
         die(f'SOURCE points to "{src}", not to this game\'s {INPUT}; nothing published (the '
-            "page is in index.html.tmp)")
+            f"page is in {bad})")
     game = game_name(html)
     others = {}
     for d in os.listdir(ROOT):
@@ -385,12 +398,26 @@ def main():
     elif game in others:
         note(f'Warning: GAME "{game}" is also used by {others[game]} (they share saved progress)')
 
+    design = (section or "(The model wrote no design before the page.)") + "\n"
+    if TRY:
+        sub = model_folder()
+        os.makedirs(sub, exist_ok=True)
+        tmp = f"{sub}/index.html.tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            f.write(html + "\n")
+        if subprocess.run(["python3", f"{ROOT}/check-scripts.py", tmp]).returncode:
+            die(f"script check failed; the page is left in {tmp}")
+        write_atomic(f"{sub}/customization.txt", design)
+        os.replace(tmp, f"{sub}/index.html")
+        print(f"Trial built {cwd}/{sub}/index.html ({os.path.getsize(sub + '/index.html')} bytes); "
+              "the live page is unchanged")
+        keep_copy(start)
+        return
     with open("index.html.tmp", "w", encoding="utf-8") as f:
         f.write(html + "\n")
     if subprocess.run(["python3", f"{ROOT}/check-scripts.py", "index.html.tmp"]).returncode:
         die("script check failed; the page is left in index.html.tmp")
-    write_atomic("customization.txt", (section or "(The model wrote no design before the page.)")
-                 + "\n")
+    write_atomic("customization.txt", design)
     os.replace("index.html.tmp", "index.html")
     print(f"Built {cwd}/index.html ({os.path.getsize('index.html')} bytes)")
     keep_copy(start)

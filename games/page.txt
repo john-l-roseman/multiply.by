@@ -9,7 +9,7 @@ play. (The front page, https://multiply.by/, is the base game itself with a stri
 under it; its "More games" tile opens this page.)
 
 <title>Games – Multiply.by</title>
-In the <head>, directly after the title, include exactly: <meta name="description" content="Free times-tables games for children: feed a monster, drive a train, build a robot, fly through history, build the Great Wall. No sign-up, no ads.">
+In the <head>, directly after the title, include exactly: <meta name="description" content="Free times-tables games for children: feed a monster, drive a train, build a robot, fly through history, build the Great Wall, dig and build with blocks. No sign-up, no ads.">
 In the <head>, include exactly: <meta name="viewport" content="width=device-width, initial-scale=1">
 In the <head>, include exactly: <link rel="icon" type="image/svg+xml" href="/icon.svg"> (the app's icon in the browser tab).
 
@@ -90,13 +90,17 @@ GAMES (the tiles, in this order: SHORT NAME, then the game's key, address and sc
   - Key: chinese
   - Game address: https://multiply.by/chinese/
   - Screenshot: /build-it/chinese.png
+- Block Craft
+  - Key: blocks
+  - Game address: https://multiply.by/blocks/
+  - Screenshot: /build-it/blocks.png
 - Base Game (the plain game all the others are built from; the front page plays it too)
   - Key: base
   - Game address: https://multiply.by/base/
   - Screenshot: /build-it/base.png
 
 CHECKS
-- Eight tiles in the order above: two columns at 360px, three at 768px, four at 1280px, with no
+- Nine tiles in the order above: two columns at 360px, three at 768px, four at 1280px, with no
   sideways scroll at any width and nothing cut off.
 - Each tile shows its short name above its screenshot, and a tap anywhere on the tile opens the
   game.

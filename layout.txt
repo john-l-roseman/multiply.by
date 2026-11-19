@@ -108,6 +108,10 @@ SHARE THE SITE (the share icon at the right end of the title band)
     buttons fire no `click`. In it: if the menu is open and `e.target` is not inside #share-menu or
     #share-site, close the menu and call `e.stopPropagation()`, so that press ONLY closes the menu
     and does nothing else on the page. When the menu is closed it does nothing.
+  - "Is the menu open?" is ONE boolean, `shareMenuOpen`, false when the page loads, set true by
+    opening and false by closing; never read it from `style.display` (an empty inline style at
+    page load would count as "open", and the first press anywhere on the page, often a child's
+    first answer, would be swallowed). A check: the very first tap on an answer counts.
   - Opening the menu sets `aria-expanded="true"` on the icon button (otherwise "false"; the button
     also has `aria-haspopup="menu"`).
   - SHARE MESSAGE (shown after copying, on any device): a <span id="share-msg" role="status">

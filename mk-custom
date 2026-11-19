@@ -12,6 +12,8 @@
 # (key read from $HOME/.anthropic_key; MK_EFFORT sets the effort, default high).
 # If index.html is newer than custom.txt, game.txt and layout.txt, nothing is rebuilt.
 #
+# With a "model" file in the folder (one word, as for the base game: kimi, carbon, gemini-4-neon,
+# ...), the page is built by run-model with that model, and build.txt notes the build.
 # Usage, from the game's folder:  ../mk-custom
 #                         or:  CLAUDE_MODEL=claude-fable-5-2 ../mk-custom
 
@@ -61,7 +63,10 @@ awk -v input="$INPUT" '
 mv prompt.txt.tmp prompt.txt
 
 date
-if [ -n "$CLAUDE_MODEL" ]; then
+if [ -f model ]; then
+	# The folder names its model (carbon, kimi, gemini-4-neon, ...), as for the base game.
+	"$ROOT/run-model" prompt.txt index.html.tmp || exit 1
+elif [ -n "$CLAUDE_MODEL" ]; then
 	ANTHROPIC_API_KEY="$(cat "$HOME/.anthropic_key")" python3.10 "$ROOT/about/run-claude.py" \
 		--model "$CLAUDE_MODEL" --effort "${MK_EFFORT:-high}" \
 		prompt.txt index.html.tmp || exit 1
