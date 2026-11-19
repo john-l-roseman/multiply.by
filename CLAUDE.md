@@ -6,19 +6,41 @@ generated file (index.html, prompt.txt, pwa.js, sw.js, ...) by hand: change the 
 rebuild. GitHub: john-l-roseman/multiply.by (public).
 
 ## How a page is built
+- Site map: `/` is the front page: the base game with a strip of the other games under the
+  answers (spec `home.txt`); `/games/` is the picture chooser (spec `games/page.txt`, the strip's
+  "More games" tile); `/base/` is the base game alone (spec
+  `game.txt`); each gamified game is in its own folder (`/train/`, ...);
+  `/build-it/` ("Build it yourself", menu BUILD IT) shows each game's prompt, model and build time;
+  `/about/`, `/demo/`. Every page's SOURCE opens the prompt.txt beside it (the front page's is
+  `/prompt.txt`, the base game's `/base/prompt.txt`).
 - `layout.txt` is the frame shared by every page: title band (a link to https://multiply.by/),
-  share icon and desktop share menu, menu bar look, PLAY/GALLERY/ABOUT/SOURCE items, footer.
+  share icon and desktop share menu, menu bar look, GAMES/BUILD IT/ABOUT/SOURCE items, footer.
 - `footer.txt`: the three-column site info block (About Multiply.by, Feedback, Functional AI
-  Inc.) above the copyright line, on About and Gallery only, put in by an optional
+  Inc.) above the copyright line, on the front page, About and Build It, put in by an optional
   `#include footer.txt` line.
 - Each page has its own spec with one `#include layout.txt` line; `assemble-spec PAGE.txt`
   expands it into that page's `prompt.txt` (generated, git-ignored, served: it is what every
   page's SOURCE button opens, and it must stay one self-contained file a person can upload to
   any chatbot).
-  - `game.txt`: the game (main page). Menu: MUTE, GALLERY, ABOUT, RULES (popup), RESET, SOURCE.
-  - `about/about.txt`: About. Menu: PLAY, GALLERY, ABOUT (current), SOURCE.
-  - `demo/page.txt`: Demo page (/demo/), plays `demo/demo.webm` in a <video> player. Menu: PLAY,
-    GALLERY, ABOUT, SOURCE (no DEMO item). Build with `make` in `demo/` (Claude, like About). The video
+  - `home.txt`: the front page (/). It is `#include game.txt` (assemble-spec puts the base game's
+    spec in and makes every https://multiply.by/base/ address https://multiply.by/) plus a section
+    that adds the games strip (short names, pictures `thumbnails/GAME-thumbnail.png`, 200 x 160, last game
+    played first, then Monster and Dinosaurs, the rest shuffled per visit, then More games).
+    Same storage keys as /base/, so progress is shared.
+  - `games/page.txt`: the chooser (/games/), big tiles with the short names (Monster, Train,
+    Dinosaurs, Robot, Planes, Space, Great Wall, Base Game). Both pages save the tapped game in
+    localStorage `multiply_last_game`. Build with `make` in `games/` (Claude).
+  - `game.txt`: the base game (/base/). Menu: MUTE, BUILD IT, ABOUT, RULES (popup), RESET, SOURCE
+    (no GAMES: the title band leads to the front page and its strip).
+    Every gamified game keeps exactly this menu (gamify.md).
+  - `about/about.txt`: About. Menu: GAMES, BUILD IT, ABOUT (current), SOURCE.
+  - `build-it/page.txt`: Build it yourself (/build-it/, was /gallery/). `make` there retakes the
+    screenshots (`shots.py`; also used by /games/) and builds the page (Claude). The front page's
+    strip uses `thumbnails/GAME-thumbnail.png` instead (screenshots are illegible that small):
+    `thumbs.py` crops each game's main picture (the robot: a finished one drawn by the game's own
+    buildMiniRobotSvg); made only when missing, so a hand-made replacement is kept. Tracked in git.
+  - `demo/page.txt`: Demo page (/demo/), plays `demo/demo.webm` in a <video> player. Menu: GAMES,
+    BUILD IT, ABOUT, SOURCE (no DEMO item). Build with `make` in `demo/` (Claude, like About). The video
     itself is made from `demo/demo.txt` by an agent (`demo/record.py`), not by make. Record on the
     stopped GCE VM `demo-recorder` (us-east1-b, e2-standard-4, 10 GB disk, Playwright venv in
     /opt/rec), never on this e2-small (too slow: dropped frames, drifting sound):
@@ -28,10 +50,14 @@ rebuild. GitHub: john-l-roseman/multiply.by (public).
     demo.webm back, then STOP the VM.
   - `FAQ/faq.txt`: the FAQ, still in progress by the user, not built yet. The URL is /faq
     (currently 404); the folder needs renaming to `faq` and a Makefile like about's.
-- Main game: `make` in this folder. Spec -> the model named in `model` (e.g. carbon; `run-model`,
-  which reuses mk-gamify's model calls; build/build.txt notes tokens, cost, time)
-  -> `build/index.html` -> PWA tags from `PWA-build.txt` inserted -> `check-scripts.py`
-  (node --check) -> `index.html`. Also extracts the PWA files and renders icons and og-image.png.
+- `make` in this folder builds the base game and the front page. Base game: game.txt ->
+  `base/prompt.txt` -> the model named in `model` (e.g. kimi; `run-model`, which reuses mk-gamify's
+  model calls; build/build.txt notes tokens, cost, time) -> `build/index.html` -> PWA tags from
+  `PWA-build.txt` inserted -> `check-scripts.py` (node --check) -> `base/index.html`. Front page:
+  home.txt (+ game.txt) -> `prompt.txt` -> the same model as the base game (run-model) ->
+  `build/home/index.html` (its own folder, so its build.txt does not overwrite the base game's
+  `build/build.txt`, which Build It reads) -> PWA tags -> `index.html`. Also extracts the PWA files and renders icons and og-image.png. The installed app
+  opens the front page; sw.js keeps every page opened online, so played games work offline.
 - About and Demo: `make` in `about/` or `demo/` (Claude via `about/run-claude.py`, key read from
   `$HOME/.anthropic_key`).
 - Custom games (e.g. `divide/`): `../mk-custom` from the game's folder; it combines game.txt +

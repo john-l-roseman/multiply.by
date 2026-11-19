@@ -10,9 +10,9 @@ In the <head>, include exactly: <link rel="icon" type="image/svg+xml" href="/ico
 
 The page has the site's frame, described in SITE LAYOUT below: the title band, the menu bar, this
 page's content in a card, the site info (SITE INFO below) and the footer.
-- MENU ITEMS on this page, from left to right: PLAY, GALLERY, ABOUT (the current page: dark blue, with
-  `aria-current="page"`), then SOURCE in the far right corner. PLAY is the way back to the game:
-  the page also opens inside the installed app, where iPhone shows no back button.
+- MENU ITEMS on this page, from left to right: GAMES, BUILD IT, ABOUT (the current page: dark blue,
+  with `aria-current="page"`), then SOURCE in the far right corner. GAMES is the way back to the
+  games: the page also opens inside the installed app, where iPhone shows no back button.
 - SOURCE on this page: <a href="https://multiply.by/about/prompt.txt">
 - The page column is a flex column at least as tall as the screen (`min-height: 100vh`, and
   `min-height: 100dvh` after it): title band, menu bar, the card, then the site info and the
@@ -64,7 +64,7 @@ Adaptive layout (the page fits phones, tablets and laptops):
 
 <subheader>Transparency</subheader>
   o Open source: free to copy, change and share.
-  o <a href="/prompt.txt">See exactly how the game was built.</a>
+  o <a href="/base/prompt.txt">See exactly how the game was built.</a>
   o Build it yourself, using your favorite AI model.
 
 MORE ABOUT THE SITE (below the three sections, inside the same card)
@@ -85,8 +85,9 @@ The build instructions were developed over hundreds of hours of human design, te
 <h2>Make your own version</h2>
 The game's build instructions are meant to be changed. Rewrite the parts you want (the
 encouragement, the labels, the look) and give the file to an AI model to build your own game.
-The <a href="https://multiply.by/chinese/">Chinese version</a> was made this way, with spoken
-Chinese encouragement and Chinese labels.
+The <a href="https://multiply.by/divide/">division game</a> was made this way. The gamified games on
+the <a href="https://multiply.by/build-it/">Build it</a> page each started from a prompt of a few
+lines instead.
 
 <h2>Portability</h2>
 The build instructions are written to work with models from Google, Anthropic or OpenAI, and
@@ -104,8 +105,8 @@ countries, religions and cultures, a child may recite prayers, learn poems by na
 say a pledge of allegiance every morning, or sing the national anthem.
 
 But there is one memorization task that is the same everywhere: the multiplication table. 
-Children learn it at least up to 9; in Britain they go <a href="https://multiply.by/?12">up to 12</a>, and in India often
-<a href="https://multiply.by/?20">up to 20</a>.
+Children learn it at least up to 9; in Britain they go <a href="https://multiply.by/base/?12">up to 12</a>, and in India often
+<a href="https://multiply.by/base/?20">up to 20</a>.
 
 #include footer.txt
 

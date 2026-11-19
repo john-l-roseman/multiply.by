@@ -11,7 +11,7 @@ instructions that a person can make by hand (multiply.by/divide/ and multiply.by
 that way).
 
 The game is fully described by its base build instructions,
-https://multiply.by/prompt.txt (about 91 KB, starting with "NOTE FOR HUMAN
+https://multiply.by/base/prompt.txt (about 91 KB, starting with "NOTE FOR HUMAN
 READERS"). In gamify.txt (https://multiply.by/gamify.txt, this guide and the base build
 instructions in one file) they follow this guide. Otherwise use an attached copy if there is
 one, or fetch it. Work only from a complete copy: if what you get is cut off or summarized, say
@@ -38,7 +38,7 @@ section G3 below sums up how it rearranges the screen.
    - SOURCE opens THIS game's own prompt: the `prompt.txt` file published next to the game's
      `index.html`. Use exactly the relative link `<a href="prompt.txt">`, which works wherever
      the game is published. CRITICAL: SOURCE never points to gamify.txt, gamify.md or the base
-     game's `https://multiply.by/prompt.txt`, even though those are the files you were given.
+     game's `https://multiply.by/base/prompt.txt`, even though those are the files you were given.
      (If the base file already points SOURCE to an address ending in `/prompt.txt` inside a
      game's folder, such as `https://multiply.by/train/prompt.txt`, keep that address.)
 3. BUILD INSTRUCTIONS INSTEAD (only when the person asks for the build instructions, or the
@@ -48,7 +48,7 @@ section G3 below sums up how it rearranges the screen.
      "Where this section conflicts with the rest of this file, this section wins.", then the
      CUSTOMIZATION section and one blank line.
    - Change the one line that starts with `- GAME: ` to the new game's short name.
-   - Change the one SOURCE link, `https://multiply.by/prompt.txt`, to the relative link
+   - Change the one SOURCE link, `https://multiply.by/base/prompt.txt`, to the relative link
      `prompt.txt` (the game's own prompt, published next to its `index.html`).
    Don't rewrite, shorten, reorder or "fix" anything else, even the parts the section replaces: a
    dropped paragraph is a broken game. If you can run code, make the file with code instead of
@@ -246,7 +246,7 @@ Use the base file's own names, so the building model ties your changes to its co
   - PRACTICE HARD ONES runs a short practice of the weakest facts (`weakFacts()`, ANSWER TIMES)
     and ends with "Practice done!".
 - Menu:
-  - The base game shows MUTE, GALLERY, ABOUT, RULES (a popup), RESET and SOURCE. CRITICAL: a
+  - The base game shows MUTE, BUILD IT, ABOUT, RULES (a popup), RESET and SOURCE. CRITICAL: a
     gamified game keeps EXACTLY this menu, the same items in the same order: it adds no item and
     drops none. A new panel (a sticker book, a garage, a map) opens from a button inside the game
     area, not from the menu bar.

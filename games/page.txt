@@ -1,0 +1,113 @@
+Create a web page using a modern minimalist layout.
+Build one standalone HTML file (index.html): plain HTML, CSS and JavaScript, no libraries, nothing
+loaded from any server except the screenshots below. All CSS in one <style> in the <head>, all code
+in one plain <script> at the end of the <body>.
+
+This is the GAMES page of https://multiply.by/ (https://multiply.by/games/): a child picks a
+times-tables game to play. It is for children of about 6 to 11: big pictures, few words, one tap to
+play. (The front page, https://multiply.by/, is the base game itself with a strip of these games
+under it; its "More games" tile opens this page.)
+
+<title>Games – Multiply.by</title>
+In the <head>, directly after the title, include exactly: <meta name="description" content="Free times-tables games for children: feed a monster, drive a train, build a robot, fly through history, build the Great Wall. No sign-up, no ads.">
+In the <head>, include exactly: <meta name="viewport" content="width=device-width, initial-scale=1">
+In the <head>, include exactly: <link rel="icon" type="image/svg+xml" href="/icon.svg"> (the app's icon in the browser tab).
+
+The page has the site's frame, described in SITE LAYOUT below: the title band, the menu bar, this
+page's content (the games), the site info (SITE INFO below) and the footer.
+- MENU ITEMS on this page, from left to right: GAMES (the current page: dark blue, with
+  `aria-current="page"`, and its link is https://multiply.by/games/ on this page), BUILD IT, ABOUT,
+  then SOURCE in the far right corner.
+- SOURCE on this page: <a href="https://multiply.by/games/prompt.txt">
+- The share icon shares https://multiply.by/games/ (`shareText()` returns
+  'https://multiply.by/games/').
+- Page background light gray (#f3f4f6).
+- The page column is a flex column at least as tall as the screen (`min-height: 100vh`, and
+  `min-height: 100dvh` after it): title band, menu bar, the games, then the site info and the
+  footer pushed to the bottom of the screen (`margin-top: auto` on the site info). The page
+  scrolls normally.
+- On this page only, the PAGE COLUMN is wider on laptops and wider screens
+  (`@media (min-width: 1024px)`): `width: min(1120px, 94vw)` (overriding the layout's 720px
+  column, for the title band, menu bar, site info and footer too).
+
+<header>Pick a game!</header>
+The header sits above the grid, left-aligned with it, 16px below the menu bar: bold, about
+1.75rem, near-black (#111827). Directly under it, one short line in muted gray (#6b7280), normal
+weight, slightly smaller than body text (it may wrap on phones):
+"Learn the times tables. Every game is free: no sign-up, no ads."
+
+THE GRID
+- The games, in the order of GAMES below, each a TILE, in a CSS grid with 12px gaps and 12px of
+  space at the sides:
+  - Phones (narrower than 640px): two columns (`grid-template-columns: repeat(2, 1fr)`).
+  - Tablets (640px to 1023px): three columns.
+  - Laptops and wider (`@media (min-width: 1024px)`): four columns.
+- TILE: the whole tile is ONE link to the game (<a href="GAME ADDRESS">), with no underline and
+  no other links or buttons inside it. White, a 1px #e5e7eb border, 14px rounded corners, a soft
+  shadow (0 1px 3px rgba(0,0,0,0.1)), padding 8px, a flex column with 8px gaps. On hover and
+  focus it lifts slightly (`transform: translateY(-2px)`, a stronger shadow, 0.15s; none when
+  the user prefers reduced motion) and has a clear focus outline for the keyboard.
+- Inside each tile, from top to bottom:
+  1. NAME (ON TOP): the game's SHORT NAME from GAMES below, exactly as written, centered, bold,
+     1.05rem (1.2rem on laptops), #111827, line-height 1.25, on one line.
+  2. SCREENSHOT: <img src="SCREENSHOT" alt="Screenshot of NAME" width="412" height="330"
+     loading="lazy">, a picture of the game's own scene (412 x 330: the question, the mascot or
+     scene and the progress picture, without the menu and the answers), filling the tile's width
+     (`width: 100%; height: auto; display: block;`), 10px rounded corners, a 1px #e5e7eb border.
+- The names are written into the page as they are given here: the page reads nothing from the
+  games (no fetch).
+- LAST GAME: a tap on a tile (a `click` listener on each tile; the link opens the game as usual)
+  saves the game's KEY from GAMES below in localStorage under 'multiply_last_game' (in try/catch:
+  if storage fails, nothing happens and the link still opens the game). The front page puts that
+  game first in its strip.
+
+GAMES (the tiles, in this order: SHORT NAME, then the game's key, address and screenshot)
+- Monster
+  - Key: monster
+  - Game address: https://multiply.by/monster/
+  - Screenshot: /build-it/monster.png
+- Train
+  - Key: train
+  - Game address: https://multiply.by/train/
+  - Screenshot: /build-it/train.png
+- Dinosaurs
+  - Key: dino
+  - Game address: https://multiply.by/dino/
+  - Screenshot: /build-it/dino.png
+- Robot
+  - Key: robot
+  - Game address: https://multiply.by/robot/
+  - Screenshot: /build-it/robot.png
+- Planes
+  - Key: plane
+  - Game address: https://multiply.by/plane/
+  - Screenshot: /build-it/plane.png
+- Space
+  - Key: space
+  - Game address: https://multiply.by/space/
+  - Screenshot: /build-it/space.png
+- Great Wall
+  - Key: chinese
+  - Game address: https://multiply.by/chinese/
+  - Screenshot: /build-it/chinese.png
+- Base Game (the plain game all the others are built from; the front page plays it too)
+  - Key: base
+  - Game address: https://multiply.by/base/
+  - Screenshot: /build-it/base.png
+
+CHECKS
+- Eight tiles in the order above: two columns at 360px, three at 768px, four at 1280px, with no
+  sideways scroll at any width and nothing cut off.
+- Each tile shows its short name above its screenshot, and a tap anywhere on the tile opens the
+  game.
+- The page passes with the screenshots missing too: each image keeps its 412:330 space (its width
+  and height attributes) and shows its alt text.
+- The menu bar shows GAMES (current), BUILD IT, ABOUT and SOURCE; SOURCE opens
+  https://multiply.by/games/prompt.txt.
+
+#include footer.txt
+
+#include layout.txt
+
+------
+Copyright (c) 2026 Functional AI Inc. Published under the MIT License.

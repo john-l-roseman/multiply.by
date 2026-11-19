@@ -1,0 +1,123 @@
+#include game.txt
+
+
+THE FRONT PAGE (https://multiply.by/): THE GAME ABOVE, WITH A STRIP OF THE OTHER GAMES
+======================================================================================
+This page is the times-tables game described above, played at https://multiply.by/, with ONE
+addition: a strip of the site's other games under the answers, so a child starts playing at once
+and still sees the other games. Build the game EXACTLY as described above (same CONFIG, same
+storage keys, so the progress is the same as on the base game's own page), with only the changes
+in this section. Where this section and the text above disagree, this section wins.
+
+CHANGES TO THE TEXT ABOVE
+- Loading from the server: the strip's small pictures (the <img> elements below) are the ONLY
+  things this page loads from the server. Nothing else changes: no fetch, no other file. The game
+  works without them (offline, or if a picture fails): a picture that fails to load is hidden
+  (`onerror` sets its `visibility: hidden`), the tile and its name stay.
+- MENU ITEMS: as above (MUTE, BUILD IT, ABOUT, RULES, RESET, then SOURCE). On this page the games
+  strip and its More games tile are the way to the other games.
+- NO PAGE SCROLL, FITS ONE SCREEN: everything said above about the whole UI fitting on one screen
+  with no scroll (360x640, landscape, tablets, desktop) now includes the strip: title band, menu
+  bar, game area, strip and footer all fit, and the page itself still never scrolls. The game area
+  is what gives up the room: it keeps `flex: 1; min-height: 0`, so the answer buttons (`flex: 1`)
+  simply become shorter.
+- THE TOP ROW NEVER GETS SHORTER THAN ITS INDICATORS: #top-row keeps `flex: 0 0 36%` but has
+  `min-height: auto` (not 0), so with the strip taking room the five stacked indicators (SCORE to
+  TIME) still fit inside it and never overlap the answers; the answers give up the room instead.
+
+THE GAMES STRIP
+- A <nav id="games-strip" aria-label="More games"> in the app container, directly AFTER
+  #game-area and BEFORE the footer: `flex-shrink: 0`, outside #game-area (a tap on it never
+  answers, never starts the timer), background #f9fafb, a 1px #e5e7eb top border,
+  `padding: 6px 8px`.
+- One row of TILES, never wrapping: `display: flex; gap: 8px; overflow-x: auto; overflow-y: hidden;
+  overscroll-behavior-x: contain; touch-action: pan-x; scrollbar-width: none;` (and
+  `#games-strip::-webkit-scrollbar { display: none; }`). It scrolls sideways INSIDE ITSELF when the
+  tiles do not fit (a phone shows about three and a half, the half tile saying there is more); the
+  page never scrolls.
+- WITH A MOUSE (inside `@media (hover: hover)`): the strip shows a thin scrollbar
+  (`scrollbar-width: thin`, and for WebKit `#games-strip::-webkit-scrollbar { display: block;
+  height: 6px; }` with a #d1d5db rounded thumb), and the mouse wheel scrolls it sideways: a
+  `wheel` listener on the strip (`{ passive: false }`) that, when the wheel moves up or down
+  (`Math.abs(e.deltaY) > Math.abs(e.deltaX)`) and the strip can scroll, adds `e.deltaY` to its
+  `scrollLeft` and calls `e.preventDefault()`.
+- TILE: <a class="strip-tile" href="GAME ADDRESS">, the whole tile one link, no underline:
+  `flex: 0 0 88px`, a flex column with `gap: 3px`, white, a 1px #e5e7eb border, 10px rounded
+  corners, `padding: 4px`, a soft shadow (0 1px 2px rgba(0,0,0,0.08)), a clear focus outline for
+  the keyboard; on hover (inside `@media (hover: hover)`) the border turns #3b82f6. Inside, from top
+  to bottom:
+  1. NAME: the game's SHORT NAME from STRIP GAMES below, exactly as written, 12px, bold, #111827,
+     centered, `line-height: 1.2`, one line (`white-space: nowrap; overflow: hidden;
+     text-overflow: ellipsis`).
+  2. PICTURE: <img src="PICTURE" alt="" width="80" height="64">, `display: block; width: 100%;
+     height: auto; aspect-ratio: 5 / 4; object-fit: cover; border-radius: 6px;` (alt="" because the
+     name is already the tile's text). The pictures are thumbnails, 200 x 160 (5:4): one simple
+     picture of the game (a locomotive, the monster, a dinosaur), not a screenshot.
+- The LAST TILE is always MORE GAMES: the same tile, name "More games", linking to
+  https://multiply.by/games/, with an inline SVG in place of the picture (same 5:4 box, background
+  #eff6ff, 6px rounded corners): four rounded squares in a 2 x 2 grid, #3b82f6, centered, about
+  half the box's height.
+- WIDER SCREENS (`@media (min-width: 768px) and (min-height: 600px)`, as the menu bar): tiles
+  `flex: 0 0 108px`, names 14px.
+- SHORT SCREENS (`@media (max-height: 500px)`, e.g. a phone on its side): no pictures (the <img>
+  and the SVG are `display: none`); each tile is a name-only chip: `flex: 0 0 auto; height: 28px;
+  padding: 0 10px; justify-content: center;`, name 12px. The strip's padding is `4px 8px`.
+
+THE ORDER OF THE STRIP (set once when the page opens, never changed while it is open: tiles never
+move under a child's finger)
+1. The LAST GAME the child opened first: the KEY saved in localStorage under
+   'multiply_last_game' (read with the page's safe storage; if it is missing, or is not the key of
+   a game in STRIP GAMES, skip this step).
+2. Then Monster and Dinosaurs (each only if not already placed), in that order: the games for the
+   youngest children.
+3. Then the remaining games in a RANDOM order, shuffled once per page load (Fisher-Yates with
+   Math.random), so every game gets its turn near the front.
+4. MORE GAMES last.
+- A tap on a game tile (a `click` listener; the link opens the game as usual) saves that game's KEY
+  under 'multiply_last_game' (with the safe storage: if storage fails, the link still works). The
+  games page does the same, so a game picked there comes first here too.
+- The tiles are made by the script from one list (the STRIP GAMES data below), names set with
+  `textContent`.
+
+STRIP GAMES (SHORT NAME, then the game's key, address and picture)
+- Monster
+  - Key: monster
+  - Game address: https://multiply.by/monster/
+  - Picture: /thumbnails/monster-thumbnail.png
+- Train
+  - Key: train
+  - Game address: https://multiply.by/train/
+  - Picture: /thumbnails/train-thumbnail.png
+- Dinosaurs
+  - Key: dino
+  - Game address: https://multiply.by/dino/
+  - Picture: /thumbnails/dino-thumbnail.png
+- Robot
+  - Key: robot
+  - Game address: https://multiply.by/robot/
+  - Picture: /thumbnails/robot-thumbnail.png
+- Planes
+  - Key: plane
+  - Game address: https://multiply.by/plane/
+  - Picture: /thumbnails/plane-thumbnail.png
+- Space
+  - Key: space
+  - Game address: https://multiply.by/space/
+  - Picture: /thumbnails/space-thumbnail.png
+- Great Wall
+  - Key: chinese
+  - Game address: https://multiply.by/chinese/
+  - Picture: /thumbnails/chinese-thumbnail.png
+
+FRONT PAGE CHECKS (in addition to the checks above)
+- At 360x640, 640x360, 768x1024 and 1280x800: the title band, menu bar, question, four answers,
+  strip and footer are all on screen, nothing cut off, and the page does not scroll by a pixel.
+  The indicators (down to TIME) end above the answers.
+- On a computer, the mouse wheel over the strip scrolls it sideways to More games.
+- The strip shows the seven games and then More games; on a phone it scrolls sideways inside
+  itself; in landscape it shows name-only chips.
+- After tapping Train in the strip and coming back, Train is the first tile.
+- A tap on a strip tile opens that game; it never counts as an answer or starts the timer.
+- The menu bar shows MUTE, BUILD IT, ABOUT, RULES, RESET and SOURCE on one line at 360px, nothing
+  cut off; BUILD IT opens https://multiply.by/build-it/; SOURCE opens
+  https://multiply.by/prompt.txt. There is no GAMES item.

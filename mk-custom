@@ -35,7 +35,7 @@ fi
 if [ "`grep -c '^- GAME: ' "$SPEC"`" != 1 ]; then
 	echo "$SPEC needs exactly one \"- GAME: \" line"; exit 1
 fi
-if [ "`grep -c 'https://multiply.by/prompt.txt' "$SPEC"`" != 1 ]; then
+if [ "`grep -c 'https://multiply.by/base/prompt.txt' "$SPEC"`" != 1 ]; then
 	echo "$SPEC needs exactly one SOURCE link"; exit 1
 fi
 
@@ -49,7 +49,7 @@ fi
 # Served files are written under a temporary name and renamed into place, so
 # a visitor never gets a half-written page.
 $ROOT/assemble-spec "$SPEC" | sed -e "s/^- GAME: .*/- GAME: $NAME/" \
-	-e "s#https://multiply.by/prompt.txt#https://multiply.by/$REL/prompt.txt#" |
+	-e "s#https://multiply.by/base/prompt.txt#https://multiply.by/$REL/prompt.txt#" |
 awk -v input="$INPUT" '
 	{ print }
 	!done && /^$/ {

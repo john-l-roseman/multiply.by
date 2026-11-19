@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Make gamify.txt: ONE self-contained file for building a gamified game in any chatbot.
 
-Usage: gamify-txt.py gamify.md prompt.txt > gamify.txt
+Usage: gamify-txt.py gamify.md base/prompt.txt > gamify.txt
 
 It is a short note for human readers, then gamify.md turned into the plain-text style of the
 site's specs (Markdown headings become UPPERCASE headings, code fences are dropped), then the base
@@ -44,6 +44,6 @@ for line in guide.splitlines():
 
 sys.stdout.write(NOTE + "\n\n" + "\n".join(out).strip() + "\n\n\n"
                  + heading("The base build instructions", "=") + "\n"
-                 + "The complete base build instructions (https://multiply.by/prompt.txt),\n"
+                 + "The complete base build instructions (https://multiply.by/base/prompt.txt),\n"
                  + "copied unchanged. Everything from here to the end of this file is that one file.\n\n"
                  + base)

@@ -10,9 +10,10 @@ In the <head>, include exactly: <link rel="icon" type="image/svg+xml" href="/ico
 
 The page has the site's frame, described in SITE LAYOUT below: the title band, the menu bar, this
 page's content (the video) and the footer.
-- MENU ITEMS on this page, from left to right: PLAY, GALLERY, ABOUT, then SOURCE in the far right
-  corner (no item marks this page as current: the menu has no DEMO item). PLAY is the way back to
-  the game: the page also opens inside the installed app, where iPhone shows no back button.
+- MENU ITEMS on this page, from left to right: GAMES, BUILD IT, ABOUT, then SOURCE in the far
+  right corner (no item marks this page as current: the menu has no DEMO item). GAMES is the way
+  back to the games: the page also opens inside the installed app, where iPhone shows no back
+  button.
 - SOURCE on this page: <a href="https://multiply.by/demo/prompt.txt">
 - Page background light gray (#f3f4f6).
 - The page column is a flex column exactly as tall as the screen (`height: 100vh`, and

@@ -121,9 +121,9 @@ SHARE THE SITE (the share icon at the right end of the title band)
         Multiply.by: learn the multiplication table, fast.
         Free, open source, no sign-up, no ads. Works on phone or computer.
         https://multiply.by/
-    When the link is https://multiply.by/?12 the first line is "Multiply.by: learn the
-    multiplication table up to 12, fast."; when it is https://multiply.by/?20, "Multiply.by: learn
-    the multiplication table up to 20, fast.". The second line is the same everywhere.
+    When the link is https://multiply.by/base/?12 the first line is "Multiply.by: learn the
+    multiplication table up to 12, fast."; when it is https://multiply.by/base/?20, "Multiply.by:
+    learn the multiplication table up to 20, fast.". The second line is the same everywhere.
   - Copying (step 2 on a phone, Copy link on a computer) copies ONLY the link, `shareText()`, never
     the three lines.
   - Sharing changes nothing on the page, saves nothing, plays no sound and never throws (wrap each
@@ -137,14 +137,16 @@ MENU BAR (directly under the title band)
   plus its padding (NOT equal widths, NOT stretched to fill the bar). SOURCE is a button in the far
   right corner ('margin-left: auto'). There is no logo.
 - Menu items shared by the pages (each page says which of them it shows, and may add its own):
-  - PLAY: a link with the exact text "PLAY": <a href="https://multiply.by/">. It opens the game.
-  - GALLERY: a link with the exact text "GALLERY": <a href="https://multiply.by/gallery/">. It
-    opens the gallery of gamified versions of the game.
+  - GAMES: a link with the exact text "GAMES": <a href="https://multiply.by/">. It opens the front
+    page, where a child picks a game.
+  - BUILD IT: a link with the exact text "BUILD IT" (two words, never broken across two lines:
+    `white-space: nowrap`): <a href="https://multiply.by/build-it/">. It opens "Build it yourself":
+    each game with the prompt and model that built it.
   - ABOUT: a link with the exact text "ABOUT": <a href="https://multiply.by/about">.
   - SOURCE: a link with the exact text "SOURCE" to the page's own build instructions (the address
     is given by the page) (NO `download` attribute: the file opens in the browser).
-- THE CURRENT PAGE: the menu item for the page being shown (GALLERY on the Gallery page, ABOUT on
-  the About page) has `aria-current="page"` and dark blue text #1e40af; it still works as a link.
+- THE CURRENT PAGE: the menu item for the page being shown (BUILD IT on the Build it page, ABOUT
+  on the About page) has `aria-current="page"` and dark blue text #1e40af; it still works as a link.
 - Menu items (everything except SOURCE): no button look, no border, background, box or shadow;
   plain text (or a plain icon) on the white bar. They share one CSS class (for example
   `menu-item`): 'display: flex; align-items: center; height: 100%; padding: 0 5px; margin: 0;
@@ -158,7 +160,7 @@ MENU BAR (directly under the title band)
 - The whole bar fits on one line on a 360px-wide phone, with nothing cut off: SOURCE ends inside
   the screen's right edge. On screens narrower than 400px (`@media (max-width: 399px)`) the bar
   has `gap: 0; padding: 0 4px;` and the menu items `padding: 0 3px;`, so the game's six items
-  (MUTE, GALLERY, ABOUT, RULES, RESET, SOURCE) fit even with a wide font.
+  (MUTE, BUILD IT, ABOUT, RULES, RESET, SOURCE) fit even with a wide font.
 - WIDER SCREENS (tablets and computers, where the column is up to 720px wide): inside
   `@media (min-width: 768px) and (min-height: 600px)` the menu bar scales up to match: bar height
   3.25rem; menu items `padding: 0 10px`; text items 17px; SOURCE height 2.25rem, `padding: 0 12px`,

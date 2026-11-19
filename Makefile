@@ -1,13 +1,15 @@
-SPEC  = prompt.txt
+SPEC  = base/prompt.txt
 PWA   = PWA-build.txt
 FILES = manifest.webmanifest sw.js pwa.js icon.svg og-image.svg
 ICONS = icon-192.png icon-512.png
 
-all: gamify.txt index.html $(FILES) $(ICONS) og-image.png
+all: gamify.txt base/index.html index.html $(FILES) $(ICONS) og-image.png
 
-# The game's complete prompt (prompt.txt, the file SOURCE links to): game.txt with the
+# THE BASE GAME (https://multiply.by/base/)
+# Its complete prompt (base/prompt.txt, the file its SOURCE links to): game.txt with the
 # site's shared layout.txt put in at its "#include layout.txt" line.
 $(SPEC): game.txt layout.txt assemble-spec
+	mkdir -p base
 	./assemble-spec game.txt > $(SPEC).tmp
 	mv $(SPEC).tmp $(SPEC)
 
@@ -17,11 +19,24 @@ gamify.txt: gamify.md $(SPEC) gamify-txt.py
 	python3 gamify-txt.py gamify.md $(SPEC) > gamify.txt.tmp
 	mv gamify.txt.tmp gamify.txt
 
-# The plain game page, built from prompt.txt (no PWA) by the model named in the
+# The plain game page, built from base/prompt.txt (no PWA) by the model named in the
 # file "model" (carbon, fable, ...; see run-model).
 build/index.html: $(SPEC) model run-model
 	mkdir -p build
 	./run-model $(SPEC) build/index.html
+
+# THE FRONT PAGE (https://multiply.by/): the base game with a strip of the other games under it.
+# home.txt includes game.txt (its /base/ addresses made the root's) and adds the strip. Its
+# complete prompt is prompt.txt, at the site's root, built by the same model as the base game.
+# (The games chooser is /games/, built in games/.)
+prompt.txt: home.txt game.txt layout.txt assemble-spec
+	./assemble-spec home.txt > prompt.txt.tmp
+	mv prompt.txt.tmp prompt.txt
+
+# build/home/ so that its build.txt does not overwrite the base game's build/build.txt.
+build/home/index.html: prompt.txt model run-model
+	mkdir -p build/home
+	./run-model prompt.txt build/home/index.html
 
 # PWA files, copied verbatim from PWA-build.txt.
 $(FILES) &: $(PWA) extract-files.py
@@ -33,10 +48,18 @@ build/pwa-head.html: $(PWA) extract-files.py
 # Every served file is written under a temporary name and renamed into place,
 # so a visitor never gets a half-written page.
 
-# The served page: the plain page with the PWA tags inserted before </head>.
-index.html: build/index.html build/pwa-head.html check-scripts.py
+# The served pages: the plain page with the PWA tags inserted before </head>.
+base/index.html: build/index.html build/pwa-head.html check-scripts.py
 	test "$$(grep -c "</head>" build/index.html)" = 1
-	sed "/<\/head>/e cat build/pwa-head.html" build/index.html > index.html.tmp
+	sed "/<\/head>/e cat build/pwa-head.html" build/index.html > base/index.html.tmp
+	@size=$$(wc -c < base/index.html.tmp); if [ $$size -ge 100000 ]; then \
+	  echo "WARNING: base/index.html is $$size bytes; the About page says less than 100 KB"; fi
+	python3 check-scripts.py base/index.html.tmp
+	mv base/index.html.tmp base/index.html
+
+index.html: build/home/index.html build/pwa-head.html check-scripts.py
+	test "$$(grep -c "</head>" build/home/index.html)" = 1
+	sed "/<\/head>/e cat build/pwa-head.html" build/home/index.html > index.html.tmp
 	@size=$$(wc -c < index.html.tmp); if [ $$size -ge 100000 ]; then \
 	  echo "WARNING: index.html is $$size bytes; the About page says less than 100 KB"; fi
 	python3 check-scripts.py index.html.tmp

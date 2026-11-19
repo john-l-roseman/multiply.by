@@ -106,9 +106,9 @@ IMPORTANT: Do not add any notes at the top or bottom of the HTML file.
   - `update()` changes classes, properties and text only. It MUST NOT rebuild the answer buttons.
 
 - FOUR MODES (CRITICAL): one page plays one of four sets of tables: 2 to 9 (the default), both
-  ways (`?both`, as in https://multiply.by/?both: 2 to 9 with every question in both orders, e.g.
-  3 x 4 and 4 x 3), up to 12 (when the page address has the argument `?12`, as in
-  https://multiply.by/?12) or up to 20 (`?20`, as in https://multiply.by/?20). The choice is not
+  ways (`?both`, as in https://multiply.by/base/?both: 2 to 9 with every question in both orders,
+  e.g. 3 x 4 and 4 x 3), up to 12 (when the page address has the argument `?12`, as in
+  https://multiply.by/base/?12) or up to 20 (`?20`, as in https://multiply.by/base/?20). The choice is not
   remembered: on page load only the address decides. Define, with the global constants:
   `let MODE, GAME_NAME, FACTS, STORAGE_KEY, BEST_KEY;` (MODE is the number 9, 12 or 20, or the
   string 'both')
@@ -670,13 +670,15 @@ they are described in SITE LAYOUT, directly after this section 8. On this page:
 - The app container is the PAGE COLUMN: the title band and the menu bar are its first parts, the
   footer its last.
 
-- MENU ITEMS on this page, from left to right: MUTE (the speaker icon), GALLERY, ABOUT, RULES (INFO)
-  and RESET, then SOURCE in the far right corner. There is no PLAY item (this page is the game) and
-  no DEMO item. MUTE, RULES and RESET are only on this page; they use the same menu-item class as
-  GALLERY and ABOUT. The
-  score is NOT in this bar; it is in the INDICATORS next to the question.
+- MENU ITEMS on this page, from left to right: MUTE (the speaker icon), BUILD IT, ABOUT, RULES
+  (INFO) and RESET, then SOURCE in the far right corner. There is no GAMES item (it would not fit
+  on a phone next to BUILD IT): the title band's link leads back to the front page, where the
+  other games are. There is no DEMO item. BUILD IT shows children and grown-ups how each game was
+  built. MUTE, RULES and RESET are only on this page; they use the same menu-item class as
+  BUILD IT and ABOUT. The score is NOT in this bar; it is in the INDICATORS next to the
+  question.
 
-- SOURCE on this page: <a href="https://multiply.by/prompt.txt">
+- SOURCE on this page: <a href="https://multiply.by/base/prompt.txt">
 
 - The title band's link (to https://multiply.by/) is outside #game-area: tapping it never starts
   the timer, and the progress is already saved.
@@ -685,7 +687,7 @@ they are described in SITE LAYOUT, directly after this section 8. On this page:
   - Shown in every mode, during play and behind the "You Won!" overlay. It is outside #game-area,
     so tapping it never starts the timer.
   - `shareText()` is the link for the current set (see SHARE MY RESULTS), so the shared message
-    names the set: https://multiply.by/, ?both, ?12 or ?20. For ?both, the first line of
+    names the set: https://multiply.by/base/, ?both, ?12 or ?20. For ?both, the first line of
     `siteShareText()` is "Multiply.by: learn the multiplication table both ways, fast." (the
     other sets as in SHARE THE SITE).
   - Answers count on `pointerdown` and the answer buttons are briefly `disabled` after each answer,
@@ -860,8 +862,9 @@ SHARE MY RESULTS (the "Share my results" button on the "You Won!" screen):
     - Nothing may overlap or run off the card; leave at least 60px of space at the bottom.
 - Every share also passes the title 'multiply.by results' (some apps use it, for example as an email
   subject; others ignore it).
-- The text sent with the picture is ONLY the link, returned by `shareText()`: https://multiply.by/
-  (2 to 9), https://multiply.by/?both (both ways), https://multiply.by/?12 (up to 12) or https://multiply.by/?20 (up to 20). No sentence,
+- The text sent with the picture is ONLY the link, returned by `shareText()`:
+  https://multiply.by/base/ (2 to 9), https://multiply.by/base/?both (both ways),
+  https://multiply.by/base/?12 (up to 12) or https://multiply.by/base/?20 (up to 20). No sentence,
   no results: the picture shows them.
 - WHERE IT SHOWS: only on touch devices that can share files. At start-up set
   `const CAN_SHARE = matchMedia('(pointer: coarse)').matches && !!navigator.canShare;`
@@ -1017,7 +1020,7 @@ generated dataset, the shuffled deck, `wrongAnswers` and `CONFIG`.
   say, 126, 146 and 156).
 
 - Title band and share icon: as in CHECKS FOR THE SITE LAYOUT. On this page the share link is
-  the current set's (https://multiply.by/, ?both, ?12 or ?20), and neither the share icon nor the
+  the current set's (https://multiply.by/base/, ?both, ?12 or ?20), and neither the share icon nor the
   title link starts the timer.
 
 - Animations after a right answer: the tapped answer pops (grows a little and settles) while it is
@@ -1062,7 +1065,7 @@ generated dataset, the shuffled deck, `wrongAnswers` and `CONFIG`.
 - Reset: one tap on RESET starts the current set from scratch at once, with no confirmation (score
   0, Learned 0%, Mistakes 0, Time 0:00), keeping the best score.
 
-- Header buttons and links work on phones: the speaker button, GALLERY, ABOUT, RULES, SOURCE, the How to
+- Header buttons and links work on phones: the speaker button, BUILD IT, ABOUT, RULES, SOURCE, the How to
   Play panel, RESET, "Play Again", the Tables choice and the next-level links on the "You Won!"
   screen respond to a normal tap.
 

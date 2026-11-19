@@ -2,18 +2,30 @@
 # Write a page's complete build instructions to stdout: the page's own spec (for example
 # game.txt or about/about.txt) with its one "#include layout.txt" line replaced by the site's
 # shared layout.txt (title band, share icon, menu bar, footer), and its "#include footer.txt"
-# line, if it has one, by footer.txt (the two-column site info block of About and Gallery).
+# line, if it has one, by footer.txt (the three-column site info block).
+# A page may also have one "#include game.txt" line (the front page, home.txt): it is replaced by
+# the base game's spec, game.txt, and every https://multiply.by/base/ address in the result
+# becomes https://multiply.by/ (the front page plays the base game at the site's root); game.txt's
+# own "#include layout.txt" line then counts as the page's one.
 #
 # Usage: assemble-spec PAGE.txt > prompt.txt
 
 ROOT=$(cd "$(dirname "$0")" && pwd)
 PAGE=$1
 if [ ! -f "$PAGE" ]; then echo "assemble-spec: no file \"$PAGE\"" >&2; exit 1; fi
-if [ "$(grep -c '^#include layout\.txt$' "$PAGE")" != 1 ]; then
+GAMES=$(grep -c '^#include game\.txt$' "$PAGE")
+if [ "$GAMES" -gt 1 ]; then
+	echo "assemble-spec: $PAGE may have at most one \"#include game.txt\" line" >&2; exit 1
+fi
+TMP=$(mktemp); trap 'rm -f "$TMP"' EXIT
+sed -e '/^#include game\.txt$/{r '"$ROOT/game.txt" -e 'd}' "$PAGE" > "$TMP"
+if [ "$(grep -c '^#include layout\.txt$' "$TMP")" != 1 ]; then
 	echo "assemble-spec: $PAGE needs exactly one \"#include layout.txt\" line" >&2; exit 1
 fi
-if [ "$(grep -c '^#include footer\.txt$' "$PAGE")" -gt 1 ]; then
+if [ "$(grep -c '^#include footer\.txt$' "$TMP")" -gt 1 ]; then
 	echo "assemble-spec: $PAGE may have at most one \"#include footer.txt\" line" >&2; exit 1
 fi
+# With game.txt in, the base game's addresses become the root's everywhere (layout.txt has some).
+if [ "$GAMES" = 1 ]; then BASE='s#https://multiply\.by/base/#https://multiply.by/#g'; else BASE=''; fi
 sed -e '/^#include layout\.txt$/{r '"$ROOT/layout.txt" -e 'd}' \
-	-e '/^#include footer\.txt$/{r '"$ROOT/footer.txt" -e 'd}' "$PAGE"
+	-e '/^#include footer\.txt$/{r '"$ROOT/footer.txt" -e 'd}' "$TMP" | sed -e "$BASE"
