@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="AppTheme" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/page</item>
+        <item name="android:colorAccent">@color/blue</item>
+    </style>
+    <color name="page">#FAFAF9</color>
+    <color name="blue">#2563EB</color>
+</resources>

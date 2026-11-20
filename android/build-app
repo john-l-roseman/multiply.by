@@ -1,0 +1,59 @@
+#!/bin/bash
+# Builds the Android app on the android-build VM (see ANDROID.md) and copies the result back.
+#
+# Usage: android/build-app [debug|release]     (default: debug, an APK to install on a phone)
+#
+# Stages the project with the live pages (gather-assets.py) in a temporary folder outside the
+# web folder, starts the VM if needed, builds there with the Gradle wrapper, copies the APK to
+# $OUT, and stops the VM again if it started it (it is billed while running).
+set -euo pipefail
+
+KIND=${1:-debug}
+case $KIND in
+  debug)   TASK=assembleDebug; FILE=app/build/outputs/apk/debug/app-debug.apk ;;
+  release) echo "release builds need the upload key: not set up yet" >&2; exit 1 ;;
+  *)       echo "usage: $0 [debug|release]" >&2; exit 1 ;;
+esac
+
+HERE=$(cd "$(dirname "$0")" && pwd)
+SITE=$(dirname "$HERE")
+VM=android-build
+ZONE=us-east1-b
+OUT=${OUT:-$HOME/multiply-android}
+SSH=(gcloud compute ssh "$VM" --zone="$ZONE" --tunnel-through-iap --quiet)
+
+STAGE=$(mktemp -d)
+STARTED=
+cleanup() {
+  rm -rf "$STAGE"
+  if [ -n "$STARTED" ]; then
+    echo "== stopping $VM"
+    gcloud compute instances stop "$VM" --zone="$ZONE" --quiet >/dev/null || true
+  fi
+}
+trap cleanup EXIT
+
+echo "== staging"
+tar -C "$HERE" --exclude=build --exclude=.gradle --exclude='*/build' --exclude=index.html \
+  --exclude=./app/src/main/assets -cf - . | tar -C "$STAGE" -xf -
+"$HERE/gather-assets.py" "$STAGE/app/src/main/assets/site"
+
+STATUS=$(gcloud compute instances describe "$VM" --zone="$ZONE" --format='value(status)')
+if [ "$STATUS" != RUNNING ]; then
+  echo "== starting $VM ($STATUS)"
+  gcloud compute instances start "$VM" --zone="$ZONE" --quiet >/dev/null
+  STARTED=1
+  for i in $(seq 30); do
+    "${SSH[@]}" --command=true >/dev/null 2>&1 && break
+    sleep 10
+  done
+fi
+
+echo "== building ($TASK)"
+tar -C "$STAGE" -czf - . | "${SSH[@]}" --command="rm -rf ~/app && mkdir ~/app && tar -C ~/app -xzf - \
+  && cd ~/app && bash -lc './gradlew --no-daemon --console=plain $TASK'"
+
+mkdir -p "$OUT"
+NAME=multiply-by-$KIND-$(date +%Y%m%d-%H%M).${FILE##*.}
+gcloud compute scp --zone="$ZONE" --tunnel-through-iap --quiet "$VM:app/$FILE" "$OUT/$NAME"
+echo "== $OUT/$NAME ($(stat -c %s "$OUT/$NAME") bytes)"

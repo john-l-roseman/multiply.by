@@ -1,81 +1,116 @@
 # multiply.by as an Android app (Google Play)
 
-Notes for packaging the multiply.by games as an Android app, gathered on 2026-11-20. Nothing is
-built yet. This file sits in the site's web folder, so nginx serves it at /ANDROID.md (as for every
-.md file); it is tracked in git (listed in the repo's whitelist .gitignore).
+Notes for packaging the multiply.by games as an Android app.
 
-## Decisions so far
+## Build the app yourself
 
-- **Bundle the games inside the app**, not a Trusted Web Activity (TWA) of the website. The site
-  will carry ads on About and Build It (not yet; none today); the games have none and never will.
-  A TWA shows the whole origin, ads included. A bundled app ships only the game pages.
-- **ABOUT and BUILD IT** (in every game's menu) open the phone's browser, outside the app, only
-  behind a **parental gate** (for example "Ask a grown-up: what is 7 + 8?" with a typed answer).
-  Google's Families policy is strict about children leaving a kids' app for pages with ads.
-- **Build machine:** a Google Cloud VM, `android-build` (below). This web server can't build
-  Android (1 GB RAM, no Java). GitHub Actions is the alternative (free, builds from the repo, key
-  kept as a secret).
+Anyone can build the app from the public repo, on Linux, Mac or Windows. You need:
 
-## Still to decide
+- **Java 17** (a JDK) and the **Android SDK** with Android 16 (API 36). Android Studio installs
+  both; without it, install a JDK 17 and Google's command-line tools, then
+  `sdkmanager "platforms;android-36" "build-tools;36.0.0" "platform-tools"`.
+- **Python 3** and **git**.
 
-- **Package name** (application id). It can never change after publishing. Suggested:
-  `by.multiply.app`.
-- **App name** on the phone and in the store. Today the web manifest says "multiply.by";
-  something like "Multiply.by – Times Tables" reads better.
-- **Developer account:** personal or organization (Functional AI Inc.), see Play requirements.
-- Whether Divide (/divide/) and the older /match/ go in the app.
+Then:
 
-## How the app works (planned)
+1. Get the code:
+   `git clone https://github.com/john-l-roseman/multiply.by.git` and `cd multiply.by/android`.
+2. Get the games: `python3 gather-assets.py`. It downloads the current pages from
+   https://multiply.by (about 4 MB) into `app/src/main/assets/site/`. The built pages are not in
+   the repo, so this step is needed; run it again to pick up new games.
+3. Build, either way:
+   - **Android Studio:** open the `android` folder, then Run (to a phone over USB, or an emulator).
+   - **Command line:** tell Gradle where the SDK is (the `ANDROID_HOME` environment variable, or
+     a file `local.properties` with the line `sdk.dir=/path/to/Android/sdk`), then
+     `./gradlew assembleDebug` (Windows: `gradlew.bat assembleDebug`). The first build downloads
+     Gradle and the libraries, a few minutes. The app is
+     `app/build/outputs/apk/debug/app-debug.apk`.
+4. Install it: `adb install app/build/outputs/apk/debug/app-debug.apk`, or copy the file to the
+   phone and open it there (Android asks once to allow installs from that app).
 
-- A minimal Android app: one Activity with a full-screen WebView. No Capacitor or framework
-  needed; Kotlin, Gradle, AndroidX `webkit`.
-- **Same addresses inside the app.** `WebViewAssetLoader` from `androidx.webkit` answers requests
-  for `https://multiply.by/...` from files in the app's assets (`setDomain("multiply.by")`, with a
-  path handler for `/`). We own the domain, so using it here is fine. The result: pages load
-  unchanged, with their absolute links working (the front page strip links to
+A debug build is signed with your own computer's key, so it can't be installed over the Play
+Store version: uninstall that first. To publish **your own version**, give it its own package
+name (`applicationId` in `app/build.gradle.kts`; `by.multiply.app` is taken) and app name
+(`app/src/main/res/values/strings.xml`), sign it with your own key, and keep the MIT license's
+copyright notice.
+
+## Free, and no monetization needed
+
+The app is free, open source and build-it-yourself, like the site: no ads in the app, no in-app
+purchases, no subscriptions, no paid versions (for schools or anyone). Publishing costs almost
+nothing, so the app needs no income:
+
+- **Google Play:** the developer account is $25 once (already paid: organization account). Play
+  charges nothing to publish or update an app, and nothing per download.
+- **Hosting:** none; the games ship inside the app, which works without the website.
+- **Building:** the `android-build` VM, about $5 a month for its disk while stopped, plus about
+  $0.13 an hour during a build. Zero if the VM is deleted between releases (a new one sets itself
+  up in about 3 minutes) or if builds move to GitHub Actions (free for a public repo).
+
+## The project (`android/`)
+
+- `settings.gradle.kts`, `build.gradle.kts`, `gradle.properties`, `app/build.gradle.kts`: AGP
+  8.13, Kotlin 2.2, compileSdk and targetSdk 36, minSdk 24, AndroidX `activity` and `webkit` only.
+  The Gradle wrapper (`gradlew`, `gradlew.bat`, `gradle/wrapper/`) pins Gradle 8.14.3 and
+  downloads it on first use. `preBuild` stops with a clear message if the games haven't been
+  gathered. Launcher icons: `app/src/main/res/mipmap-*/ic_launcher.png`, rendered from `icon.svg`
+  (48 to 192 px; an adaptive icon is still to do).
+- `app/src/main/java/by/multiply/app/`: `MainActivity.kt` (the WebView, address rules, share
+  bridge, back button, edge-to-edge insets), `SiteFiles.kt` (serves the bundled files and the
+  in-app 404 page), `ParentalGate.kt`.
+- `gather-assets.py [--web] [OUT]`: copies the live pages into the app (default OUT
+  `app/src/main/assets/site/`, git-ignored). On the multiply.by server it reads the web folder;
+  anywhere else, or with `--web`, it downloads from https://multiply.by (both give the same files).
+  It starts at / and /games/ and follows every link to a file that exists on the site, so a new game linked from the front
+  page or /games/ is bundled with no list to edit. Never bundled: /about, /build-it/ (its page and
+  prompt.txt; its screenshots are, for /games/), /gamify, /sw.js. It writes `files.txt`, the list
+  the app serves from, and prints links to addresses that are not on the site.
+- `build-app [debug]` (the site owner's route): stages the project in a temp folder (the
+  gathered pages are never written into the web folder), starts `android-build` if stopped,
+  builds over IAP SSH with `./gradlew`, copies the APK to `~/multiply-android/` (outside the web folder), and stops
+  the VM again if it started it. `release` waits for the upload key.
+
+## How the app works
+
+- One Activity with a full-screen WebView; no Capacitor or framework. Kotlin, Gradle, AndroidX
+  `activity` and `webkit`.
+- **Same addresses inside the app.** `shouldInterceptRequest` answers every `https://multiply.by/...`
+  request from the app's assets (`assets/site/`). We own the domain, so using it here is fine.
+  Pages load unchanged: absolute links work (the front page strip links to
   `https://multiply.by/train/` etc.), localStorage per origin works as on the website (saved
-  progress, `multiply_last_game`), and SOURCE's relative `prompt.txt` link resolves to the bundled
-  copy. No generated page is edited (the site's rule: never edit a generated page by hand).
-- **Folder addresses need a custom path handler.** `WebViewAssetLoader.AssetsPathHandler` serves
-  exact file paths only: it does not turn `/train/` (or `/`) into `/train/index.html`, as nginx
-  does. Every link between pages is a folder address (the front page strip, HOME, the /games/
-  tiles), so the app needs its own `PathHandler` that adds `index.html` to a path ending in `/`
-  and sets the MIME type from the extension (`text/html`, `text/plain` for `prompt.txt`,
-  `image/png`, ...). An address without the trailing slash (`/train`) should be redirected or
-  served the same way.
-- `shouldOverrideUrlLoading` / `shouldInterceptRequest` decide each address:
-  - a bundled path: served from assets;
-  - `/about/` or `/build-it/`: blocked in the WebView; the parental gate, then the browser
-    (`Intent.ACTION_VIEW`);
-  - any other site (share links, divide.by, ...): the browser, also behind the gate;
-  - anything else under multiply.by that isn't bundled: a 404 page in the app.
-- **Service worker:** the pages register `/sw.js` (through `pwa.js`). In the app it isn't needed
-  (everything is local). Either let `/sw.js` 404 inside the app (registration fails quietly; check
-  that it throws nothing to the console), or route service-worker requests through the same
-  loader with `ServiceWorkerControllerCompat`. Simplest is the 404. The install prompt in
-  `pwa.js` does nothing in a WebView anyway.
-  - Checked in `pwa.js` (2026-11-20): `startOffline()` ends with `.catch(function () {})`, so a
-    failed registration throws no JavaScript error. It also registers only when the page looks
-    installed (`isInstalled()`) or a service worker is already registered, which a fresh WebView
-    probably never does, so `/sw.js` may never be requested. Still check the console on a
-    device: Chromium can log a failed request ("Failed to load resource: 404") even when the
-    script catches it, and the play tests treat console errors as failures.
-- WebView settings: JavaScript on, DOM storage on, `mediaPlaybackRequiresUserGesture = false`
-  only if a game's sounds fail (the games start audio after a tap, so it should not be needed).
-  The Web Audio chimes and the share menu should be checked on a real phone.
-- The share button: `navigator.share` works in WebView only through a bridge. Without one, the
-  games fall back to their desktop share menu or copy-link, which open other apps/sites: those
-  must go through the parental gate too, or be hidden in the app.
-  - **Simplest: hide sharing in the app.** Gating every share target (email, X, Facebook, ...)
-    adds code for little use in a children's app. Hiding the share icon needs no edit to a
-    generated page: inject a small CSS rule after each page loads
-    (`WebViewCompat.addDocumentStartJavaScript`, or `evaluateJavascript` in `onPageFinished`),
-    or have the custom path handler add it to the served HTML. Its selector must match every
-    game's share icon, which each build names differently, so check every page. A safer
-    alternative is a `navigator.share` bridge (a `@JavascriptInterface` that starts Android's
-    share sheet behind the parental gate): the games then use their phone share path and the
-    desktop menu never appears.
-- Portrait orientation (as the web manifest), back button: WebView history back, then exit.
+  progress, `multiply_last_game`), and SOURCE's relative `prompt.txt` link opens the bundled copy.
+  No generated page is edited (the site's rule: never edit a generated page by hand).
+- **Folder addresses:** `SiteFiles` (not `WebViewAssetLoader`, whose `AssetsPathHandler` serves
+  exact file paths only) adds `index.html` to a path ending in `/` and sets the MIME type from the
+  extension. A link to `/train` (no slash) is reloaded as `/train/`, so relative links resolve.
+- Each address, decided in `shouldOverrideUrlLoading` / `shouldInterceptRequest`:
+  - a bundled page or file: served from the app;
+  - a page that isn't bundled (About, Build It, /gamify/, another site, mailto:, ...): the parental
+    gate, then the phone's browser (`Intent.ACTION_VIEW`);
+  - a file that isn't bundled, or any request to another host: the in-app 404 response (the pages
+    are self-contained, so nothing is fetched from the network).
+- **Service worker:** `/sw.js` is not bundled, so it gets the 404. `pwa.js` catches a failed
+  registration (`startOffline()` ends with `.catch(function () {})`), and it registers only when the
+  page looks installed (`isInstalled()`) or a service worker already exists, which a fresh WebView
+  probably never does. Still check the console on a phone (Chrome's `chrome://inspect`; debug builds
+  allow it): Chromium can log a failed request even when the script catches it, and the play tests
+  treat console errors as failures. The install prompt in `pwa.js` does nothing in a WebView.
+- **Share:** WebView has no `navigator.share`, so the app adds one before each page's scripts run
+  (`addDocumentStartJavaScript`, only on https://multiply.by) that posts the text to the app
+  (`addWebMessageListener`, object `MultiplyApp`). The app asks the parental gate, then opens
+  Android's share sheet with the text. The games then take their phone path (layout.txt: SHARE THE
+  SITE), and their desktop share menu and copy-link never appear. On an old WebView without these
+  features, the games fall back to copying the link.
+  - Found on 2026-11-20 (a site bug, not the app's): four games share links that 404 on the
+    website and in the app: Monster `https://multiply.by/munchy/`, Planes `/flight/`, Great Wall
+    `/greatwall/`, Block Craft `/blockcraft/` (each game's `shareText()`).
+- WebView settings: JavaScript on, DOM storage on, file and content access off, no extra windows
+  (`target="_blank"` opens in the same view). `mediaPlaybackRequiresUserGesture` is left on (the
+  games start audio after a tap); check the Web Audio sounds on a real phone.
+- Portrait (as the web manifest), edge to edge (required from Android 15) with the page padded
+  clear of the system bars on a #fafaf9 background. Back: WebView history back, then the system's
+  back (leaves the app). Rotation and dark-mode changes don't restart the Activity, so a game in
+  progress survives them.
 
 ## What goes in the app
 
@@ -95,14 +130,14 @@ The pages and sizes on 2026-11-20 (each game is one self-contained HTML file):
 | /chinese/ | 105,870 |
 | /blocks/ | 120,701 |
 | /evolution/ | 341,414 |
-| /divide/ (if included) | 59,688 |
+| /divide/ | 59,688 |
 
 Plus each game's `prompt.txt` (SOURCE), `/prompt.txt` and `/base/prompt.txt`, the strip
 thumbnails (`/thumbnails/*.png`), the /games/ screenshots (`/build-it/*.png`; together about
 1.8 MB with the thumbnails), the icons and the manifest. About 4 MB in all: small for an app.
 
-A script (to write) gathers the current live files into the app's `assets/` folder, so a release
-is: run the script, build, upload. A new or rebuilt game reaches the app only with a new release
+`gather-assets.py` (above) gathers the current live files at every build, so a release is: build,
+upload. A new or rebuilt game reaches the app only with a new release
 (the website updates instantly; the app does not).
 
 ## Build machine (Google Cloud VM `android-build`)
@@ -241,9 +276,30 @@ poweroff
 - **Families policy** (an app for children): target-age declaration, content-rating
   questionnaire, data-safety form (the games collect nothing; progress stays on the phone), and a
   **privacy policy URL**. The site has no privacy policy page yet: one is needed.
+- **App name:** "Multiply.by – Times Tables" in the store (the listing title, set in the Play
+  Console). On the phone's home screen, under the icon, "Multiply.by" (`app_name` in
+  `app/src/main/res/values/strings.xml`): a home screen shows only about 12 characters.
 - **Store listing:** 512 x 512 icon (have `icon-512.png`), 1024 x 500 feature graphic, at least 2
   phone screenshots (can be made from the live pages with Playwright), short and full
   descriptions.
+
+## Links to the app on the website (written 2026-11-20, not built yet)
+
+The specs already link to the Play listing, https://play.google.com/store/apps/details?id=by.multiply.app,
+which is a 404 until the app is published:
+
+- `about/about.txt`, GET THE APP: a line, Google's official "Get it on Google Play" badge
+  (`/google-play.png`, 188 x 56; Google's `en_badge_web_generic.png` with only its transparent
+  margin trimmed, tracked in git) and the trademark line Google asks for.
+- `footer.txt`, LEFT column: a "Get the Android app" link. The footer is on About, Build It and
+  /games/; /games/ is bundled in the app, where the link goes through the parental gate like the
+  footer's other links.
+
+**Rebuilding About, Build It or /games/ publishes the link**: their Makefiles depend on
+`footer.txt` (and About on `about.txt`), so a `make` in any of them before launch shows a link to
+a 404. Until launch, either don't rebuild them, or set those two spec changes aside first.
+On launch day: rebuild `about/`, `build-it/` and `games/`, play-test, then build the app (so the
+bundled /games/ has the link too).
 
 ## Fixes to the site before packaging
 

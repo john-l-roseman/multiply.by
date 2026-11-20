@@ -100,6 +100,9 @@ rebuild. GitHub: john-l-roseman/multiply.by (public).
   server block has `charset utf-8;` and a `location ~ \.md$` block with
   `default_type "text/plain; charset=utf-8";` and `try_files $uri =404;`. Without it nginx sends
   .md files as application/octet-stream, which fetch tools (e.g. claude.ai) refuse to read.
+- Android app (Google Play, `by.multiply.app`): notes in `ANDROID.md`, which `make` renders to
+  /android/ (`md-html.py`; generated, git-ignored). The Kotlin project, `gather-assets.py` and
+  `build-app` (builds on the `android-build` VM) are in `android/`.
 - `match/` is an older matching game with its own spec (not using layout.txt).
 - Builds take a few minutes and go live as soon as they pass; run them in the background.
 
