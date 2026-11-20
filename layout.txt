@@ -141,8 +141,10 @@ MENU BAR (directly under the title band)
   plus its padding (NOT equal widths, NOT stretched to fill the bar). SOURCE is a button in the far
   right corner ('margin-left: auto'). There is no logo.
 - Menu items shared by the pages (each page says which of them it shows, and may add its own):
-  - GAMES: a link with the exact text "GAMES": <a href="https://multiply.by/">. It opens the front
-    page, where a child picks a game.
+  - HOME: a link with the exact text "HOME": <a href="https://multiply.by/">. It opens the front
+    page: the game, with a strip of all the other games under it.
+  - GAMES: a link with the exact text "GAMES": <a href="https://multiply.by/games/">. It opens the
+    games page, where a child picks a game from big pictures.
   - BUILD IT: a link with the exact text "BUILD IT" (two words, never broken across two lines:
     `white-space: nowrap`): <a href="https://multiply.by/build-it/">. It opens "Build it yourself":
     each game with the prompt and model that built it.

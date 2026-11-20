@@ -10,8 +10,8 @@ In the <head>, include exactly: <link rel="icon" type="image/svg+xml" href="/ico
 
 The page has the site's frame, described in SITE LAYOUT below: the title band, the menu bar, this
 page's content in a card, the site info (SITE INFO below) and the footer.
-- MENU ITEMS on this page, from left to right: GAMES, BUILD IT, ABOUT (the current page: dark blue,
-  with `aria-current="page"`), then SOURCE in the far right corner. GAMES is the way back to the
+- MENU ITEMS on this page, from left to right: HOME, BUILD IT, ABOUT (the current page: dark blue,
+  with `aria-current="page"`), then SOURCE in the far right corner. HOME is the way back to the
   games: the page also opens inside the installed app, where iPhone shows no back button.
 - SOURCE on this page: <a href="https://multiply.by/about/prompt.txt">
 - The page column is a flex column at least as tall as the screen (`min-height: 100vh`, and
@@ -60,12 +60,12 @@ Adaptive layout (the page fits phones, tablets and laptops):
   o No sign-up, no cost.
   o No ads or trackers in the game.
   o Minimal clutter in the base game.
-  o Make your own version.
+  o <a href="#make-your-own-game">Make your own game</a> from a few lines of text.
 
 <subheader>Transparency</subheader>
   o Open source: free to copy, change and share.
-  o <a href="/base/prompt.txt">See exactly how the game was built.</a>
-  o Build it yourself, using your favorite AI model.
+  o <a href="https://multiply.by/build-it/">See exactly how each game was built.</a>
+  o Build one yourself, using your favorite AI model.
 
 MORE ABOUT THE SITE (below the three sections, inside the same card)
 - A 1px #e5e7eb divider separates it from the three sections; on every screen size it is one
@@ -74,6 +74,22 @@ MORE ABOUT THE SITE (below the three sections, inside the same card)
 - Headings: <h2>, bold, 1.25rem, near-black (#111827), about 1.5rem of space above and 0.5rem
   below; each with an id derived from its text (lowercase, spaces to hyphens, punctuation removed,
   e.g. id="how-the-site-was-built"). Paragraphs: body text, 0.75rem apart.
+- The PROMPT under "Make your own game" is one <pre> block showing the prompt exactly as written
+  here (three paragraphs, each one long line that wraps to the box, a blank line between them): monospace at 0.8125rem, line-height 1.45, #111827 on #f9fafb, a 1px
+  #e5e7eb border, 8px rounded corners, padding 10px 12px, `white-space: pre-wrap;
+  overflow-wrap: anywhere` (long lines wrap on a phone, never a sideways scroll).
+
+<h2>Make your own game</h2>
+<p>Each themed game on this site was built by an AI model from a prompt of a few lines, like this
+one for the <a href="https://multiply.by/train/">train game</a>:</p>
+<pre>Multiply express: steam, diesel, high speed rail, maglev. Make the train images photo-realistic. Use simple animation to show speed.
+
+Your deliverable is a complete, playable, standalone index.html file that I can download and open in my browser.
+
+Details at https://multiply.by/gamify.txt</pre>
+<p>Write a few lines about what your child loves, end with the <code>gamify.txt</code> line, and
+give it to ChatGPT, Claude or Gemini. No programming needed.</p>
+<p>See every game and its prompt on the <a href="https://multiply.by/build-it/">Build it</a> page.</p>
 
 <h2>How the site was built</h2>
 Every page has a SOURCE button in the upper right corner. It opens the page's
@@ -81,13 +97,6 @@ Every page has a SOURCE button in the upper right corner. It opens the page's
 writes the single file <code>index.html</code> that your browser shows. (Despite its name, the
 game's <code>index.html</code> is mostly JavaScript and CSS: only about a tenth of it is HTML.)
 The build instructions were developed over hundreds of hours of human design, testing and debugging. 
-
-<h2>Make your own version</h2>
-The game's build instructions are meant to be changed. Rewrite the parts you want (the
-encouragement, the labels, the look) and give the file to an AI model to build your own game.
-The <a href="https://multiply.by/divide/">division game</a> was made this way. The gamified games on
-the <a href="https://multiply.by/build-it/">Build it</a> page each started from a prompt of a few
-lines instead.
 
 <h2>Portability</h2>
 The build instructions are written to work with models from Google, Anthropic or OpenAI, and

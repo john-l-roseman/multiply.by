@@ -3,7 +3,7 @@ PWA   = PWA-build.txt
 FILES = manifest.webmanifest sw.js pwa.js icon.svg og-image.svg
 ICONS = icon-192.png icon-512.png
 
-all: gamify.txt base/index.html index.html $(FILES) $(ICONS) og-image.png
+all: gamify.txt gamify/index.html base/index.html index.html $(FILES) $(ICONS) og-image.png sitemap.xml
 
 # THE BASE GAME (https://multiply.by/base/)
 # Its complete prompt (base/prompt.txt, the file its SOURCE links to): game.txt with the
@@ -18,6 +18,16 @@ $(SPEC): game.txt layout.txt assemble-spec
 gamify.txt: gamify.md $(SPEC) gamify-txt.py
 	python3 gamify-txt.py gamify.md $(SPEC) > gamify.txt.tmp
 	mv gamify.txt.tmp gamify.txt
+
+# The same file as a web page at https://multiply.by/gamify/: Gemini's web app refuses a .txt
+# upload but reads an .html one. The text in a <pre>, HTML escaped, nothing else changed. The
+# title is "gamify" so a copy saved from the browser is named gamify.html.
+gamify/index.html: gamify.txt
+	mkdir -p gamify
+	python3 -c 'import html, sys; t = open("gamify.txt", encoding="utf-8").read(); \
+	sys.stdout.write("<!doctype html>\n<meta charset=\"utf-8\">\n<title>gamify</title>\n" \
+	"<pre style=\"white-space: pre-wrap\">" + html.escape(t) + "</pre>\n")' > gamify/index.html.tmp
+	mv gamify/index.html.tmp gamify/index.html
 
 # The plain game page, built from base/prompt.txt (no PWA) by the model named in the
 # file "model" (carbon, fable, ...; see run-model).
@@ -76,4 +86,11 @@ og-image.png: og-image.svg
 	convert -background none -density 96 og-image.svg -depth 8 -strip og-image.tmp.png
 	mv og-image.tmp.png og-image.png
 
-.PHONY: all
+# sitemap.xml for search engines (robots.txt points to it): the public pages, each dated by its
+# index.html. Remade on every make (it takes a moment); it never depends on a page, so making it
+# never starts a page build. Pages are listed in make-sitemap.py.
+sitemap.xml:
+	python3 make-sitemap.py > sitemap.xml.tmp
+	mv sitemap.xml.tmp sitemap.xml
+
+.PHONY: all sitemap.xml

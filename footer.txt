@@ -17,7 +17,7 @@ SITE INFO (a three-column block at the bottom of the page, directly above the co
 - No other lines, links or icons than those below.
 
 LEFT: title "About Multiply.by". Text, one paragraph, exactly:
-"A free times-tables game: no sign-up, no ads in the games, and it works offline. Every page on
+"Free times-table games: no sign-up, no ads in the games, and they work offline. Every page on
 this site is built by an AI model from a plain-text prompt that you can read and build yourself."
 
 CENTER: title "Feedback". Text (two short lines, tight vertical spacing: no margin between them):
@@ -29,15 +29,21 @@ no underline (underlined on hover).
 RIGHT: the company. The WHOLE COLUMN is one link to the company's page: the title and the text
 under it are both inside one <a> (a block element filling the column), so a click or tap anywhere
 on the column opens it. Exactly:
-<a class="company" href="https://functional.by" target="_blank" rel="noreferrer"><h2><span class="logo" aria-hidden="true">φ</span> Functional AI Inc.</h2><p>Open-source learning games that you can build with simple prompts.</p></a>
+<a class="company" href="https://functional.by" target="_blank" rel="noreferrer"><h2>LOGO<span>Functional AI Inc.</span></h2><p>Open-source learning games that you can build with simple prompts.</p></a>
+where LOGO is exactly this inline SVG, character for character (do not redraw, simplify or
+replace it with a text φ):
+<svg class="logo" viewBox="0 -1984 1476 2478" aria-hidden="true"><path transform="scale(1 -1)" fill="currentColor" d="M646 -418V798Q646 906 680 982Q715 1058 781 1098Q847 1138 942 1138Q1070 1138 1166 1068Q1263 998 1318 873Q1372 748 1372 583Q1372 387 1294 252Q1217 116 1074 46Q931 -24 734 -24H709Q524 -24 388 47Q252 118 178 248Q104 379 104 555Q104 685 144 804Q185 922 262 1008Q340 1094 450 1125L497 971Q431 952 384 899Q336 846 310 764Q284 681 284 574Q284 431 332 334Q380 236 474 186Q569 137 709 137H734Q887 137 989 185Q1091 233 1142 332Q1192 432 1192 585Q1192 700 1164 788Q1137 877 1084 927Q1032 977 957 977Q914 977 884 959Q855 941 840 908Q826 874 826 826V-418Z"/></svg>
 - The link: `display: block`, no underline, color inherited (it does not turn blue), cursor
-  pointer. On hover the title is underlined (not the text under it); a clear focus
+  pointer. On hover the name is underlined (not the logo or the text under it); a clear focus
   outline for the keyboard.
 - The title: an <h2> like the others but larger: bold, 1.5rem, line-height 1.2, color #111827,
-  margin 0 0 6px.
-- The logo is the Greek letter phi (φ, U+03C6) as text, not an image: crimson #BE123C, normal
-  weight (400), 1.25em, line-height 1, with the name directly after it (one space). It must not make
-  the title taller than its own text line.
+  margin 0 0 6px; `display: flex; align-items: baseline; gap: 0.1em;` (the logo, then the name).
+- THE LOGO is the company's own: the Greek letter phi as drawn by the Inter font (weight 400), the
+  same letter as on https://functional.by, given above as an SVG outline so the page loads no
+  font. Its CSS, exactly: `.company .logo { font-size: 1.6em; width: 0.7207em; height: 1.21em;
+  flex: none; transform: translateY(0.05em); color: #BE123C; }` (the SVG's box is the font's em
+  box, so with `align-items: baseline` its lower point sits on the name's baseline and it rises
+  above the name, as on functional.by). The underline on hover is on the name only.
 - The text: one paragraph, exactly "Open-source learning games that you can build with simple
   prompts.", in the column's normal text style (as the other two columns' text), margin 0.
 
@@ -46,6 +52,7 @@ CHECKS FOR SITE INFO
   the screen on a short page, with no sideways scroll; three columns at 768px and wider, one
   column at 360px; when side by side, the three columns start at the same top edge, the LEFT and
   CENTER titles level with each other, and the company name (1.5rem) larger than them.
-- The company title shows a crimson φ before "Functional AI Inc."; a click on the title or on the
+- The company title shows the crimson Inter φ (the SVG) before "Functional AI Inc.", larger than the
+  name, its lower point on the name's baseline; a click on the title or on the
   text under it opens https://functional.by in a new tab.
 - The copyright line is still the very last line of the page.

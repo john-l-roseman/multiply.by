@@ -10,8 +10,8 @@ In the <head>, include exactly: <link rel="icon" type="image/svg+xml" href="/ico
 
 The page has the site's frame, described in SITE LAYOUT below: the title band, the menu bar, this
 page's content (the games and how each was built), the site info (SITE INFO below) and the footer.
-- MENU ITEMS on this page, from left to right: GAMES, BUILD IT (the current page: dark blue, with
-  `aria-current="page"`), ABOUT, then SOURCE in the far right corner. GAMES is the way back to the
+- MENU ITEMS on this page, from left to right: HOME, BUILD IT (the current page: dark blue, with
+  `aria-current="page"`), ABOUT, then SOURCE in the far right corner. HOME is the way back to the
   games: the page also opens inside the installed app, where iPhone shows no back button.
 - SOURCE on this page: <a href="https://multiply.by/build-it/prompt.txt">
 - Page background light gray (#f3f4f6).

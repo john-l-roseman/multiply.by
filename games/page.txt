@@ -9,15 +9,16 @@ play. (The front page, https://multiply.by/, is the base game itself with a stri
 under it; its "More games" tile opens this page.)
 
 <title>Games – Multiply.by</title>
-In the <head>, directly after the title, include exactly: <meta name="description" content="Free times-tables games for children: feed a monster, drive a train, build a robot, fly through history, build the Great Wall, dig and build with blocks. No sign-up, no ads.">
+In the <head>, directly after the title, include exactly: <meta name="description" content="Free times-table games for children: feed a monster, drive a train, build a robot, fly through history, build the Great Wall, dig and build with blocks. No sign-up, no ads.">
 In the <head>, include exactly: <meta name="viewport" content="width=device-width, initial-scale=1">
 In the <head>, include exactly: <link rel="icon" type="image/svg+xml" href="/icon.svg"> (the app's icon in the browser tab).
 
 The page has the site's frame, described in SITE LAYOUT below: the title band, the menu bar, this
 page's content (the games), the site info (SITE INFO below) and the footer.
-- MENU ITEMS on this page, from left to right: GAMES (the current page: dark blue, with
-  `aria-current="page"`, and its link is https://multiply.by/games/ on this page), BUILD IT, ABOUT,
-  then SOURCE in the far right corner.
+- MENU ITEMS on this page, from left to right: HOME, GAMES (the current page: dark blue, with
+  `aria-current="page"`), BUILD IT, ABOUT, then SOURCE in the far right corner. HOME is the way
+  back to the front page: the page also opens inside the installed app, where iPhone shows no back
+  button.
 - SOURCE on this page: <a href="https://multiply.by/games/prompt.txt">
 - The share icon shares https://multiply.by/games/ (`shareText()` returns
   'https://multiply.by/games/').
@@ -106,7 +107,8 @@ CHECKS
   game.
 - The page passes with the screenshots missing too: each image keeps its 412:330 space (its width
   and height attributes) and shows its alt text.
-- The menu bar shows GAMES (current), BUILD IT, ABOUT and SOURCE; SOURCE opens
+- The menu bar shows HOME, GAMES (current), BUILD IT, ABOUT and SOURCE on one line at 360px,
+  nothing cut off; HOME opens https://multiply.by/; SOURCE opens
   https://multiply.by/games/prompt.txt.
 
 #include footer.txt

@@ -15,11 +15,6 @@
 /about/*
 !/about/about.txt
 !/about/Makefile
-!/demo/
-/demo/*
-!/demo/demo.txt
-!/demo/page.txt
-!/demo/Makefile
 !/build-it/
 /build-it/*
 !/build-it/page.txt
@@ -33,6 +28,8 @@
 !/games/Makefile
 !/check-scripts.py
 !/play-test.py
+!/make-sitemap.py
+!/robots.txt
 !/gamify-txt.py
 !/reformat-spec.py
 !/MATCH-TO-FOUR.txt
