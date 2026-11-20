@@ -1,27 +1,9 @@
 # Gamifying the multiply.by game
 
 This file helps an AI model turn the multiply.by times-tables game into a GAMIFIED version from a
-short prompt, e.g. "a space-travel version" or "a monster-based version for 2nd graders": a
-mascot or a world, a reward for every right answer, progress the player can see, celebrations,
-and a new look. It is for big reworkings of the screen and the play.
+short prompt, e.g. "a space-travel version" or "a monster-based version for 2nd graders".
 
-Small changes are not what this file is for. New branding, a different kind of question (for
-example division) or spoken encouragement in another language are a simple edit of the base build
-instructions that a person can make by hand (multiply.by/divide/ and multiply.by/chinese/ were made
-that way).
-
-The game is fully described by its base build instructions,
-https://multiply.by/base/prompt.txt (about 91 KB, starting with "NOTE FOR HUMAN
-READERS"). In gamify.txt (https://multiply.by/gamify.txt, this guide and the base build
-instructions in one file) they follow this guide. Otherwise use an attached copy if there is
-one, or fetch it. Work only from a complete copy: if what you get is cut off or summarized, say
-so.
-
-The worked example is Multiply Monster, https://multiply.by/monster/, for 7- to 9-year-olds: a
-monster to feed, a path to walk, stickers, stars and two easier sets. Its complete build
-instructions, with its CUSTOMIZATION section near the top, are at
-https://multiply.by/monster/build-instructions.txt. Read that section before writing your own:
-section G3 below sums up how it rearranges the screen.
+The game is fully described by its base build instructions, which follow this guide.
 
 ## G1. The steps
 
@@ -37,16 +19,15 @@ section G3 below sums up how it rearranges the screen.
      it would share, and overwrite, the original game's progress.
    - SOURCE opens THIS game's own prompt: the `prompt.txt` file published next to the game's
      `index.html`. Use exactly the relative link `<a href="prompt.txt">`, which works wherever
-     the game is published. CRITICAL: SOURCE never points to gamify.txt, gamify.md or the base
+     the game is published. CRITICAL: SOURCE never points to /gamify/, gamify.md or the base
      game's `https://multiply.by/base/prompt.txt`, even though those are the files you were given.
      (If the base file already points SOURCE to an address ending in `/prompt.txt` inside a
      game's folder, such as `https://multiply.by/train/prompt.txt`, keep that address.)
 3. BUILD INSTRUCTIONS INSTEAD (only when the person asks for the build instructions, or the
    spec, rather than the game): one complete new `prompt.txt`, as a file named so.
    Copy the base file EXACTLY, word for word, with only these changes:
-   - After the Note for Human Readers (at the first blank line of the file), insert the line
-     "Where this section conflicts with the rest of this file, this section wins.", then the
-     CUSTOMIZATION section and one blank line.
+   - At the very top of the file, insert the line "Where this section conflicts with the rest
+     of this file, this section wins.", then the CUSTOMIZATION section and one blank line.
    - Change the one line that starts with `- GAME: ` to the new game's short name.
    - Change the one SOURCE link, `https://multiply.by/base/prompt.txt`, to the relative link
      `prompt.txt` (the game's own prompt, published next to its `index.html`).

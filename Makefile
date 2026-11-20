@@ -3,7 +3,7 @@ PWA   = PWA-build.txt
 FILES = manifest.webmanifest sw.js pwa.js icon.svg og-image.svg
 ICONS = icon-192.png icon-512.png
 
-all: gamify.txt gamify/index.html base/index.html index.html $(FILES) $(ICONS) og-image.png sitemap.xml
+all: gamify/index.html base/index.html index.html $(FILES) $(ICONS) og-image.png sitemap.xml
 
 # THE BASE GAME (https://multiply.by/base/)
 # Its complete prompt (base/prompt.txt, the file its SOURCE links to): game.txt with the
@@ -13,20 +13,12 @@ $(SPEC): game.txt layout.txt assemble-spec
 	./assemble-spec game.txt > $(SPEC).tmp
 	mv $(SPEC).tmp $(SPEC)
 
-# One file for building a GAMIFIED game in any chatbot: gamify.md (as plain text) followed by
-# the base game's complete prompt. No AI model involved.
-gamify.txt: gamify.md $(SPEC) gamify-txt.py
-	python3 gamify-txt.py gamify.md $(SPEC) > gamify.txt.tmp
-	mv gamify.txt.tmp gamify.txt
-
-# The same file as a web page at https://multiply.by/gamify/: Gemini's web app refuses a .txt
-# upload but reads an .html one. The text in a <pre>, HTML escaped, nothing else changed. The
-# title is "gamify" so a copy saved from the browser is named gamify.html.
-gamify/index.html: gamify.txt
+# https://multiply.by/gamify/: ONE file for building a GAMIFIED game in any chatbot: gamify.md (as
+# plain text) followed by the base game's complete prompt, HTML-escaped in a <pre> (Gemini's web app
+# refuses a .txt upload but takes an .html one). No AI model involved.
+gamify/index.html: gamify.md $(SPEC) gamify-html.py
 	mkdir -p gamify
-	python3 -c 'import html, sys; t = open("gamify.txt", encoding="utf-8").read(); \
-	sys.stdout.write("<!doctype html>\n<meta charset=\"utf-8\">\n<title>gamify</title>\n" \
-	"<pre style=\"white-space: pre-wrap\">" + html.escape(t) + "</pre>\n")' > gamify/index.html.tmp
+	python3 gamify-html.py gamify.md $(SPEC) > gamify/index.html.tmp
 	mv gamify/index.html.tmp gamify/index.html
 
 # The plain game page, built from base/prompt.txt (no PWA) by the model named in the

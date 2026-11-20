@@ -86,8 +86,8 @@ one for the <a href="https://multiply.by/train/">train game</a>:</p>
 
 Your deliverable is a complete, playable, standalone index.html file that I can download and open in my browser.
 
-Details at https://multiply.by/gamify.txt</pre>
-<p>Write a few lines about what your child loves, end with the <code>gamify.txt</code> line, and
+Details at https://multiply.by/gamify</pre>
+<p>Write a few lines about what your child loves, end with the <code>gamify</code> line, and
 give it to ChatGPT, Claude or Gemini. No programming needed.</p>
 <p>See every game and its prompt on the <a href="https://multiply.by/build-it/">Build it</a> page.</p>
 

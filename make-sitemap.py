@@ -24,8 +24,7 @@ PAGES = [
     ("build-it/", "build-it/index.html", "0.6"),
     ("about/", "about/index.html", "0.5"),
     ("match/", "match/index.html", "0.3"),
-    ("gamify/", "gamify/index.html", "0.5"),  # the same as a page (Gemini takes .html, not .txt)
-    ("gamify.txt", "gamify.txt", "0.5"),  # one file for building a gamified game in any chatbot
+    ("gamify/", "gamify/index.html", "0.5"),  # one file for building a gamified game in any chatbot
 ]
 
 out = ['<?xml version="1.0" encoding="UTF-8"?>',

@@ -4,10 +4,11 @@
 
 prompt.txt in this folder is the prompt, a few lines such as "a gamified version with a train
 motif", written as a person would type it into a chat (claude.ai, ChatGPT, Gemini), with a link
-to https://multiply.by/gamify.txt. The build does EXACTLY what such a chat does, so a build that
-passes here shows that the prompt and gamify.txt work as published:
+to https://multiply.by/gamify. The build does EXACTLY what such a chat does, so a build that
+passes here shows that the prompt and /gamify/ work as published:
   - the model gets prompt.txt word for word, followed by the full text of each multiply.by file
-    the prompt links to (as if the chat had fetched it in full): nothing else. No instructions
+    the prompt links to (as if the chat had fetched it in full; a page's text, as a fetch tool
+    gives it): nothing else. No instructions
     from this script, no preset SOURCE or GAME, no worked example, no answer format.
   - from the answer, the page (<!DOCTYPE html> ... </html>) becomes index.html; whatever the
     model wrote before it (its CUSTOMIZATION design, if it followed gamify.md) is saved as
@@ -22,7 +23,7 @@ served at https://multiply.by/train/carbon/), so a build with another model does
 index.html, customization.txt and build.txt (model, date, tokens, cost, time, size). The folder's
 own index.html is always the latest build, with its build.txt beside it.
 Served files are written under a temporary name and renamed into place. If index.html is newer
-than this prompt.txt, model and the files the prompt links to (gamify.txt is remade by make
+than this prompt.txt, model and the files the prompt links to (/gamify/ is remade by make
 first), nothing is rebuilt (MK_FORCE=1, or touch prompt.txt, to force a build).
 
 Usage, from the game's folder:  ../mk-gamify
@@ -121,14 +122,17 @@ def write_atomic(path, text):
 
 
 def linked_files(request):
-    """The multiply.by files the prompt links to, as (address, local path), in order. gamify.txt
-    is generated: make remakes it first if gamify.md or the base game changed."""
+    """The multiply.by files the prompt links to, as (address, local path), in order. A folder
+    address (https://multiply.by/gamify) is its index.html. /gamify/ is generated: make remakes it
+    first if gamify.md or the base game changed."""
     found = []
     for url in re.findall(r"https://multiply\.by/[^\s<>\"')]*", request):
         url = url.rstrip(".,;:")
         path = os.path.join(ROOT, url[len(SITE):] or "index.html")
-        if os.path.basename(path) == "gamify.txt":
-            subprocess.run(["make", "-s", "-C", ROOT, "gamify.txt"], check=True)
+        if os.path.isdir(path):
+            path = os.path.join(path, "index.html")
+        if os.path.relpath(path, ROOT) == "gamify/index.html":
+            subprocess.run(["make", "-s", "-C", ROOT, "gamify/index.html"], check=True)
         if not os.path.isfile(path):
             die(f"the prompt links to {url}, but {path} does not exist")
         if (url, path) not in found:
@@ -140,7 +144,12 @@ def message(request, files):
     """What a chat gets: the prompt as typed, then each linked file as if fetched in full."""
     text = request.strip() + "\n"
     for url, path in files:
-        text += f"\n\n----- {url} (fetched, complete) -----\n\n{read(path)}"
+        body = read(path)
+        if os.path.relpath(path, ROOT) == "gamify/index.html":
+            # A fetch gives a page's text, not its markup: gamify.md as Markdown, then the base spec.
+            body = subprocess.run(["python3", "gamify-html.py", "--text", "gamify.md", "base/prompt.txt"],
+                                  cwd=ROOT, check=True, capture_output=True, text=True).stdout
+        text += f"\n\n----- {url} (fetched, complete) -----\n\n{body}"
     return text
 
 
